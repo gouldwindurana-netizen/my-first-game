@@ -1,0 +1,82 @@
+name: Test and publish Mossguard
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the game
+        uses: actions/checkout@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Test the game rules
+        run: npm test
+      - name: Build the website and standalone HTML sample
+        run: npm run build
+      - name: Install desktop and mobile browser engines
+        run: npx playwright install --with-deps chromium firefox webkit
+      - name: Check desktop and mobile gameplay
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/serve.mjs --port 4173 --base /my-first-game/ > /tmp/mossguard-serve.log 2>&1 &
+          game_server_pid=$!
+          trap 'kill "$game_server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:4173/my-first-game/ > /dev/null; then break; fi
+            sleep 0.25
+          done
+          curl --fail --silent http://127.0.0.1:4173/my-first-game/ > /dev/null
+          export CHROMIUM_PATH
+          CHROMIUM_PATH=$(node --input-type=module -e "import { chromium } from '@playwright/test'; process.stdout.write(chromium.executablePath())")
+          GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:browser
+          for browser_engine in chromium firefox webkit; do
+            BROWSER="$browser_engine" PLATFORM_BASE=http://127.0.0.1:4173/my-first-game/ npm run test:platforms
+          done
+      - name: Retain browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gameplay-screenshots
+          path: artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
+      # Enable Settings → Pages → Build and deployment → GitHub Actions once.
+      # configure-pages cannot enable a new site using GITHUB_TOKEN alone.
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload the tested site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publish GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,28 @@
+{
+  "name": "mossguard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "npm run build:web && npm run build:html && node scripts/prepare-site.mjs",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "vitest run",
+    "test:browser": "node tests/browser.mjs",
+    "build:web": "tsc --noEmit && vite build",
+    "build:html": "node scripts/export-html.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test:platforms": "node tests/platforms.mjs"
+  },
+  "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/dm-sans": "^5.3.0",
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.12",
+    "vitest": "^3.2.4"
+  }
+}

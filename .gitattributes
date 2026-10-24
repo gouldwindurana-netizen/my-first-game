@@ -1,0 +1,14 @@
+* text=auto
+*.html text eol=lf
+*.css text eol=lf
+*.ts text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.png binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+samples/mossguard.html linguist-generated=true
