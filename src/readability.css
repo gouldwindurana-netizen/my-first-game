@@ -1,0 +1,343 @@
+/* Readable controls and a width-led battlefield. Keep logical world coordinates unchanged. */
+main {
+  width: calc(100% - 32px);
+  max-width: 1920px;
+}
+
+.site-header nav { font-size: 13px; }
+.brand small { font-size: 8px; letter-spacing: 2px; }
+.edition { font-size: 9px; letter-spacing: 1px; }
+.eyebrow, .mission-heading .eyebrow { font-size: 10px; }
+.difficulty { font-size: 10px; }
+.text-button { font-size: 12px; min-height: 40px; }
+.key { font-size: 9px; height: 20px; min-width: 20px; }
+.icon-button { min-width: 38px; min-height: 38px; }
+.icon-button .icon { width: 18px; height: 18px; }
+
+/* Zoom changes the Phaser camera; these controls never scale with the game world. */
+.view-controls {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid #577789;
+  border-radius: 5px;
+  color: #e4d5a7;
+  background: #081c2deF;
+  box-shadow: inset 0 0 0 2px #173442, 0 3px 12px #0005;
+}
+.view-controls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid #496b80;
+  border-radius: 3px;
+  color: #e2d2a0;
+  background: linear-gradient(#224253, #0c2638);
+  font-size: 24px;
+  font-weight: 500;
+}
+.view-controls button:hover:not(:disabled) { border-color: #d3b975; background: #2c4c5d; }
+.view-controls button:disabled { opacity: .4; }
+.view-controls button .icon { width: 21px; height: 21px; }
+.zoom-label { min-width: 48px; color: #cbd9dd; font-size: 13px; text-align: center; font-variant-numeric: tabular-nums; }
+
+.battle-bar { min-height: 66px; height: auto; padding: 9px 12px; gap: 12px; }
+.resources { gap: 8px; height: auto; }
+.resource { min-width: 105px; min-height: 45px; padding: 8px 10px; gap: 9px; }
+.resource .icon { width: 23px; height: 23px; }
+.resource small { display: block; font-size: 9px; letter-spacing: .6px; margin-bottom: 5px; }
+.resource b { font-size: 20px; line-height: 1.1; }
+.wave-badge, .wave-badge b { font-size: 23px; }
+.wave-badge { padding: 9px 15px; gap: 9px; }
+.wave-badge .icon { display: block; width: 20px; height: 20px; }
+.map-button { min-width: 42px; width: 42px; height: 42px; font-size: 18px; }
+.map-button .icon { width: 17px; height: 17px; }
+.battle-footer { min-height: 36px; height: auto; font-size: 10px; padding: 8px 13px; }
+.map-label { font-size: 9px; top: 17px; left: 17px; letter-spacing: 1px; }
+.field-rail button { width: 48px; height: 52px; }
+.field-rail button .icon { width: 21px; height: 21px; }
+.field-rail button span { font-size: 8px; }
+.ability { transform: none; min-width: 184px; min-height: 58px; padding: 10px 12px; gap: 10px; }
+.ability b { font-size: 25px; }
+.ability small { font-size: 9px; letter-spacing: .5px; }
+.ability .key { font-size: 10px; }
+.ability-icon { width: 36px; height: 36px; }
+.toast { font-size: 12px; line-height: 1.5; max-width: min(70%, 580px); }
+
+.panel-heading { padding: 15px 4px 13px; }
+.panel-heading .eyebrow { font-size: 9px; letter-spacing: 1px; }
+.context-panel { padding: 17px 18px; }
+.empty-command > .eyebrow { font-size: 9px; letter-spacing: .9px; }
+.empty-command .empty-title { font-size: 33px; margin: 12px 0 15px; }
+.empty-command p { font-size: 12px; line-height: 1.7; }
+.empty-command .brief-row { font-size: 9px; letter-spacing: .6px; }
+.empty-command .brief-row b { font-size: 30px; }
+.empty-command > small { font-size: 11px; }
+.command-towers { height: 70px; }
+.command-towers > span { height: 60px; }
+.tower-detail .detail-header h2 { font-size: 28px; }
+.detail-header > span, .tower-detail .detail-header > span { font-size: 9px; }
+.detail-role, .tower-detail .detail-role { font-size: 9px; letter-spacing: .8px; }
+.detail-description, .tower-detail .detail-description { font-size: 12px; line-height: 1.6; }
+.tower-detail .stat-list { padding: 7px 0; margin: 14px 0; }
+.stat-list > div, .tower-detail .stat-list > div { font-size: 12px; margin: 10px 0; }
+.stat-list b, .tower-detail .stat-list b { font-size: 15px; }
+.stat-list .icon { width: 15px; height: 15px; }
+.stat-list em { font-size: 12px; }
+.tower-special, .tower-detail .tower-special { font-size: 11px; line-height: 1.6; }
+.tower-special .icon { width: 16px; height: 16px; }
+.upgrade-heading, .tower-detail .upgrade-heading { font-size: 10px; margin: 8px 0 12px; }
+.upgrade-node strong, .tower-detail .upgrade-node strong { font-size: 10px; line-height: 1.4; }
+.upgrade-node small, .tower-detail .upgrade-node small { font-size: 9px; }
+.upgrade-node .icon, .tower-detail .upgrade-node .icon { width: 37px; height: 37px; padding: 7px; }
+.upgrade-track::before { top: 24px; }
+.tower-actions button, .primary { min-height: 44px; font-size: 13px; }
+.tower-actions .icon { width: 16px; height: 16px; }
+.placement-note, .tower-detail .placement-note { font-size: 11px; line-height: 1.6; padding: 12px; }
+.next-label, .next-label > span:last-child { font-size: 9px; }
+.next-label { letter-spacing: .8px; }
+.next-wave h3 { font-size: 28px; }
+.next-wave p { font-size: 12px; line-height: 1.6; }
+.wave-button { font-size: 13px; padding: 13px 11px; }
+.wave-button .icon { width: 14px; height: 14px; }
+.wave-button .key { font-size: 9px; height: 19px; }
+.panel-foot { font-size: 9px; line-height: 1.5; }
+.panel-foot .icon { width: 14px; height: 14px; }
+
+.dock-heading b { font-size: 21px; }
+.dock-heading small { font-size: 9px; letter-spacing: .4px; white-space: normal; }
+.tower-card { min-height: 110px; }
+.tower-info b { font-size: 22px; line-height: 1.05; }
+.tower-info > span { display: block; font-size: 9px; letter-spacing: .3px; white-space: normal; line-height: 1.4; }
+.tower-art { width: 60px; height: 68px; }
+.tower-cost { font-size: 14px; gap: 5px; padding-top: 6px; }
+.tower-cost .icon { width: 14px; height: 14px; }
+.tower-key { width: 17px; height: 17px; font-size: 9px; }
+.dock-tip { font-size: 10px; }
+.minimap-label { height: 31px; font-size: 9px; letter-spacing: 1px; }
+.minimap-label b { font-size: 15px; }
+.minimap { height: calc(100% - 31px); min-height: 120px; }
+.site-footer, .site-footer > span:first-child { font-size: 9px; line-height: 1.5; }
+.site-footer .icon { width: 14px; height: 14px; }
+kbd { font-size: 9px; padding: 4px; }
+
+.modal .eyebrow { font-size: 10px; }
+.modal-intro, .guide-steps p, .guide-note, .result-modal > p { font-size: 13px; }
+.guide-steps h3 { font-size: 26px; }
+.setting-row b { font-size: 15px; }
+.setting-row small { font-size: 12px; }
+.result-stats small { font-size: 10px; }
+
+@media (min-width: 981px) {
+  .game-shell { grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+  .tower-dock {
+    grid-column: 1;
+    grid-row: 1;
+    position: sticky;
+    top: 8px;
+    z-index: 9;
+    align-self: start;
+    padding: 10px;
+    gap: 12px;
+    background: linear-gradient(160deg, #173443, #091d2b 65%);
+  }
+  .battle-column { grid-column: 1; grid-row: 2; align-self: start; }
+  .build-panel {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 8px;
+    align-self: start;
+    max-height: calc(100dvh - 156px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #527183 #0a1a28;
+  }
+  .build-panel .next-wave {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 15px 13px 13px;
+    margin: 12px 5px 0;
+    background: linear-gradient(#0c2030, #091b29);
+    border-top-color: #526b77;
+    box-shadow: 0 -7px 12px #081925a0;
+  }
+  .build-panel .panel-foot { display: none; }
+  .minimap-panel { grid-column: 2; grid-row: 3; min-height: 185px; align-self: start; }
+  .foundation-picker { grid-column: 1; grid-row: 3; align-self: start; }
+  .dock-heading { min-width: 138px; max-width: 150px; padding-right: 13px; }
+  .dock-emblem { width: 42px; height: 58px; }
+  .tower-list { align-self: stretch; }
+  .tower-card { grid-template-columns: 56px minmax(0, 1fr); padding: 11px 9px 9px 5px; gap: 0 8px; }
+  .dock-tip { display: none; }
+  .tower-detail { grid-template-columns: 78px minmax(0, 1fr); gap: 0 10px; }
+  .tower-detail .tower-portrait { width: 78px; height: 113px; }
+  .tower-detail .tower-portrait svg { width: 100px; height: 100px; }
+  .tower-detail .detail-header { margin-top: 5px; }
+  .tower-detail .detail-description { margin-bottom: 0; }
+  .tower-detail .detail-role { margin: 7px 0 6px; }
+  .tower-detail .tower-actions { margin-top: 14px; }
+}
+
+@media (min-width: 981px) and (max-width: 1270px) {
+  .game-shell { grid-template-columns: minmax(0, 1fr) 280px; gap: 14px; }
+  .tower-dock { padding: 8px; gap: 8px; }
+  .dock-heading { display: none; }
+  .tower-card { grid-template-columns: 45px minmax(0, 1fr); gap: 0 5px; padding-left: 4px; padding-right: 6px; }
+  .tower-art { width: 50px; height: 59px; }
+  .tower-info b { font-size: 20px; }
+  .tower-info > span { font-size: 9px; }
+  .battle-bar { flex-wrap: wrap; gap: 8px; }
+  .resources { flex: 1; }
+  .resource { min-width: 93px; padding-right: 8px; padding-left: 7px; }
+  .resource small { font-size: 8px; }
+  .resource b { font-size: 18px; }
+  .wave-badge { margin-left: auto; margin-right: 3px; }
+  .wave-badge, .wave-badge b { font-size: 20px; }
+  .wave-badge .icon { display: none; }
+  .map-controls { margin-left: 0; }
+}
+
+@media (min-width: 741px) and (max-width: 980px) {
+  main { width: calc(100% - 24px); }
+  .game-shell { grid-template-columns: minmax(0, 1fr) 250px; gap: 12px; }
+  .battle-column { grid-column: 1; grid-row: 2; }
+  .tower-dock { grid-column: 1 / -1; grid-row: 1; }
+  .build-panel { grid-column: 2; grid-row: 2; align-self: start; }
+  .minimap-panel { grid-column: 2; grid-row: 3; }
+  .foundation-picker { grid-column: 1; grid-row: 3; grid-template-columns: 1fr; }
+  .foundation-sites { grid-template-columns: repeat(4,minmax(44px,1fr)); }
+  .dock-heading { min-width: 110px; max-width: 125px; }
+  .tower-card { min-height: 118px; }
+  .tower-info b { font-size: 20px; white-space: normal; }
+  .tower-info > span { display: none; }
+  .tower-art { width: 57px; height: 60px; }
+  .battle-bar { flex-wrap: wrap; min-height: 120px; }
+  .resources { width: 100%; flex-basis: 100%; justify-content: space-between; }
+  .resource { min-width: 0; padding: 8px 6px; flex: 1; gap: 5px; }
+  .resource .icon { width: 17px; height: 17px; }
+  .resource small { font-size: 8px; letter-spacing: 0; }
+  .resource b { font-size: 17px; }
+  .wave-badge, .wave-badge b { font-size: 20px; }
+  .wave-badge { margin-left: 0; }
+  .map-controls { margin-left: auto; }
+  .map-label { font-size: 8px; }
+  .tower-detail .detail-header h2 { font-size: 25px; }
+  .tower-detail .detail-description { font-size: 11px; }
+  .view-controls { top: 8px; right: 8px; gap: 3px; padding: 4px; }
+  .zoom-label { min-width: 41px; font-size: 12px; }
+  .view-controls button { min-width: 40px; width: 40px; height: 40px; }
+}
+
+@media (max-width: 740px) {
+  main { width: calc(100% - 24px); max-width: none; }
+  .brand small { font-size: 5px; letter-spacing: 1.4px; }
+  .site-header nav { font-size: 0; }
+  .edition { display: none; }
+  .mission-heading .eyebrow { font-size: 8px; letter-spacing: .9px; }
+  .mission-meta .text-button { font-size: 0; }
+  .chapter-seal { width: 26px; }
+  .battle-bar { min-height: 112px; padding: 8px; gap: 7px; }
+  .resources { width: 100%; flex-basis: 100%; gap: 5px; }
+  .resource { min-width: 0; padding: 7px 5px; min-height: 47px; gap: 5px; }
+  .resource small { display: block; font-size: 8px; letter-spacing: 0; margin-bottom: 4px; }
+  .resource b { font-size: 17px; }
+  .resource .icon { width: 17px; height: 17px; }
+  .wave-badge, .wave-badge b { font-size: 20px; }
+  .wave-badge { padding: 5px 0; }
+  .wave-badge .icon { display: none; }
+  .map-button { min-width: 44px; width: 44px; height: 44px; font-size: 16px; }
+  .map-button .icon { width: 17px; height: 17px; }
+  .battle-footer { min-height: 32px; font-size: 9px; line-height: 1.5; padding: 7px 9px; }
+  .map-label { font-size: 7px; left: 9px; top: 12px; letter-spacing: .4px; max-width: 110px; }
+  .view-controls { right: 6px; top: 6px; padding: 3px; gap: 3px; }
+  .view-controls button { min-width: 44px; width: 44px; height: 44px; font-size: 22px; }
+  .view-controls button .icon { width: 19px; height: 19px; }
+  .zoom-label { min-width: 38px; font-size: 11px; }
+  .field-rail button { min-width: 44px; width: 44px; height: 44px; }
+  .field-rail button .icon { width: 18px; height: 18px; }
+  .field-rail button span { font-size: 7px; }
+  .ability { min-width: 135px; min-height: 48px; gap: 7px; padding: 6px 8px; }
+  .ability b { font-size: 21px; }
+  .ability small { font-size: 8px; letter-spacing: .2px; }
+  .ability-icon { width: 27px; height: 30px; }
+  .toast { font-size: 11px; max-width: 90%; bottom: 63px; }
+  .tower-dock { position: static; }
+  .dock-heading b { font-size: 16px; }
+  .dock-heading small { font-size: 9px; }
+  .tower-card { min-height: 145px; padding-bottom: 10px; }
+  .tower-art { width: 53px; height: 62px; }
+  .tower-info b { font-size: 19px; line-height: 1.05; }
+  .tower-info > span { display: none; }
+  .tower-cost { font-size: 13px; padding-top: 9px; }
+  .tower-cost .icon { width: 13px; height: 13px; }
+  .tower-key { width: 16px; height: 16px; font-size: 8px; }
+  .empty-command > .eyebrow { font-size: 8px; }
+  .empty-command .empty-title { font-size: 30px; }
+  .empty-command p { font-size: 12px; line-height: 1.7; }
+  .empty-command .brief-row { font-size: 9px; }
+  .empty-command > small { font-size: 11px; }
+  .tower-detail .detail-header h2 { font-size: 30px; }
+  .detail-header > span { font-size: 9px; }
+  .tower-detail .detail-role { font-size: 9px; }
+  .tower-detail .detail-description { font-size: 12px; padding-top: 17px; }
+  .stat-list > div, .tower-detail .stat-list > div { font-size: 12px; margin: 7px 0; }
+  .stat-list b, .tower-detail .stat-list b { font-size: 14px; }
+  .tower-detail .tower-special { font-size: 11px; }
+  .tower-detail .upgrade-node strong { font-size: 10px; }
+  .tower-detail .upgrade-node small { font-size: 9px; }
+  .tower-actions button, .primary { min-height: 46px; font-size: 13px; }
+  .tower-detail .placement-note { font-size: 12px; }
+  .next-wave { min-height: 160px; padding-right: 48%; }
+  .next-wave h3 { font-size: 25px; }
+  .next-wave p { font-size: 12px; }
+  .next-label, .next-label > span:last-child { font-size: 8px; }
+  .wave-button { min-height: 48px; font-size: 12px; }
+  .panel-foot { font-size: 10px; }
+  .site-footer, .site-footer > span:first-child { font-size: 9px; }
+  .site-footer > span:last-child { font-size: 9px; }
+  .foundation-heading span { font-size: 12px; }
+  .modal .eyebrow { font-size: 9px; }
+  .guide-steps h3 { font-size: 23px; }
+  .modal-intro, .guide-steps p, .guide-note, .result-modal > p { font-size: 12px; }
+  .setting-row b { font-size: 14px; }
+  .setting-row small { font-size: 12px; }
+}
+
+@media (max-width: 370px) {
+  .resource small { font-size: 7px; }
+  .resource b { font-size: 15px; }
+  .resource .icon { width: 15px; height: 15px; }
+  .tower-info b { font-size: 17px; }
+  .tower-art { width: 46px; height: 57px; }
+  .dock-heading small { font-size: 8px; }
+  .map-label { font-size: 6px; max-width: 90px; }
+  .view-controls { gap: 2px; }
+  .view-controls button { min-width: 44px; width: 44px; }
+  .zoom-label { min-width: 34px; font-size: 10px; }
+}
+
+.game-shell:fullscreen {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  padding: 12px;
+  overflow: auto;
+  background: #07111b;
+  align-content: start;
+}
+.game-shell:fullscreen .build-panel { max-height: calc(100dvh - 24px); top: 0; }
+.game-shell:fullscreen .tower-dock { top: 0; }
+
+/* Native fullscreen displays only descendants of its target. Keep Options reachable there. */
+.game-shell:fullscreen #rail-settings { display: flex; }

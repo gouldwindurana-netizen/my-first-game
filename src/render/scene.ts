@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import mapUrl from '../assets/eldervale.webp?url';
 import { GameModel, PADS, PATH, TOWER_DEFS, type TowerKind } from '../game/model';
-import { drawForest, drawTower } from './forest';
+import { preloadAssetSheets, prepareAssetFrames, AssetViews } from './asset-views';
 
 export interface SceneBridge {
  model: GameModel;
@@ -16,34 +16,79 @@ export interface SceneBridge {
 }
 export class GroveScene extends Phaser.Scene {
  private paint!: Phaser.GameObjects.Graphics;
+ private assetViews!: AssetViews;
  private labels: Phaser.GameObjects.Text[]=[];
  private floatLabels = new Map<number, Phaser.GameObjects.Text>();
  private lastHudTime = 0;
  private hover: {x:number,y:number}|null=null;
+ private viewZoom=1;
+ private center={x:550,y:340};
+ private drag: {startX:number,startY:number,lastX:number,lastY:number,moved:boolean}|null=null;
  constructor(private bridge: SceneBridge) {super('grove');}
- preload(){this.load.image('eldervale',mapUrl);}
- create() {
-  if(this.textures.exists('eldervale')){
-   this.add.image(0,0,'eldervale').setOrigin(0).setDisplaySize(1100,680).setDepth(-1);
-  }else{
-   drawForest(this);
-   const terrain = [...this.children.list] as Phaser.GameObjects.Graphics[];
-   terrain.sort((a,b)=>a.depth-b.depth);
-   const map = this.add.renderTexture(0,0,1100,680).setOrigin(0,0).setDepth(-1);
-   map.draw(terrain);
-   terrain.forEach(object=>object.destroy());
-  }
-  document.getElementById('battlefield')?.setAttribute('data-ready','true');
-  this.paint=this.add.graphics().setDepth(5);
-  this.input.on('pointermove',(p:Phaser.Input.Pointer)=>{this.hover={x:p.x,y:p.y};});
-  this.input.on('gameout',()=>{this.hover=null;});
+ private get renderScale(){return this.scale.gameSize.width/1100;}
+ preload(){this.load.image('eldervale',mapUrl);preloadAssetSheets(this);}
+ create(){
+  this.add.image(0,0,'eldervale').setOrigin(0).setDisplaySize(1100,680).setDepth(-1);
+  prepareAssetFrames(this);
+  this.assetViews=new AssetViews(this);
+  this.paint=this.add.graphics().setDepth(7);
+  this.labels=PADS.map(p=>this.add.text(p.x,p.y+1,String(p.id+1),{fontFamily:'DM Sans',fontSize:'22px',color:'#f2d49a',stroke:'#152330',strokeThickness:3}).setResolution(this.renderScale).setOrigin(.5).setDepth(7.2));
+  this.applyView();
+  this.scale.on(Phaser.Scale.Events.RESIZE,this.applyView,this);
+  this.events.once(Phaser.Scenes.Events.SHUTDOWN,()=>{this.scale.off(Phaser.Scale.Events.RESIZE,this.applyView,this);this.assetViews.destroy();});
   this.input.on('pointerdown',(p:Phaser.Input.Pointer)=>{
-   if(this.bridge.meteorArmed){this.bridge.onGround(p.x,p.y);return;}
-   const pad=PADS.find(t=>Phaser.Math.Distance.Between(t.x,t.y,p.x,p.y)<39);
-   if(pad)this.bridge.onPad(pad.id);
-   else this.bridge.onGround(p.x,p.y);
+   this.drag={startX:p.x,startY:p.y,lastX:p.x,lastY:p.y,moved:false};
+   this.hover=this.cameras.main.getWorldPoint(p.x,p.y);
   });
-  this.labels=PADS.map(p=>this.add.text(p.x,p.y+1,'+', {fontFamily:'Georgia',fontSize:'23px',color:'#f2d49a',stroke:'#152330',strokeThickness:3}).setOrigin(.5).setDepth(7));
+  this.input.on('pointermove',(p:Phaser.Input.Pointer)=>{
+   const drag=this.drag;
+   if(drag&&p.isDown&&this.viewZoom>1){
+    const cssScale=this.game.canvas.getBoundingClientRect().width/this.scale.gameSize.width;
+    if(Math.hypot(p.x-drag.startX,p.y-drag.startY)*cssScale>6)drag.moved=true;
+    if(drag.moved){
+     const camera=this.cameras.main;
+     camera.setScroll(camera.scrollX-(p.x-drag.lastX)/camera.zoom,camera.scrollY-(p.y-drag.lastY)/camera.zoom);
+     camera.preRender();this.center={x:camera.midPoint.x,y:camera.midPoint.y};
+    }
+    drag.lastX=p.x;drag.lastY=p.y;
+   }
+   this.hover=this.cameras.main.getWorldPoint(p.x,p.y);
+  });
+  this.input.on('pointerup',(p:Phaser.Input.Pointer)=>{
+   const moved=this.drag?.moved;
+   const hadDown=!!this.drag;
+   this.drag=null;
+   if(moved||!hadDown)return;
+   const point=this.cameras.main.getWorldPoint(p.x,p.y);
+   if(this.bridge.meteorArmed){this.bridge.onGround(point.x,point.y);return;}
+   const pad=PADS.find(t=>Phaser.Math.Distance.Between(t.x,t.y,point.x,point.y)<39);
+   if(pad)this.bridge.onPad(pad.id);else this.bridge.onGround(point.x,point.y);
+  });
+  this.input.on('gameout',()=>{this.hover=null;this.drag=null;});
+  this.input.on('pointerupoutside',()=>{this.drag=null;});
+  document.getElementById('battlefield')?.setAttribute('data-ready','true');
+ }
+ private applyView(){
+  if(!this.cameras?.main)return;
+  const camera=this.cameras.main;
+  camera.setViewport(0,0,this.scale.gameSize.width,this.scale.gameSize.height);
+  camera.setZoom(this.renderScale*this.viewZoom).setBounds(0,0,1100,680).centerOn(this.center.x,this.center.y);
+  camera.preRender();this.center={x:camera.midPoint.x,y:camera.midPoint.y};
+  for(const label of this.labels)label.setResolution(this.renderScale);
+  for(const label of this.floatLabels.values())label.setResolution(this.renderScale);
+ }
+ setViewZoom(value:number):number{
+  if(!Number.isFinite(value))return this.viewZoom;
+  this.viewZoom=Phaser.Math.Clamp(value,1,2.5);this.drag=null;this.applyView();return this.viewZoom;
+ }
+ changeViewZoom(delta:number):number{return this.setViewZoom(this.viewZoom+delta);}
+ resetView():void{this.viewZoom=1;this.center={x:550,y:340};this.drag=null;this.applyView();}
+ focusSite(padId:number):void{const pad=PADS.find(p=>p.id===padId);if(pad&&this.viewZoom>1){this.center={x:pad.x,y:pad.y};this.applyView();}}
+ getView(){
+  const camera=this.cameras.main;camera.preRender();
+  // Expose the visible top-left world position, not Phaser's unzoomed scroll offset.
+  const topLeft=camera.getWorldPoint(0,0);
+  return{zoom:this.viewZoom,renderScale:this.renderScale,scrollX:topLeft.x,scrollY:topLeft.y,worldWidth:1100,worldHeight:680};
  }
  update(time:number,delta:number) {
   const m=this.bridge.model;
@@ -51,6 +96,9 @@ export class GroveScene extends Phaser.Scene {
   if(time-this.lastHudTime>80){this.bridge.onTick();this.lastHudTime=time;}
   const g=this.paint;g.clear();
   const visualTime=this.bridge.reduceMotion?0:m.time*1000;
+  this.assetViews.sync(m,visualTime/1000);
+  const cursor=this.bridge.meteorArmed?'crosshair':this.viewZoom>1?(this.drag?.moved?'grabbing':'grab'):'default';
+  this.game.canvas.style.cursor=cursor;
   if(this.bridge.tactical){
    g.lineStyle(3,0xf8de9e,.75);g.strokePoints(PATH,false);
    for(const tower of m.towers){const pad=PADS.find(p=>p.id===tower.padId)!;g.fillStyle(TOWER_DEFS[tower.kind].color,.05);g.fillCircle(pad.x,pad.y,m.getTowerStats(tower).range);g.lineStyle(1,TOWER_DEFS[tower.kind].color,.5);g.strokeCircle(pad.x,pad.y,m.getTowerStats(tower).range);}
@@ -76,29 +124,17 @@ export class GroveScene extends Phaser.Scene {
 
    } else {
     if(active){g.lineStyle(2,0xe0c788,.9);g.strokeEllipse(pad.x,pad.y+8,70,38);}
-    drawTower(g,pad.x,pad.y,tower.kind,tower.level,visualTime/1000);
+
     for(let i=0;i<tower.level;i++){g.fillStyle(0xe9cc88);g.fillCircle(pad.x-((tower.level-1)*5)+i*10,pad.y+30,2.8);}
    }
   }
-  // Enemies are depth-sorted for a grounded, miniature-world look.
-  for(const e of [...m.enemies].sort((a,b)=>a.y-b.y)) {
-   const bob=Math.sin(visualTime/95+e.id)*2;
-   const boss=e.kind==='boss', brute=e.kind==='brute';
-   const r=boss?19:brute?14:e.kind==='runner'?9:11;
-   const icy=e.slowUntil>m.time;
-   g.fillStyle(0x08140f,.32);g.fillEllipse(e.x,e.y+7,r*2.3,r);
-   g.lineStyle(brute?5:3,0x273c33);g.lineBetween(e.x-5,e.y,e.x-6,e.y+10+bob);g.lineBetween(e.x+5,e.y,e.x+7,e.y+10-bob);
-   g.fillStyle(icy?0x87c6c4:boss?0x9a6585:brute?0x65766a:e.kind==='runner'?0xb38a69:0x89906b);
-   g.fillEllipse(e.x,e.y-5+bob,r*1.8,r*2);
-   g.fillStyle(icy?0xb2ebe2:boss?0xcba0a4:0xb4b08b);g.fillCircle(e.x,e.y-r+1+bob,r*.68);
-   // Hood, ears, malicious amber eyes.
-   g.fillStyle(boss?0x744d6e:brute?0x41594c:0x536647);g.fillTriangle(e.x-r,e.y-r+2+bob,e.x-r*.6,e.y-r*2+bob,e.x,e.y-r+2+bob);
-   g.fillTriangle(e.x+r,e.y-r+2+bob,e.x+r*.6,e.y-r*2+bob,e.x,e.y-r+2+bob);
-   g.fillStyle(0x27352d);g.fillRoundedRect(e.x-r*.55,e.y-r-2+bob,r*1.1,7,3);
-   g.fillStyle(0xf7d383);g.fillCircle(e.x-3,e.y-r+1+bob,1.5);g.fillCircle(e.x+3,e.y-r+1+bob,1.5);
-   if(brute||boss) {g.lineStyle(3,boss?0xcbad72:0x9a9d8a);g.strokeEllipse(e.x,e.y-4+bob,r*1.6,r*1.1);}
-   if(boss){g.fillStyle(0xdbc17a);g.fillTriangle(e.x-10,e.y-28,e.x-8,e.y-39,e.x-1,e.y-27);g.fillTriangle(e.x+10,e.y-28,e.x+8,e.y-39,e.x+1,e.y-27);}
-   const bar=r*2.3;g.fillStyle(0x15261e,.95);g.fillRoundedRect(e.x-bar/2,e.y-r*2-10,bar,4,2);g.fillStyle(icy?0x96dadd:0xc5b66e);g.fillRoundedRect(e.x-bar/2,e.y-r*2-10,bar*Math.max(0,e.hp/e.maxHp),4,2);
+  // The supplied sprite bodies are separate images; health and spell effects stay above them.
+  for(const e of m.enemies){
+   const height={grunt:36,runner:34,brute:48,boss:70}[e.kind];
+   const width=e.kind==='boss'?40:e.kind==='brute'?32:25;
+   const y=e.y-height-4;
+   g.fillStyle(0x10202b,.95);g.fillRoundedRect(e.x-width/2,y,width,5,2);
+   g.fillStyle(e.slowUntil>m.time?0x9be8fb:0xe3c384);g.fillRoundedRect(e.x-width/2,y,width*Math.max(0,e.hp/e.maxHp),5,2);
   }
   for(const shot of m.shots) {
    if(shot.kind==='arcane'){
@@ -126,7 +162,7 @@ export class GroveScene extends Phaser.Scene {
     g.fillStyle(0xffebc3,Math.max(0,1-progress*3));g.fillCircle(f.x,f.y+20,50*progress);
    }
    let label=this.floatLabels.get(f.id);
-   if(!label){label=this.add.text(f.x,f.y,f.text,{fontFamily:'DM Sans',fontSize:f.text==='STARFALL'?'16px':'13px',fontStyle:'bold',color:f.color,stroke:'#1a3529',strokeThickness:3}).setOrigin(.5).setDepth(15);this.floatLabels.set(f.id,label);}
+   if(!label){label=this.add.text(f.x,f.y,f.text,{fontFamily:'DM Sans',fontSize:f.text==='STARFALL'?'16px':'13px',fontStyle:'bold',color:f.color,stroke:'#1a3529',strokeThickness:3}).setResolution(this.renderScale).setOrigin(.5).setDepth(15);this.floatLabels.set(f.id,label);}
    label.setPosition(f.x,f.y).setAlpha(Math.min(1,f.life*2));
   }
   // A low-cost shimmer follows the painted waterfalls without hiding the road.

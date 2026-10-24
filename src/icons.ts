@@ -1,4 +1,5 @@
 export const icons: Record<string, string> = {
+ expand:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>' ,
  leaf:'<path d="M19 4C9 3 3 7 6 15c6 6 14-1 13-11Z"/><path d="M4 21 16 8M9 16l-1-5m1 5 5-1"/>',
  gold:'<path d="m12 3 8 5v8l-8 5-8-5V8Z"/><path d="m4 8 8 5 8-5m-8 5v8m-4-13 8 5"/>',
  heart:'<path d="M20.8 5.6c-2.6-2.7-6.5-1.2-8.8 1.1C9.7 4.4 5.8 2.9 3.2 5.6-1 10 6 17 12 21c6-4 13-11 8.8-15.4Z"/>',

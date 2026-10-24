@@ -13,3 +13,7 @@ The bundled fonts are unmodified, locally hosted Latin webfont files. Their copy
 Development tools such as Vite, TypeScript, Vitest, and Playwright retain their respective package licenses. They are used to build and validate the game and are not shipped as runtime dependencies of the HTML sample.
 
 The game does not include assets or source code copied from Kingdom Rush or Bloons TD. Those titles are referenced only to describe familiar gameplay conventions.
+
+## User-provided Mossguard asset pack
+
+The tower/enemy artwork, WAV effects, and matching SVG icons in `src/assets/pack/` came from the user's `Mossguard_Design_and_Assets.zip`. See `docs/ASSET_INTEGRATION.md` and `src/assets/pack/provenance.json` for source mapping and processing notes. Supplied design documents were reference material and were not executed. This notice does not assert a separate license grant for user-provided material.

@@ -1,0 +1,160 @@
+{
+  "sheets": {
+    "core-tower-upgrades": {
+      "file": "core-tower-upgrades.webp",
+      "width": 1448,
+      "height": 1086
+    },
+    "enemy-roster": {
+      "file": "enemy-roster.webp",
+      "width": 1536,
+      "height": 1024
+    }
+  },
+  "frames": {
+    "archer-1": {
+      "sheet": "core-tower-upgrades",
+      "x": 96,
+      "y": 8,
+      "width": 171,
+      "height": 296,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "cannon-1": {
+      "sheet": "core-tower-upgrades",
+      "x": 452,
+      "y": 39,
+      "width": 213,
+      "height": 265,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "frost-1": {
+      "sheet": "core-tower-upgrades",
+      "x": 833,
+      "y": 12,
+      "width": 166,
+      "height": 288,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "arcane-1": {
+      "sheet": "core-tower-upgrades",
+      "x": 1192,
+      "y": 18,
+      "width": 180,
+      "height": 284,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "archer-2": {
+      "sheet": "core-tower-upgrades",
+      "x": 48,
+      "y": 305,
+      "width": 267,
+      "height": 320,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "cannon-2": {
+      "sheet": "core-tower-upgrades",
+      "x": 429,
+      "y": 326,
+      "width": 270,
+      "height": 312,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "frost-2": {
+      "sheet": "core-tower-upgrades",
+      "x": 793,
+      "y": 314,
+      "width": 249,
+      "height": 324,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "arcane-2": {
+      "sheet": "core-tower-upgrades",
+      "x": 1173,
+      "y": 314,
+      "width": 212,
+      "height": 324,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "archer-3": {
+      "sheet": "core-tower-upgrades",
+      "x": 18,
+      "y": 625,
+      "width": 337,
+      "height": 448,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "cannon-3": {
+      "sheet": "core-tower-upgrades",
+      "x": 390,
+      "y": 655,
+      "width": 351,
+      "height": 416,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "frost-3": {
+      "sheet": "core-tower-upgrades",
+      "x": 786,
+      "y": 638,
+      "width": 271,
+      "height": 440,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "arcane-3": {
+      "sheet": "core-tower-upgrades",
+      "x": 1134,
+      "y": 638,
+      "width": 297,
+      "height": 436,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "enemy-grunt": {
+      "sheet": "enemy-roster",
+      "x": 69,
+      "y": 96,
+      "width": 196,
+      "height": 160,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "enemy-runner": {
+      "sheet": "enemy-roster",
+      "x": 288,
+      "y": 70,
+      "width": 168,
+      "height": 184,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "enemy-brute": {
+      "sheet": "enemy-roster",
+      "x": 512,
+      "y": 8,
+      "width": 270,
+      "height": 249,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "enemy-boss": {
+      "sheet": "enemy-roster",
+      "x": 1000,
+      "y": 257,
+      "width": 280,
+      "height": 253,
+      "originX": 0.5,
+      "originY": 1
+    }
+  }
+}

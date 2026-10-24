@@ -18,7 +18,7 @@ function watch(page, label) {
 async function boot(page) {
   await page.goto(base);
   await page.waitForSelector('#battlefield[data-ready="true"]');
-  await page.waitForFunction(() => window.__MOSSGUARD__ && document.querySelector('canvas')?.width === 1100);
+  await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && Math.abs(canvas.width / canvas.height - 1100 / 680) < .01 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
   await page.evaluate(() => document.fonts.ready);
   await page.waitForFunction(() => document.querySelector('canvas').getBoundingClientRect().height > 100);
 }
@@ -26,7 +26,10 @@ async function point(page, x, y, touch = false) {
   await page.locator('canvas').scrollIntoViewIfNeeded();
   const canvas = await page.locator('canvas').boundingBox();
   assert(canvas && canvas.width > 0 && canvas.height > 0, 'Battlefield is visible');
-  const px = canvas.x + canvas.width * x / 1100, py = canvas.y + canvas.height * y / 680;
+  const geometry = await page.locator('canvas').evaluate(element => ({ width: element.width, height: element.height, view: window.__MOSSGUARD__.view }));
+  const { view } = geometry;
+  const px = canvas.x + (x - view.scrollX) * view.renderScale * view.zoom / geometry.width * canvas.width;
+  const py = canvas.y + (y - view.scrollY) * view.renderScale * view.zoom / geometry.height * canvas.height;
   if (touch) await page.touchscreen.tap(px, py); else await page.mouse.click(px, py);
 }
 async function fit(page, label) {
@@ -125,9 +128,9 @@ try {
   assert.equal((await state(desktop)).paused, true, 'Settings pause active combat');
   await desktop.locator('#motion-setting').check();
   await desktop.locator('#sound-setting').check();
-  assert.equal(await desktop.locator('#sound').getAttribute('aria-label'), 'Mute sound');
+  await desktop.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Mute sound' && !document.querySelector('#sound').hasAttribute('aria-busy'), undefined, { timeout: 20000 });
   await desktop.locator('#sound-setting').uncheck();
-  assert.equal(await desktop.locator('#sound').getAttribute('aria-label'), 'Enable sound');
+  await desktop.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Enable sound' && !document.querySelector('#sound').hasAttribute('aria-busy'));
   await desktop.locator('#settings-done').click();
   assert.equal((await state(desktop)).paused, false, 'Settings restore active combat');
   await desktop.locator('#settings-open').click();
@@ -162,9 +165,9 @@ try {
   await desktop.screenshot({ path: 'artifacts/desktop-combat.png', fullPage: true });
   if (await desktop.locator('#sound').getAttribute('aria-label') === 'Mute sound') await desktop.locator('#sound').click();
   await desktop.locator('#sound').click();
-  assert.equal(await desktop.locator('#sound').getAttribute('aria-label'), 'Mute sound');
+  await desktop.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Mute sound' && !document.querySelector('#sound').hasAttribute('aria-busy'), undefined, { timeout: 20000 });
   await desktop.locator('#sound').click();
-  assert.equal(await desktop.locator('#sound').getAttribute('aria-label'), 'Enable sound');
+  await desktop.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Enable sound' && !document.querySelector('#sound').hasAttribute('aria-busy'));
   checks.push('Sound control');
   await desktop.setViewportSize({ width: 1280, height: 900 });
   await fit(desktop, '1280px desktop');

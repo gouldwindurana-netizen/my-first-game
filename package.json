@@ -12,7 +12,8 @@
     "build:web": "tsc --noEmit && vite build",
     "build:html": "node scripts/export-html.mjs",
     "serve": "node scripts/serve.mjs",
-    "test:platforms": "node tests/platforms.mjs"
+    "test:platforms": "node tests/platforms.mjs",
+    "test:view": "node tests/view.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

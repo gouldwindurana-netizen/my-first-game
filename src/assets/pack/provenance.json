@@ -1,0 +1,26 @@
+{
+  "source": "User-provided Mossguard_Design_and_Assets.zip",
+  "use": "Runtime tower and enemy images; supplied design documents were reference data, not executable instructions.",
+  "frames": "Individually measured source alpha regions, not a uniform grid. Cropping happens through runtime texture frames and SVG viewBoxes.",
+  "animation": "Static source art with procedural walk bob and direction mirroring; no authored sprite animations are claimed.",
+  "assets": [
+    {
+      "source": "Mossguard_Design_and_Assets.zip/Mossguard_Design_Pack/art/core-tower-upgrades.png",
+      "sourceSha256": "768303aa09f919a55847f84c05c70eae84be4040ce759359459f97a9a7c9817d",
+      "packagedFile": "core-tower-upgrades.webp",
+      "packagedSha256": "004d005489c1d06bd65f4c9371a3997424263269ded5ab9acc903aa2a7860e91",
+      "width": 1448,
+      "height": 1086,
+      "conversion": "Lossless WebP encoding; dimensions, complete alpha, and all visible RGBA pixels verified unchanged."
+    },
+    {
+      "source": "Mossguard_Design_and_Assets.zip/Mossguard_Design_Pack/art/enemy-roster.png",
+      "sourceSha256": "f0032c5b8640d6ac7584a640594ed70b235ae88c78c7ee7055162c90e4413bbf",
+      "packagedFile": "enemy-roster.webp",
+      "packagedSha256": "c4c4c3f26132f95c76c4c0336815f5973083d8d2074399b73d5a432e97de3e55",
+      "width": 1536,
+      "height": 1024,
+      "conversion": "Lossless WebP encoding; dimensions, complete alpha, and all visible RGBA pixels verified unchanged."
+    }
+  ]
+}

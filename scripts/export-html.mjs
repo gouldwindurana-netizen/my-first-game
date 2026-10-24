@@ -49,6 +49,8 @@ try {
   const safeStyles = styles.replace(/<\/style/gi, '<\\/style');
   const licensePaths = [
     'THIRD_PARTY_NOTICES.md',
+    'docs/ASSET_INTEGRATION.md',
+    'src/assets/pack/provenance.json',
     'LICENSES/phaser-MIT.txt',
     'LICENSES/cormorant-garamond-OFL.txt',
     'LICENSES/dm-sans-OFL.txt',

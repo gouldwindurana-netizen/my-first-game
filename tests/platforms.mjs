@@ -48,7 +48,7 @@ async function boot(page, url, inlineHtml = null) {
   if (inlineHtml !== null) await page.setContent(inlineHtml, { waitUntil: 'load' });
   else await page.goto(url);
   await page.waitForSelector('#battlefield[data-ready="true"]');
-  await page.waitForFunction(() => window.__MOSSGUARD__ && document.querySelector('canvas')?.width === 1100);
+  await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && Math.abs(canvas.width / canvas.height - 1100 / 680) < .01 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
   await page.evaluate(() => document.fonts.ready);
   assert.equal((await state(page)).gold, 240, 'A new session starts with 240 gold');
   assert.equal(await page.locator('[data-tower]').count(), 4, 'All four tower types are available');
@@ -168,6 +168,8 @@ try {
   const html = await readFile(standalone, 'utf8');
   assert(/data:image\/webp;base64,/.test(html), 'Standalone sample embeds the illustrated map');
   assert(!/<script\b[^>]*\bsrc=/i.test(html), 'Standalone sample embeds its scripts');
+  const embeddedAudio = html.match(/data:audio\/[^;,]+;base64,[A-Za-z0-9+/=]+/g) || [];
+  assert(embeddedAudio.length >= 12, 'Standalone sample embeds all twelve supplied WAV effects');
   assert(!/<link\b[^>]*\brel=["']stylesheet["']/i.test(html), 'Standalone sample embeds its styles');
   // Probe direct file navigation once. Managed browsers may prohibit this protocol;
   // honor that policy and verify the identical inline HTML in an offline opaque page.
@@ -188,6 +190,9 @@ try {
   try {
     await boot(filePage, null, html);
     await layout(filePage, 'Standalone offline inline HTML desktop');
+    await filePage.locator('#sound').click();
+    await filePage.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Mute sound' && !document.querySelector('#sound').hasAttribute('aria-busy'), undefined, { timeout: 20000 });
+    checks.push('Standalone offline inline HTML: twelve embedded WAV effects decode and sound enables without network access');
     await build(filePage, 'arcane', 0);
     assert.equal((await state(filePage)).gold, 140);
     await filePage.locator('#battlefield').focus();

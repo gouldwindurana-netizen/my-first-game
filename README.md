@@ -4,7 +4,7 @@ A playable, fantasy tower defense game built with **Phaser 3, TypeScript, and Vi
 
 ## Test the HTML sample without installing anything
 
-Download **[`samples/mossguard.html`](samples/mossguard.html)** (about 3.6 MiB). It contains the entire playable game, including its engine, styles, fonts, map, and license notices. There are no external runtime downloads.
+Download **[`samples/mossguard.html`](samples/mossguard.html)** (about 8.5 MiB). It contains the entire playable game, including its engine, styles, fonts, map, and license notices. There are no external runtime downloads.
 
 On a desktop, save the file and open it in a modern browser. If you download it from GitHub, use **Download raw file**, rather than the GitHub code viewer. On a phone, use the hosted GitHub Pages site or a local web server: some Files/Quick Look apps display HTML instead of running JavaScript.
 
@@ -20,6 +20,14 @@ The repository includes [`.github/workflows/pages.yml`](.github/workflows/pages.
 4. After a successful deployment, use the URL shown by the deployment job. The downloadable sample is at `mossguard.html` beside the hosted site's `index.html`.
 
 The workflow cannot enable a new Pages site using `GITHUB_TOKEN` alone. Enabling Pages needs repository settings access. A Git push confirms code publication; it does not prove that the Pages workflow or deployment has completed.
+
+## Web display and supplied assets
+
+The battlefield now uses the available browser width instead of shrinking to fit the window height. The tower bar remains reachable while scrolling, and important HUD values, prices, labels, and action buttons use readable sizes. High-DPI backing resolution keeps graphics sharp on Retina displays and larger desktop viewports.
+
+Use **+ / −** to zoom the battlefield from 100% to 250%, drag to pan while zoomed, and press **0** to reset the view. The fullscreen button expands the game when the browser supports it. Zoom, pan, resize, and fullscreen do not reset the match. Numbered foundation buttons also center the selected site while zoomed.
+
+The user's `Mossguard_Design_and_Assets.zip` supplies the twelve tower-tier illustrations, four mapped enemy images, matching SVG icons, and WAV effects. The sheets use individually measured frames, not equal-grid slicing. [Asset integration notes](docs/ASSET_INTEGRATION.md) explain which assets are live and which remain design references. Static illustrations use procedural movement; authored sprite animations are not claimed.
 
 ## Mobile and other platforms
 
@@ -77,7 +85,7 @@ npm run dev -- --port 5173
 | ? | Open the field guide |
 | R | Restart after victory or defeat |
 
-The sound button enables optional synthesized effects. The game pauses when its browser window loses focus. The field guide pauses the match and restores its previous pause state when closed.
+The sound button enables the optional WAV effects supplied in the asset pack. Audio is decoded after the first user gesture and cached for subsequent playback. The game pauses when its browser window loses focus. The field guide pauses the match and restores its previous pause state when closed.
 
 ## Mechanics
 
@@ -92,7 +100,7 @@ The sound button enables optional synthesized effects. The game pauses when its 
 
 Fixed foundations and complementary tower roles take inspiration from *Kingdom Rush*. Slowing/damage combinations and escalating mixed waves draw on familiar *Bloons TD* conventions. No assets or code from those games are included.
 
-The visual direction follows the user-provided concept art: a lush ruined citadel on terraced cliffs with waterfalls, blue banners, purple arcane magic, and a dark blue-and-gold command HUD. `src/assets/eldervale.webp` is a generated original environment illustration inspired by that reference. The enemy route and eight foundations align with the painted road and stone sites. Defense towers and enemies are interactive procedural illustrations, rather than baked into the map. The bottom command bar, tower inspection/upgrade panel, tactical minimap, and sound/reduced-motion settings are live controls.
+The visual direction follows the user-provided concept art: a lush ruined citadel on terraced cliffs with waterfalls, blue banners, purple arcane magic, and a dark blue-and-gold command HUD. `src/assets/eldervale.webp` is a generated original environment illustration inspired by that reference. The enemy route and eight foundations align with the painted road and stone sites. Defense towers and enemies are interactive procedural illustrations, rather than baked into the map. The bottom command bar, tower inspection/upgrade panel, tactical minimap, and sound/reduced-motion settings are live controls. Tower/enemy sprites and most HUD icons now come from the supplied asset pack.
 
 ## Validate
 
@@ -108,10 +116,14 @@ The 14 deterministic simulation tests cover purchases, upgrades, sales, invalid 
 ## Structure
 
 - `src/game/model.ts` — renderer-independent combat, movement, economy, waves, and campaign state.
-- `src/render/forest.ts` — detailed procedural tower illustrations and fallback terrain.
+- `src/render/forest.ts` — legacy procedural illustrations retained as reference; the current renderer uses the supplied assets.
+- `src/render/asset-views.ts` and `src/asset-art.ts` — supplied sprite frames and matching UI portraits.
+- `src/assets/pack/` — supplied atlas artwork, WAV audio, SVG UI, frame metadata, and provenance.
+- `src/audio.ts` — user-gesture audio decoding and bounded effect playback.
+- `src/readability.css` — larger responsive interface and fullscreen layout.
 - `src/assets/eldervale.webp` — the concept-inspired painted citadel battlefield.
 - `src/render/scene.ts` — Phaser rendering, effects, and world input.
 - `src/main.ts` — accessible DOM HUD, controls, guide, results, sound, and local best score.
 - `src/style.css` — responsive forest-themed UI.
 
-The Phaser scene uses Canvas 2D so it also runs well without a hardware WebGL context. The painted landscape uses one local texture; procedural towers, projectiles, enemies, and spell effects remain separate. The production bundle includes the Phaser engine (~355 KB compressed). The map image is bundled with the site; no external image or font CDN requests are required.
+The Phaser scene uses Canvas 2D so it also runs well without a hardware WebGL context. The painted landscape uses one local texture; supplied tower/enemy sprites, projectiles, and spell effects remain separate. The production bundle includes the Phaser engine (~355 KB compressed). The map image is bundled with the site; no external image or font CDN requests are required.
