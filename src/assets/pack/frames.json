@@ -9,6 +9,11 @@
       "file": "enemy-roster.webp",
       "width": 1536,
       "height": 1024
+    },
+    "specialist-towers": {
+      "file": "specialist-towers.webp",
+      "width": 817,
+      "height": 323
     }
   },
   "frames": {
@@ -153,6 +158,87 @@
       "y": 257,
       "width": 280,
       "height": 253,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "mortar-1": {
+      "sheet": "specialist-towers",
+      "x": 0,
+      "y": 0,
+      "width": 264,
+      "height": 266,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "mortar-2": {
+      "sheet": "specialist-towers",
+      "x": 0,
+      "y": 0,
+      "width": 264,
+      "height": 266,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "mortar-3": {
+      "sheet": "specialist-towers",
+      "x": 0,
+      "y": 0,
+      "width": 264,
+      "height": 266,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "tesla-1": {
+      "sheet": "specialist-towers",
+      "x": 272,
+      "y": 0,
+      "width": 249,
+      "height": 323,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "tesla-2": {
+      "sheet": "specialist-towers",
+      "x": 272,
+      "y": 0,
+      "width": 249,
+      "height": 323,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "tesla-3": {
+      "sheet": "specialist-towers",
+      "x": 272,
+      "y": 0,
+      "width": 249,
+      "height": 323,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "venom-1": {
+      "sheet": "specialist-towers",
+      "x": 529,
+      "y": 0,
+      "width": 288,
+      "height": 323,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "venom-2": {
+      "sheet": "specialist-towers",
+      "x": 529,
+      "y": 0,
+      "width": 288,
+      "height": 323,
+      "originX": 0.5,
+      "originY": 1
+    },
+    "venom-3": {
+      "sheet": "specialist-towers",
+      "x": 529,
+      "y": 0,
+      "width": 288,
+      "height": 323,
       "originX": 0.5,
       "originY": 1
     }

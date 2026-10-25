@@ -2,7 +2,7 @@
   "source": "User-provided Mossguard_Design_and_Assets.zip",
   "use": "Runtime tower and enemy images; supplied design documents were reference data, not executable instructions.",
   "frames": "Individually measured source alpha regions, not a uniform grid. Cropping happens through runtime texture frames and SVG viewBoxes.",
-  "animation": "Static source art with procedural walk bob and direction mirroring; no authored sprite animations are claimed.",
+  "animation": "Original artwork animated with procedural poses and combat effects; no authored frame-by-frame sprite strips are claimed.",
   "assets": [
     {
       "source": "Mossguard_Design_and_Assets.zip/Mossguard_Design_Pack/art/core-tower-upgrades.png",
@@ -21,6 +21,120 @@
       "width": 1536,
       "height": 1024,
       "conversion": "Lossless WebP encoding; dimensions, complete alpha, and all visible RGBA pixels verified unchanged."
+    },
+    {
+      "source": "Mossguard_Design_and_Assets.zip/Mossguard_Design_Pack/art/level-concepts-01.png",
+      "sourceSha256": "c18bd11cc7fad4f90c8083bda2c81d769856cef65f04d59a6c106132e79b16ac",
+      "sourceRect": [
+        1,
+        337,
+        758,
+        661
+      ],
+      "packagedFile": "maps/frostbound.webp",
+      "packagedSha256": "bd758c69f09abc10813f03d982b1ac605e7fa683acaf81a3e270554d8672092d",
+      "width": 757,
+      "height": 324,
+      "conversion": "Exact caption-free concept-panel crop, lossless WebP encoding; every RGB pixel verified unchanged. Displayed in the 1100 by 680 logical game world."
+    },
+    {
+      "source": "Mossguard_Design_and_Assets.zip/Mossguard_Design_Pack/art/level-concepts-01.png",
+      "sourceSha256": "c18bd11cc7fad4f90c8083bda2c81d769856cef65f04d59a6c106132e79b16ac",
+      "sourceRect": [
+        776,
+        2,
+        1535,
+        322
+      ],
+      "packagedFile": "maps/ember.webp",
+      "packagedSha256": "3487b486c40c9792dacf8b648b17c4850a6715c27d0bceba9c00cbf44f1001cc",
+      "width": 759,
+      "height": 320,
+      "conversion": "Exact caption-free concept-panel crop, lossless WebP encoding; every RGB pixel verified unchanged. Displayed in the 1100 by 680 logical game world."
+    },
+    {
+      "source": "Mossguard_Design_and_Assets.zip/Mossguard_Design_Pack/art/level-concepts-01.png",
+      "sourceSha256": "c18bd11cc7fad4f90c8083bda2c81d769856cef65f04d59a6c106132e79b16ac",
+      "sourceRect": [
+        775,
+        337,
+        1535,
+        661
+      ],
+      "packagedFile": "maps/mirewood.webp",
+      "packagedSha256": "5bb0771f64a3354b058d684714e514b3b895f41ac417680beda51f2a094c6c72",
+      "width": 760,
+      "height": 324,
+      "conversion": "Exact caption-free concept-panel crop, lossless WebP encoding; every RGB pixel verified unchanged. Displayed in the 1100 by 680 logical game world."
+    },
+    {
+      "source": "Mossguard_Design_and_Assets.zip/Mossguard_Design_Pack/art/level-concepts-01.png",
+      "sourceSha256": "c18bd11cc7fad4f90c8083bda2c81d769856cef65f04d59a6c106132e79b16ac",
+      "sourceRect": [
+        1,
+        678,
+        758,
+        1022
+      ],
+      "packagedFile": "maps/crystal.webp",
+      "packagedSha256": "40ac226b9c6401a656d969025a80c334da04635cba0afb504c9aeee9d8b3bd7e",
+      "width": 757,
+      "height": 344,
+      "conversion": "Exact caption-free concept-panel crop, lossless WebP encoding; every RGB pixel verified unchanged. Displayed in the 1100 by 680 logical game world."
+    },
+    {
+      "source": "Mossguard_Design_and_Assets.zip/Mossguard_Design_Pack/art/specialist-towers-and-allies.png",
+      "sourceSha256": "013d3118cb551e1be21e817ae8ad247f9df9d962a207518a549b93ef9a4d74fe",
+      "packagedFile": "specialist-towers.webp",
+      "packagedSha256": "814eb3fa57a2c72b27340d65f570ddd946539d04958df44b7857e6f9352dc5b4",
+      "width": 817,
+      "height": 323,
+      "sourceFrames": {
+        "mortar": {
+          "sourceRect": [
+            342,
+            60,
+            606,
+            326
+          ],
+          "packagedRect": [
+            0,
+            0,
+            264,
+            266
+          ]
+        },
+        "tesla": {
+          "sourceRect": [
+            648,
+            7,
+            897,
+            330
+          ],
+          "packagedRect": [
+            272,
+            0,
+            249,
+            323
+          ]
+        },
+        "venom": {
+          "sourceRect": [
+            930,
+            7,
+            1218,
+            330
+          ],
+          "packagedRect": [
+            529,
+            0,
+            288,
+            323
+          ]
+        }
+      },
+      "conversion": "Three individually measured subject crops packed with transparent gutters. Lossless WebP; complete alpha and every visible RGBA pixel verified unchanged. Faint source alpha outside the measured subject bounds is excluded.",
+      "upgrades": "The three levels share the supplied base illustration; runtime size, effects, and combat stats express upgrades. These are not authored tier illustrations."
     }
   ]
 }

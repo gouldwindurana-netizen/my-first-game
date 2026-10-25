@@ -3,7 +3,7 @@ import { towerRecoil, walkPose } from './animation-pose';
 
 const neutral = { offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1, rotation: 0 };
 const enemies = ['grunt', 'runner', 'brute', 'boss'] as const;
-const towers = ['archer', 'cannon', 'frost', 'arcane'] as const;
+const towers = ['archer', 'cannon', 'frost', 'arcane', 'mortar', 'tesla', 'venom'] as const;
 
 describe('walk poses', () => {
   it('keeps all roles bounded throughout full normal and slowed strides', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ENEMY_DEFS, GameModel, PATH_LENGTH, WAVES, positionAt, type Enemy, type EnemyKind, type TowerKind } from './model';
+import { ENEMY_DEFS, GameModel, LEVELS, PATH_LENGTH, TOWER_DEFS, WAVES, positionAt, type Enemy, type EnemyKind, type TowerKind } from './model';
 
 function enemy(id: number, kind: EnemyKind, distance = 210, hp = ENEMY_DEFS[kind].hp): Enemy {
   return { id, kind, ...positionAt(distance), hp, maxHp: hp, distance, speed: ENEMY_DEFS[kind].speed, slowUntil: 0 };
@@ -263,5 +263,170 @@ describe('wave and game lifecycle', () => {
     expect(game.status).toBe('won');
     expect(game.lives).toBeGreaterThan(0);
     expect(game.kills).toBeGreaterThan(100);
+  });
+});
+
+describe('regional campaign levels', () => {
+  it('uses distinct supplied-map routes, named foundations, and eight-wave regional defenses', () => {
+    const game = new GameModel();
+    const routes = new Set<string>();
+    for (let index = 0; index < LEVELS.length; index++) {
+      expect(game.selectLevel(index)).toBe(true);
+      expect(game.level).toBe(LEVELS[index]);
+      expect(game.currentLevelIndex).toBe(index);
+      expect(game.gold).toBe(LEVELS[index].startingGold);
+      expect(game.pads.every(pad => pad.name.length > 0)).toBe(true);
+      expect(game.pads.map(pad => pad.id)).toEqual(game.pads.map((_, padIndex) => padIndex));
+      expect(game.pathLength).toBeGreaterThan(900);
+      expect(game.waves).toHaveLength(index === 0 ? 12 : 8);
+      expect(game.waves.every(wave => wave.enemies.length > 0)).toBe(true);
+      routes.add(JSON.stringify(game.path));
+      game.startWave(); game.update(.1);
+      expect(game.enemies[0].x).toBeCloseTo(positionAt(game.enemies[0].distance, game.path).x);
+      expect(game.enemies[0].y).toBeCloseTo(positionAt(game.enemies[0].distance, game.path).y);
+      expect(game.enemies[0].hp).toBe(Math.round(ENEMY_DEFS.grunt.hp * game.level.enemyMultiplier));
+      game.reset();
+    }
+    expect(routes.size).toBe(5);
+  });
+
+  it('rejects invalid or active-combat switches and resets every transient when choosing a region', () => {
+    const game = new GameModel(1);
+    game.build(0, 'venom'); game.startWave(); game.update(.1);
+    const active = game.snapshot();
+    expect(game.selectLevel(2)).toBe(false);
+    expect(game.snapshot()).toEqual(active);
+    game.reset();
+    expect(game.currentLevelIndex).toBe(1);
+    expect(game.gold).toBe(260);
+    game.build(0, 'mortar'); game.paused = true; game.speed = 2; game.meteorCooldown = 12;
+    expect(game.selectLevel(3)).toBe(true);
+    expect(game.currentLevelIndex).toBe(3);
+    expect(game.gold).toBe(300);
+    expect(game.status).toBe('building'); expect(game.paused).toBe(false); expect(game.speed).toBe(1);
+    expect(game.wave).toBe(0); expect(game.time).toBe(0); expect(game.meteorCooldown).toBe(0);
+    expect(game.towers).toHaveLength(0); expect(game.enemies).toHaveLength(0); expect(game.shots).toHaveLength(0); expect(game.floats).toHaveLength(0);
+    expect(game.selectLevel(-1)).toBe(false); expect(game.selectLevel(100)).toBe(false); expect(game.selectLevel(1.5)).toBe(false);
+    expect(game.currentLevelIndex).toBe(3);
+    const snapshot = game.snapshot(); snapshot.path[0].x = -999; snapshot.pads[0].name = 'changed';
+    expect(game.path[0].x).not.toBe(-999); expect(game.pads[0].name).not.toBe('changed');
+  });
+
+  it('leaks at the selected route endpoint and reaches its own final wave', () => {
+    for (let index = 1; index < LEVELS.length; index++) {
+      const game = new GameModel(index);
+      game.startWave();
+      const target = enemy(1000, 'brute', game.pathLength - 1);
+      game.enemies = [target];
+      game.update(.1);
+      expect(game.lives).toBe(18);
+      expect(game.enemies.some(enemy => enemy.id === 1000)).toBe(false);
+      game.reset();
+      game.wave = game.waves.length - 1;
+      expect(game.startWave()).toBe(true);
+      expect(game.wave).toBe(8);
+      expect(game.nextWave()).toBeUndefined();
+    }
+  });
+});
+
+describe('specialist towers', () => {
+  it('hits a distant armored cluster with mortar shells beyond cannon range', () => {
+    const game = new GameModel(); game.build(0, 'mortar'); game.startWave();
+    game.enemies = [enemy(100, 'brute', 450), enemy(101, 'brute', 390), enemy(102, 'brute', 1000)];
+    const pad = game.pads[0], target = game.enemies[0];
+    expect(Math.hypot(target.x - pad.x, target.y - pad.y)).toBeGreaterThan(TOWER_DEFS.cannon.range);
+    expect(Math.hypot(target.x - pad.x, target.y - pad.y)).toBeLessThan(TOWER_DEFS.mortar.range);
+    game.update(.01);
+    expect(game.enemies.find(enemy => enemy.id === 100)?.hp).toBe(165 - TOWER_DEFS.mortar.damage);
+    expect(game.enemies.find(enemy => enemy.id === 101)?.hp).toBe(165 - TOWER_DEFS.mortar.damage);
+    expect(game.enemies.find(enemy => enemy.id === 102)?.hp).toBe(165);
+    expect(game.shots[0].kind).toBe('mortar');
+  });
+
+  it('pulses every target within Tesla radius with no chain falloff', () => {
+    const game = new GameModel(); game.build(0, 'tesla'); game.startWave();
+    game.enemies = [enemy(100, 'brute', 210), enemy(101, 'brute', 230), enemy(102, 'brute', 250), enemy(103, 'brute', 650)];
+    game.update(.01);
+    for (const id of [100, 101, 102]) expect(game.enemies.find(enemy => enemy.id === id)?.hp).toBe(165 - TOWER_DEFS.tesla.damage);
+    expect(game.enemies.find(enemy => enemy.id === 103)?.hp).toBe(165);
+    expect(game.shots.filter(shot => shot.kind === 'tesla')).toHaveLength(1);
+  });
+
+  it('keeps venom damage active after a target leaves range and pays its defeat once', () => {
+    const game = new GameModel(); game.build(0, 'venom'); game.startWave();
+    game.enemies = [enemy(100, 'brute', 210, 25)];
+    game.update(.01);
+    const target = game.enemies.find(enemy => enemy.id === 100)!;
+    expect(target.hp).toBe(17);
+    expect(target.poisonUntil).toBeCloseTo(game.time + 3.5);
+    target.distance = 1100;
+    const before = game.gold;
+    advance(game, 2);
+    expect(game.enemies.some(enemy => enemy.id === 100)).toBe(false);
+    expect(game.kills).toBe(1);
+    expect(game.gold).toBe(before + ENEMY_DEFS.brute.reward);
+    const after = game.gold;
+    advance(game, .5);
+    expect(game.gold).toBe(after);
+  });
+
+  it('refreshes toxin without stacking damage and freezes it while paused', () => {
+    const game = new GameModel(); game.gold = 1000;
+    game.build(0, 'venom'); game.build(1, 'venom'); game.startWave();
+    game.enemies = [enemy(100, 'brute', 210, 1000)];
+    game.update(.01);
+    const target = game.enemies.find(enemy => enemy.id === 100)!;
+    expect(target.poisonDps).toBe(TOWER_DEFS.venom.damage * 1.4);
+    const hp = target.hp;
+    for (const tower of game.towers) tower.cooldown = 100;
+    game.paused = true; advance(game, 2); expect(target.hp).toBe(hp);
+    game.paused = false; advance(game, 1);
+    expect(target.hp).toBeCloseTo(hp - 11.2);
+    const expiry = target.poisonUntil!;
+    advance(game, 3);
+    const expired = target.hp;
+    expect(game.time).toBeGreaterThan(expiry);
+    advance(game, 1); expect(target.hp).toBe(expired);
+  });
+
+  it('upgrades and sells each specialist through the same economy as core towers', () => {
+    for (const kind of ['mortar', 'tesla', 'venom'] as const) {
+      const game = new GameModel(); game.gold = 1000; game.build(0, kind);
+      const tower = game.towers[0], first = game.getTowerStats(tower);
+      game.upgrade(tower.id); game.upgrade(tower.id);
+      expect(tower.level).toBe(3); expect(game.getTowerStats(tower).damage).toBeGreaterThan(first.damage);
+      expect(game.getTowerStats(tower).range).toBeGreaterThan(first.range);
+      const before = game.gold; game.sell(tower.id);
+      expect(game.gold).toBe(before + Math.floor(tower.spent * .7));
+    }
+  });
+});
+
+
+describe('regional campaign balance', () => {
+  it('can win every new region by investing earned gold and using Starfall', () => {
+    const plans: { padId: number; kind: TowerKind }[][] = [[],
+      [{padId:0,kind:'archer'},{padId:2,kind:'cannon'},{padId:4,kind:'mortar'},{padId:3,kind:'frost'},{padId:5,kind:'venom'},{padId:1,kind:'mortar'}],
+      [{padId:0,kind:'archer'},{padId:1,kind:'cannon'},{padId:2,kind:'tesla'},{padId:5,kind:'frost'},{padId:4,kind:'venom'},{padId:6,kind:'mortar'},{padId:3,kind:'mortar'}],
+      [{padId:0,kind:'archer'},{padId:1,kind:'cannon'},{padId:3,kind:'frost'},{padId:4,kind:'mortar'},{padId:2,kind:'mortar'}],
+      [{padId:1,kind:'archer'},{padId:0,kind:'cannon'},{padId:4,kind:'frost'},{padId:3,kind:'mortar'},{padId:2,kind:'mortar'},{padId:5,kind:'venom'}],
+    ];
+    for (let region = 1; region < LEVELS.length; region++) {
+      const game = new GameModel(region), plan = plans[region];
+      let nextBuild = 0;
+      for (let step = 0; step < 15000 && game.status !== 'won' && game.status !== 'lost'; step++) {
+        if (nextBuild < plan.length && game.build(plan[nextBuild].padId, plan[nextBuild].kind)) nextBuild++;
+        else if (nextBuild === plan.length) for (const tower of game.towers) game.upgrade(tower.id);
+        if (game.status === 'building') game.startWave();
+        if (game.meteorCooldown === 0 && game.enemies.length >= 4) {
+          const center = game.enemies[Math.floor(game.enemies.length / 2)]; game.meteor(center.x, center.y);
+        }
+        game.update(.1);
+      }
+      expect(game.status, `${game.level.name}: wave ${game.wave}, lives ${game.lives}, kills ${game.kills}`).toBe('won');
+      expect(game.wave).toBe(game.waves.length);
+      expect(game.lives).toBeGreaterThan(0);
+    }
   });
 });

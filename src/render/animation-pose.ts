@@ -8,7 +8,7 @@ export interface AnimationPose {
 }
 export interface RecoilPose extends AnimationPose { flash: number; }
 type EnemyKind = 'grunt' | 'runner' | 'brute' | 'boss';
-type TowerKind = 'archer' | 'cannon' | 'frost' | 'arcane';
+type TowerKind = 'archer' | 'cannon' | 'frost' | 'arcane' | 'mortar' | 'tesla' | 'venom';
 const neutral = (): AnimationPose => ({ offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1, rotation: 0 });
 
 const strides: Record<EnemyKind, { period: number; lift: number; sway: number; rock: number; squash: number }> = {
@@ -45,6 +45,9 @@ const recoil: Record<TowerKind, { duration: number; x: number; y: number; wide: 
   cannon: { duration: .28, x: -1.9, y: 2.2, wide: .045, tall: -.045, rock: -.045 },
   frost: { duration: .32, x: 0, y: -.7, wide: .025, tall: .035, rock: 0 },
   arcane: { duration: .36, x: 0, y: -.9, wide: .035, tall: .025, rock: .025 },
+  mortar: { duration: .34, x: 0, y: 3, wide: .04, tall: -.06, rock: -.03 },
+  tesla: { duration: .3, x: 0, y: -.6, wide: .03, tall: .035, rock: 0 },
+  venom: { duration: .26, x: .5, y: 1, wide: .025, tall: -.02, rock: .016 },
 };
 
 export function towerRecoil(kind: TowerKind, age: number, reduced: boolean): RecoilPose {

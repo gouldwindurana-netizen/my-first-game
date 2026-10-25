@@ -1,0 +1,207 @@
+/* Seven disciplines remain full size; the dock scrolls instead of shrinking them. */
+.tower-dock {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 8px;
+  align-items: stretch;
+}
+.tower-dock .dock-heading, .tower-dock .dock-tip { display: none; }
+.tower-dock .tower-list {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(174px, 1fr);
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: #6e7d6b #0a1d2b;
+  padding: 2px 2px 5px;
+}
+.tower-dock .tower-card {
+  scroll-snap-align: start;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  gap: 0 6px;
+  padding: 8px 6px;
+  text-align: left;
+}
+.tower-dock .tower-art { grid-column: 1; grid-row: 1 / 3; width: 48px; height: 65px; align-self: center; }
+.tower-dock .tower-info { align-items: flex-start; padding-top: 2px; gap: 4px; }
+.tower-dock .tower-info b { font-size: 21px; line-height: 1; white-space: normal; }
+.tower-dock .tower-info > span { display: none; }
+.tower-dock .tower-cost { grid-column: 2; font-size: 14px; margin-top: 0; padding-top: 5px; }
+.tower-card.venom:hover:not(:disabled), .tower-card.venom.selected { border-color: #94c578; }
+.tower-card.tesla:hover:not(:disabled), .tower-card.tesla.selected { border-color: #9dc7ef; }
+.tower-card.mortar:hover:not(:disabled), .tower-card.mortar.selected { border-color: #d5bf8c; }
+.dock-scroll {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 44px;
+  min-width: 44px;
+  height: 58px;
+  min-height: 44px;
+  padding: 0;
+  color: #dfcb97;
+  background: linear-gradient(#234354, #0e2839);
+  border: 1px solid #597381;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 2px #0e2737;
+  font-size: 27px;
+}
+.dock-scroll .icon { width: 19px; height: 19px; }
+.dock-scroll:hover:not(:disabled) { border-color: #d6bc7b; color: #fff0bd; }
+.dock-scroll:disabled { opacity: .35; }
+#tower-prev { grid-column: 1; grid-row: 1; }
+#tower-next { grid-column: 3; grid-row: 1; }
+
+/* Site names replace numbers on every touch/keyboard placement control. */
+.build-panel .foundation-sites {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.foundation-sites button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 7px 8px;
+  font-size: 11px;
+  line-height: 1.25;
+  text-align: left;
+}
+.foundation-sites button .icon { width: 15px; height: 15px; flex: 0 0 15px; }
+.foundation-sites button span { min-width: 0; overflow-wrap: anywhere; }
+.foundation-sites button:disabled { opacity: .42; }
+
+#levels-open { min-width: 44px; min-height: 44px; gap: 7px; }
+#levels-open .icon { width: 18px; height: 18px; }
+.campaign-modal { width: 900px; max-width: 100%; }
+.campaign-modal .modal-intro { max-width: 690px; }
+.campaign-modal > .primary { width: 100%; margin-top: 20px; }
+.campaign-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  margin-top: 22px;
+}
+.campaign-grid [data-level] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #486979;
+  border-radius: 5px;
+  background: linear-gradient(145deg, #183443, #0a1e2c);
+  text-align: left;
+  box-shadow: inset 0 0 0 2px #0a1b29;
+}
+.campaign-grid [data-level]:hover { border-color: #bda76e; }
+.campaign-grid [data-level].selected,
+.campaign-grid [data-level][aria-pressed="true"] { border-color: #e1c37e; box-shadow: 0 0 0 1px #e1c37e, inset 0 0 20px #bdad7220; }
+.campaign-grid [data-level]:disabled { cursor: default; opacity: .55; }
+.level-thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1100 / 535;
+  overflow: hidden;
+  background-color: #132c36;
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid #4a6670;
+}
+.level-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.level-copy { display: flex; flex: 1; flex-direction: column; gap: 7px; padding: 14px 16px 16px; }
+.level-copy small { color: #b9b48c; font-size: 9px; letter-spacing: 1.2px; line-height: 1.4; }
+.level-copy strong { color: #e5dfc5; font-family: var(--serif); font-size: 28px; font-weight: 500; line-height: 1.05; }
+.level-copy > span { color: #9fb5bf; font-size: 12px; line-height: 1.5; }
+.level-state { display: inline-flex; align-items: center; gap: 5px; color: #d8c58f; font-size: 10px; letter-spacing: .4px; }
+.level-state .icon { width: 14px; height: 14px; }
+.campaign-grid [data-level] > .level-state { padding: 0 16px 13px; }
+.completed .level-state { color: #b5d7b8; }
+.campaign-note { color: #9bb1be; font-size: 12px; line-height: 1.6; margin: 17px 0 0; }
+#next-level { margin-bottom: 10px; }
+
+@media (min-width: 981px) and (min-height: 740px) {
+  .tower-dock .tower-list { align-self: stretch; }
+  .build-panel .foundation-picker { margin: 0 12px 6px; }
+  .foundation-picker .foundation-heading b { font-size: 18px; }
+}
+@media (min-width: 741px) and (max-width: 980px) {
+  .tower-dock .tower-list { grid-auto-columns: minmax(185px, 1fr); }
+  .tower-dock .tower-card { min-height: 100px; }
+  .build-panel .foundation-picker { grid-template-columns: minmax(0, 1fr) 72px; grid-row: 2; }
+  .foundation-heading { grid-column: 1; }
+  .foundation-sites { grid-column: 1 / -1; grid-row: 2; }
+  .foundation-picker #cancel-foundation { grid-column: 2; grid-row: 1; }
+  .build-panel .foundation-sites { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 740px) {
+  .tower-dock { grid-template-columns: minmax(0, 1fr) 44px 44px; gap: 8px; padding: 10px; }
+  .tower-dock .dock-heading {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+    border: 0;
+  }
+  .tower-dock .dock-heading > span:last-child { display: block; }
+  .tower-dock .dock-heading b { font-size: 18px; }
+  .tower-dock .dock-heading small { display: block; margin-top: 3px; font-size: 8px; letter-spacing: .7px; }
+  .tower-dock .dock-heading .dock-emblem { display: none; }
+  #tower-prev { grid-column: 2; grid-row: 1; }
+  #tower-next { grid-column: 3; grid-row: 1; }
+  .dock-scroll { height: 44px; }
+  .tower-dock .tower-list { grid-column: 1 / -1; grid-row: 2; grid-auto-columns: minmax(154px, 1fr); height: auto; padding-bottom: 6px; }
+  .tower-dock .tower-card { min-height: 112px; grid-template-columns: 44px minmax(0, 1fr); padding: 9px 6px; gap: 0 5px; }
+  .tower-dock .tower-art { width: 44px; height: 65px; }
+  .tower-dock .tower-info b { font-size: 20px; }
+  .tower-dock .tower-info > span { display: none; }
+  .tower-dock .tower-cost { font-size: 14px; }
+  .build-panel .foundation-picker { grid-template-columns: minmax(0, 1fr) 62px; }
+  .foundation-picker .foundation-heading { grid-column: 1; }
+  .foundation-picker .foundation-heading b { font-size: 19px; }
+  .foundation-picker .foundation-heading span { display: none; }
+  .foundation-picker .foundation-sites { grid-column: 1 / -1; grid-row: 2; }
+  .foundation-picker #cancel-foundation { grid-column: 2; grid-row: 1; }
+  .foundation-sites button { padding: 8px; font-size: 12px; }
+  .campaign-modal { padding: 28px 19px; }
+  .campaign-modal h2 { margin-right: 25px; font-size: 33px; }
+  .campaign-grid { grid-template-columns: 1fr; gap: 13px; margin-top: 18px; }
+  .level-thumb { aspect-ratio: 1100 / 460; }
+  .level-copy { padding: 12px 14px 14px; }
+  .level-copy strong { font-size: 27px; }
+  .site-header nav #levels-open.nav-active { display: flex; }
+  .site-header nav #guide-nav { display: none; }
+  #rail-levels { display: flex; }
+  .game-shell:fullscreen .field-rail { display: grid; grid-template-columns: repeat(2, 44px); gap: 5px; }
+  #levels-open { font-size: 0; }
+  #levels-open .icon { display: block; width: 19px; height: 19px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tower-list { scroll-behavior: auto; }
+}

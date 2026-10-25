@@ -162,7 +162,7 @@ try {
     await clickBuild(desktop, 'archer', 0);
     const fontSizes = await desktop.locator('.stat-list > div').evaluateAll(elements => elements.map(element => parseFloat(getComputedStyle(element).fontSize)));
     assert(fontSizes.length >= 3 && fontSizes.every(size => size >= 12), 'Tower stats are at least 12px');
-    assert.equal(await desktop.locator('[data-tower] .tower-art svg[data-asset]').count(), 4, 'Dock uses supplied tower frame artwork for all four tower types');
+    assert.equal(await desktop.locator('[data-tower] .tower-art svg[data-asset]').count(), 7, 'Dock uses supplied tower frame artwork for all seven tower types');
     checks.push('1366 desktop: base pointer placement, large stats, and supplied tower artwork');
 
     await zoomTo(desktop, 1.5);

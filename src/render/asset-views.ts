@@ -1,15 +1,16 @@
 import Phaser from 'phaser';
-import { PADS, PATH_LENGTH, TOWER_DEFS, type GameModel, type Enemy, type EnemyKind, type TowerKind } from '../game/model';
-import { suppliedAtlas, TOWER_ATLAS_URL, ENEMY_ATLAS_URL, TOWER_TEXTURE, ENEMY_TEXTURE } from '../asset-art';
+import { TOWER_DEFS, type GameModel, type Enemy, type EnemyKind, type TowerKind } from '../game/model';
+import { suppliedAtlas, TOWER_ATLAS_URL, ENEMY_ATLAS_URL, TOWER_TEXTURE, ENEMY_TEXTURE, SPECIALIST_TEXTURE, SPECIALIST_ATLAS_URL, getTowerTexture } from '../asset-art';
 import { walkPose, towerRecoil } from './animation-pose';
 
 export function preloadAssetSheets(scene: Phaser.Scene): void {
   scene.load.image(TOWER_TEXTURE, TOWER_ATLAS_URL);
   scene.load.image(ENEMY_TEXTURE, ENEMY_ATLAS_URL);
+  scene.load.image(SPECIALIST_TEXTURE, SPECIALIST_ATLAS_URL);
 }
 export function prepareAssetFrames(scene: Phaser.Scene): void {
   for (const [name, frame] of Object.entries(suppliedAtlas.frames)) {
-    const key = frame.sheet === 'core-tower-upgrades' ? TOWER_TEXTURE : ENEMY_TEXTURE;
+    const key = frame.sheet === 'core-tower-upgrades' ? TOWER_TEXTURE : frame.sheet === 'specialist-towers' ? SPECIALIST_TEXTURE : ENEMY_TEXTURE;
     if (!scene.textures.exists(key)) throw new Error(`Missing supplied asset texture: ${key}`);
     const texture = scene.textures.get(key);
     if (!texture.has(name)) texture.add(name, 0, frame.x, frame.y, frame.width, frame.height);
@@ -51,6 +52,7 @@ export class AssetViews {
     for (const view of this.ghosts) view.image.destroy();
     this.towers.clear(); this.enemies.clear(); this.ghosts = []; this.particles = []; this.lastShot = 0; this.deaths = 0;
   }
+  reset(): void { this.clear(); this.lastTime = -1; }
   sync(model: GameModel, time: number, reduced = false): void {
     if (model.time < this.lastTime) this.clear();
     this.lastTime = model.time; this.clock = time; this.reduced = reduced;
@@ -59,7 +61,7 @@ export class AssetViews {
     const towerIds = new Set(model.towers.map(t => t.id)), enemyIds = new Set(model.enemies.map(e => e.id));
     for (const [id, view] of this.towers) if (!towerIds.has(id)) { view.image.destroy(); this.towers.delete(id); }
     for (const [id, view] of this.enemies) if (!enemyIds.has(id)) {
-      if (view.enemy.hp <= 0 && view.enemy.distance < PATH_LENGTH) {
+      if (view.enemy.hp <= 0 && view.enemy.distance < model.pathLength) {
         this.deaths++;
         if (!reduced && this.ghosts.length < 30) {
           this.ghosts.push({ image: view.image, born: time, scale: view.image.scaleX, x: view.enemy.x, y: view.enemy.y + 6 });
@@ -71,7 +73,7 @@ export class AssetViews {
     // Only the originating shot belongs to a tower; chain jumps do not repeat its recoil.
     for (const shot of model.shots) if (shot.id > this.lastShot) {
       for (const tower of model.towers) {
-        const pad = PADS[tower.padId];
+        const pad = model.pads[tower.padId];
         if (Math.abs(shot.from.x - pad.x) < 1 && Math.abs(shot.from.y - (pad.y - 22)) < 1) {
           const view = this.towers.get(tower.id);
           if (view) { view.fired = time; view.fireSequence++; }
@@ -81,10 +83,10 @@ export class AssetViews {
       this.lastShot = Math.max(this.lastShot, shot.id);
     }
     for (const tower of model.towers) {
-      const pad = PADS[tower.padId], key = `${tower.kind}-${tower.level}`, frame = suppliedAtlas.frames[key];
+      const pad = model.pads[tower.padId], key = `${tower.kind}-${tower.level}`, frame = suppliedAtlas.frames[key];
       let view = this.towers.get(tower.id);
       if (!view) {
-        view = { image: this.scene.add.image(pad.x, pad.y + 16, TOWER_TEXTURE, key).setOrigin(.5, 1), born: time, upgrade: -10, level: tower.level, fired: -10, fireSequence: 0, state: 'building' };
+        view = { image: this.scene.add.image(pad.x, pad.y + 16, getTowerTexture(tower.kind), key).setOrigin(.5, 1), born: time, upgrade: -10, level: tower.level, fired: -10, fireSequence: 0, state: 'building' };
         this.towers.set(tower.id, view); this.burst(pad.x, pad.y + 4, 0xe8cd8a, 15, time);
       }
       if (view.level !== tower.level) { view.level = tower.level; view.upgrade = time; this.burst(pad.x, pad.y - 40, 0xffe6a5, 22, time); }
@@ -102,7 +104,7 @@ export class AssetViews {
       this.shadows.fillStyle(0x04101b, .25).fillEllipse(pad.x + 2, pad.y + 14, Math.min(66, image.displayWidth * .8), 22);
       const color = TOWER_DEFS[tower.kind].color;
       if (recoil.flash > 0) { fx.fillStyle(color, recoil.flash * .65).fillCircle(pad.x, pad.y - 53, tower.kind === 'cannon' ? 13 * recoil.flash : 8 * recoil.flash); }
-      if (!reduced && (tower.kind === 'frost' || tower.kind === 'arcane')) this.magic(fx, tower.kind, pad.x, pad.y - image.displayHeight + 18, time, tower.id);
+      if (!reduced && (tower.kind === 'frost' || tower.kind === 'arcane' || tower.kind === 'tesla' || tower.kind === 'venom')) this.magic(fx, tower.kind, pad.x, pad.y - image.displayHeight + 18, time, tower.id);
       if (!reduced && upgradeAge < .6) { fx.lineStyle(2, 0xffdf9d, 1 - upgradeAge / .6).strokeEllipse(pad.x, pad.y + 9, 40 + upgradeAge * 110, 18 + upgradeAge * 50); }
     }
     for (const enemy of model.enemies) {
@@ -121,6 +123,7 @@ export class AssetViews {
       view.state = time - view.hit < .18 ? 'hit' : slow ? 'slowed' : 'walking';
       view.hp = enemy.hp; view.enemy = enemy; view.lastX = enemy.x;
       this.shadows.fillStyle(0x04101b, .28).fillEllipse(enemy.x + 1, enemy.y + 5, enemyHeights[enemy.kind] * .65, enemyHeights[enemy.kind] * .17);
+      if ((enemy.poisonUntil ?? 0) > model.time) { fx.fillStyle(0xa7dc72,.24).fillCircle(enemy.x,enemy.y-16,10); }
       if (slow) { fx.lineStyle(1.5, 0x9fe9ff, .75).strokeEllipse(enemy.x, enemy.y + 4, enemyHeights[enemy.kind] * .75, enemyHeights[enemy.kind] * .23); }
     }
     this.ghosts = this.ghosts.filter(ghost => {

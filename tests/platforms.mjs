@@ -51,7 +51,7 @@ async function boot(page, url, inlineHtml = null) {
   await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
   await page.evaluate(() => document.fonts.ready);
   assert.equal((await state(page)).gold, 240, 'A new session starts with 240 gold');
-  assert.equal(await page.locator('[data-tower]').count(), 4, 'All four tower types are available');
+  assert.equal(await page.locator('[data-tower]').count(), 7, 'All seven tower types are available');
   const pixels = await page.locator('canvas').evaluate(canvas => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
@@ -95,7 +95,7 @@ async function build(page, kind, padId, touch = false, captureName = null) {
   assert((await site.getAttribute('aria-label') || await site.innerText()).trim(), 'Foundation has an accessible name');
   if (touch) {
     const box = await site.boundingBox();
-    assert(box && box.width >= 44 && box.height >= 44, 'Numbered foundation is a 44px touch target');
+    assert(box && box.width >= 44 && box.height >= 44, 'Named foundation is a 44px touch target');
     await site.tap();
   } else {
     await site.focus();
@@ -103,7 +103,7 @@ async function build(page, kind, padId, touch = false, captureName = null) {
   }
   await page.waitForFunction(count => window.__MOSSGUARD__.towers.length === count, before.towers.length + 1);
   const after = await state(page);
-  assert(after.towers.some(tower => tower.padId === padId && tower.kind === kind), 'Chosen tower is built at the intended numbered foundation');
+  assert(after.towers.some(tower => tower.padId === padId && tower.kind === kind), 'Chosen tower is built at the intended named foundation');
   const costs = { archer: 70, cannon: 120, frost: 90, arcane: 100 };
   assert.equal(after.gold, before.gold - costs[kind], 'Construction spends the expected gold');
 }
@@ -135,10 +135,10 @@ async function profile(name, viewport, touch = false, rotate = null) {
     await layout(page, name, touch);
     if (touch) {
       await build(page, 'arcane', 0, true, `${name}-foundations`);
-      checks.push(`${name}: touch builds an arcane tower on a numbered foundation`);
+      checks.push(`${name}: touch builds an arcane tower on a named foundation`);
     } else {
       await build(page, 'archer', 0);
-      checks.push(`${name}: keyboard builds a ranger on a numbered foundation`);
+      checks.push(`${name}: keyboard builds a ranger on a named foundation`);
     }
     await page.evaluate(() => scrollTo(0, 0));
     await screenshot(page, name);

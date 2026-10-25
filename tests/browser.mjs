@@ -57,7 +57,7 @@ try {
   console.log(`Performance: ${(perfEnd.time - perfStart.time).toFixed(2)} game seconds in ${((Date.now() - wallStart) / 1000).toFixed(2)} wall seconds`);
   assert.equal(await desktop.locator('#meteor').isDisabled(), true, 'Meteor disabled before a wave');
   await desktop.screenshot({ path: 'artifacts/desktop-initial.png', fullPage: true });
-  assert.equal(await desktop.locator('[data-tower]').count(), 4, 'All four tower disciplines are available');
+  assert.equal(await desktop.locator('[data-tower]').count(), 7, 'All seven tower disciplines are available');
   assert.match(await desktop.locator('#wave').innerText(), /\/ 12$/, 'Campaign has twelve waves');
   await desktop.locator('#rail-map').click();
   assert.equal(await desktop.locator('#rail-map').getAttribute('aria-pressed'), 'true');
@@ -65,7 +65,7 @@ try {
   await desktop.locator('#minimap-toggle').click();
   assert.equal(await desktop.locator('#rail-map').getAttribute('aria-pressed'), 'false');
   assert.equal(await desktop.locator('#minimap-toggle').evaluate(element => element.classList.contains('active')), false);
-  checks.push('Four towers, twelve waves, and tactical map/minimap controls');
+  checks.push('Seven towers, twelve opening-level waves, and tactical map/minimap controls');
 
   await desktop.locator('[data-tower="archer"]').click();
   await point(desktop, 234, 241);
@@ -207,7 +207,7 @@ try {
   const mobileState = await state(mobile);
   assert.equal(mobileState.towers[0].kind, 'frost');
   assert.equal(mobileState.gold, 150);
-  await mobile.locator('#guide-nav').tap();
+  await mobile.locator('#how-to').tap();
   assert.equal(await mobile.locator('#guide').isVisible(), true);
   await mobile.locator('#guide-done').tap();
   assert.equal((await state(mobile)).paused, false);

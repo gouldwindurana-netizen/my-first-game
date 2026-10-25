@@ -1,28 +1,11 @@
+import { LEVELS } from './levels';
+export { LEVELS } from './levels';
+
 /** Deterministic game rules. All time values are seconds; no renderer or browser state. */
 export type Point = { x: number; y: number };
-export type TowerKind = 'archer' | 'cannon' | 'frost' | 'arcane';
+export type TowerKind = 'archer' | 'cannon' | 'frost' | 'arcane' | 'mortar' | 'tesla' | 'venom';
 export type EnemyKind = 'grunt' | 'runner' | 'brute' | 'boss';
 export type GameStatus = 'building' | 'wave' | 'won' | 'lost';
-
-export const PATH: Point[] = [
-  { x: 68, y: 118 }, { x: 117, y: 132 }, { x: 210, y: 136 },
-  { x: 265, y: 153 }, { x: 303, y: 183 }, { x: 320, y: 225 },
-  { x: 328, y: 282 }, { x: 359, y: 325 }, { x: 425, y: 360 },
-  { x: 502, y: 381 }, { x: 573, y: 381 }, { x: 634, y: 367 },
-  { x: 675, y: 336 }, { x: 688, y: 285 }, { x: 682, y: 249 },
-  { x: 648, y: 213 }, { x: 659, y: 190 }, { x: 713, y: 164 },
-  { x: 765, y: 156 }, { x: 818, y: 173 }, { x: 858, y: 202 },
-  { x: 869, y: 244 }, { x: 869, y: 293 }, { x: 889, y: 330 },
-  { x: 936, y: 357 }, { x: 997, y: 387 }, { x: 1054, y: 418 },
-  { x: 1140, y: 450 },
-];
-
-export const PADS = [
-  { id: 0, x: 234, y: 241 }, { id: 1, x: 380, y: 153 },
-  { id: 2, x: 422, y: 294 }, { id: 3, x: 529, y: 428 },
-  { id: 4, x: 571, y: 237 }, { id: 5, x: 738, y: 250 },
-  { id: 6, x: 813, y: 372 }, { id: 7, x: 961, y: 271 },
-];
 
 export const TOWER_DEFS: Record<TowerKind, {
   name: string; description: string; cost: number; damage: number;
@@ -31,6 +14,9 @@ export const TOWER_DEFS: Record<TowerKind, {
   archer: { name: 'Ranger nest', description: 'Fast arrows. Excels against runners.', cost: 70, damage: 16, range: 170, interval: 0.65, color: 0xd8ba75 },
   cannon: { name: 'Ember cannon', description: 'Explosive shells. Breaks armor and groups.', cost: 120, damage: 43, range: 160, interval: 1.6, color: 0xec8b5e },
   arcane: { name: 'Arcane spire', description: 'Chain lightning jumps between nearby enemies.', cost: 100, damage: 24, range: 165, interval: 1.05, color: 0xb78dff },
+  mortar: { name: 'Siege mortar', description: 'Long-range shells explode across a wide area and ignore armor.', cost: 160, damage: 68, range: 255, interval: 2.5, color: 0xe5a863 },
+  tesla: { name: 'Tesla coil', description: 'Electrical pulses hit every enemy in range at once.', cost: 140, damage: 12, range: 120, interval: 1.05, color: 0x86c8ff },
+  venom: { name: 'Venom lab', description: 'Toxic bolts poison enemies for lasting armor-piercing damage.', cost: 110, damage: 8, range: 175, interval: 1.2, color: 0xa7d766 },
   frost: { name: 'Frost shrine', description: 'Slows enemies by 45%. Combines with other towers.', cost: 90, damage: 9, range: 160, interval: 0.9, color: 0x88d9de },
 };
 
@@ -45,7 +31,7 @@ export const ENEMY_DEFS: Record<EnemyKind, {
 
 export interface Enemy {
   id: number; kind: EnemyKind; x: number; y: number; hp: number; maxHp: number;
-  distance: number; speed: number; slowUntil: number;
+  distance: number; speed: number; slowUntil: number; poisonUntil?: number; poisonDps?: number;
 }
 export interface Tower {
   id: number; padId: number; kind: TowerKind; level: number; cooldown: number; spent: number;
@@ -60,41 +46,49 @@ export interface WaveDef {
   name: string; description: string; enemies: { kind: EnemyKind; delay: number }[];
 }
 
-const wave = (name: string, description: string, kinds: EnemyKind[], spacing = 1.2): WaveDef => ({
-  name, description, enemies: kinds.map((kind, index) => ({ kind, delay: index * spacing })),
-});
-const many = (kind: EnemyKind, count: number): EnemyKind[] => Array.from({ length: count }, () => kind);
-export const WAVES: WaveDef[] = [
-  wave('Footsteps in the fern', 'A small scouting party. Build a ranger nest near the entrance.', many('grunt', 7), 1.55),
-  wave('Quick on their feet', 'Fast runners join the attack. A frost shrine can buy time.', ['grunt', 'grunt', ...many('runner', 7), 'grunt', 'grunt'], 1.15),
-  wave('Iron hides', 'Armored brutes resist arrows. Ember cannons ignore armor.', ['grunt', 'grunt', 'brute', 'runner', 'runner', 'brute', 'grunt', 'brute', 'grunt'], 1.4),
-  wave('The gathering swarm', 'A close-packed swarm. Splash damage is your friend.', [...many('grunt', 13), ...many('runner', 5)], 0.65),
-  wave('Heavy footsteps', 'Brutes lead the charge. Upgrade towers to level II.', ['brute', 'grunt', 'grunt', 'brute', 'runner', 'runner', 'brute', 'brute', 'grunt', 'brute', 'runner', 'brute'], 1.1),
-  wave('Through the undergrowth', 'Runners dart between armored escorts.', [...many('runner', 8), 'brute', 'brute', ...many('runner', 8), 'brute'], 0.75),
-  wave('Bramble battalion', 'A sustained mixed attack. Cover the second half of the trail.', ['brute', 'brute', ...many('grunt', 8), ...many('runner', 7), 'brute', 'brute', 'brute'], 0.85),
-  wave('Nightfall rush', 'The fastest attack yet. Frost and splash work together.', [...many('runner', 13), ...many('brute', 6), ...many('grunt', 8)], 0.6),
-  wave('The roots tremble', 'An armored vanguard. Save your meteor for tight groups.', [...many('brute', 10), ...many('runner', 12), ...many('brute', 4)], 0.85),
-  wave('Shattered procession', 'Armored ranks march close together. Chain lightning punishes their formation.', ['brute', ...many('grunt', 7), 'brute', 'brute', ...many('runner', 9), ...many('brute', 6)], 0.72),
-  wave('The violet breach', 'The portal surges. Upgrade your arcane spires and prepare for the king.', [...many('runner', 10), ...many('brute', 8), ...many('grunt', 10), ...many('brute', 4)], 0.64),
-  wave('The Hollow King', 'The forest stands with you. Defeat the king and his final guard.', ['brute', 'brute', 'boss', ...many('runner', 8), ...many('brute', 7), ...many('grunt', 8)], 1.05),
-];
+export const PATH = LEVELS[0].path;
+export const PADS = LEVELS[0].pads;
+export const WAVES = LEVELS[0].waves;
 
-const lengths = PATH.slice(1).map((point, index) => Math.hypot(point.x - PATH[index].x, point.y - PATH[index].y));
+function segmentLengths(path: Point[]): number[] {
+  return path.slice(1).map((point, index) => Math.hypot(point.x - path[index].x, point.y - path[index].y));
+}
+const lengths = segmentLengths(PATH);
 export const PATH_LENGTH = lengths.reduce((sum, length) => sum + length, 0);
 
-export function positionAt(distance: number): Point {
+function positionAlong(distance: number, path: Point[], segments: number[]): Point {
   let remaining = Math.max(0, distance);
-  for (let index = 0; index < lengths.length; index++) {
-    if (remaining <= lengths[index]) {
-      const fraction = remaining / lengths[index];
-      return { x: PATH[index].x + (PATH[index + 1].x - PATH[index].x) * fraction, y: PATH[index].y + (PATH[index + 1].y - PATH[index].y) * fraction };
+  for (let index = 0; index < segments.length; index++) {
+    if (remaining <= segments[index]) {
+      const fraction = segments[index] === 0 ? 0 : remaining / segments[index];
+      return { x: path[index].x + (path[index + 1].x - path[index].x) * fraction, y: path[index].y + (path[index + 1].y - path[index].y) * fraction };
     }
-    remaining -= lengths[index];
+    remaining -= segments[index];
   }
-  return { ...PATH[PATH.length - 1] };
+  return { ...path[path.length - 1] };
+}
+export function positionAt(distance: number, path: Point[] = PATH): Point {
+  return positionAlong(distance, path, path === PATH ? lengths : segmentLengths(path));
 }
 
 export class GameModel {
+  private levelIndex = 0;
+  private segments = segmentLengths(LEVELS[0].path);
+  constructor(levelIndex = 0) { this.selectLevel(levelIndex); }
+  get currentLevelIndex(): number { return this.levelIndex; }
+  get level() { return LEVELS[this.levelIndex]; }
+  get path() { return this.level.path; }
+  get pads() { return this.level.pads; }
+  get waves() { return this.level.waves; }
+  get pathLength(): number { return this.segments.reduce((sum, length) => sum + length, 0); }
+  /** Level changes are deliberate fresh defenses; combat cannot be discarded by this method. */
+  selectLevel(index: number): boolean {
+    if (this.status === 'wave' || !Number.isInteger(index) || index < 0 || index >= LEVELS.length) return false;
+    this.levelIndex = index;
+    this.segments = segmentLengths(this.path);
+    this.reset();
+    return true;
+  }
   gold = 240;
   lives = 20;
   wave = 0;
@@ -122,7 +116,7 @@ export class GameModel {
 
   build(padId: number, kind: TowerKind): boolean {
     const def = TOWER_DEFS[kind];
-    if (!this.actionable || !def || !PADS.some(pad => pad.id === padId) || this.towers.some(tower => tower.padId === padId) || this.gold < def.cost) return false;
+    if (!this.actionable || !def || !this.pads.some(pad => pad.id === padId) || this.towers.some(tower => tower.padId === padId) || this.gold < def.cost) return false;
     this.gold -= def.cost;
     this.towers.push({ id: this.nextId++, padId, kind, level: 1, cooldown: 0, spent: def.cost });
     return true;
@@ -146,7 +140,7 @@ export class GameModel {
     if (!this.actionable || !tower) return false;
     const refund = Math.floor(tower.spent * 0.7);
     this.gold += refund;
-    const pad = PADS.find(item => item.id === tower.padId)!;
+    const pad = this.pads.find(item => item.id === tower.padId)!;
     this.float(pad.x, pad.y - 30, `+${refund}`, '#e8c981');
     this.towers = this.towers.filter(item => item.id !== id);
     return true;
@@ -157,7 +151,7 @@ export class GameModel {
     return { damage: Math.round(def.damage * (1 + (tower.level - 1) * 0.8)), range: def.range + (tower.level - 1) * 18, interval: def.interval / (1 + (tower.level - 1) * 0.12) };
   }
 
-  nextWave(): WaveDef | undefined { return WAVES[this.wave]; }
+  nextWave(): WaveDef | undefined { return this.waves[this.wave]; }
 
   startWave(): boolean {
     const next = this.nextWave();
@@ -196,20 +190,24 @@ export class GameModel {
     while (this.pending.length && this.pending[0].delay <= this.waveTime) {
       const entry = this.pending.shift()!;
       const def = ENEMY_DEFS[entry.kind];
-      const multiplier = 1 + Math.max(0, this.wave - 3) * 0.045;
+      const multiplier = (1 + Math.max(0, this.wave - 3) * 0.045) * this.level.enemyMultiplier;
       const hp = Math.round(def.hp * multiplier);
-      this.enemies.push({ id: this.nextId++, kind: entry.kind, ...PATH[0], hp, maxHp: hp, distance: 0, speed: def.speed, slowUntil: 0 });
+      this.enemies.push({ id: this.nextId++, kind: entry.kind, ...this.path[0], hp, maxHp: hp, distance: 0, speed: def.speed, slowUntil: 0 });
     }
 
     for (const enemy of this.enemies) {
+      const poisonedFor = Math.max(0, Math.min(this.time, enemy.poisonUntil ?? 0) - (this.time - delta));
+      if (poisonedFor > 0) this.damage(enemy, (enemy.poisonDps ?? 0) * poisonedFor);
+      if (enemy.hp <= 0) continue;
       enemy.distance += enemy.speed * (enemy.slowUntil > this.time ? 0.55 : 1) * delta;
-      const position = positionAt(enemy.distance);
+      const position = positionAlong(enemy.distance, this.path, this.segments);
       enemy.x = position.x;
       enemy.y = position.y;
-      if (enemy.distance >= PATH_LENGTH) {
+      if (enemy.distance >= this.pathLength) {
         this.lives = Math.max(0, this.lives - ENEMY_DEFS[enemy.kind].leak);
         enemy.hp = 0;
-        this.float(1030, 440, `−${ENEMY_DEFS[enemy.kind].leak} ♥`, '#ef9a8d');
+        const exit = this.path[this.path.length - 1];
+        this.float(Math.min(1060, exit.x), Math.min(640, exit.y), `−${ENEMY_DEFS[enemy.kind].leak} ♥`, '#ef9a8d');
       }
     }
     this.enemies = this.enemies.filter(enemy => enemy.hp > 0);
@@ -218,15 +216,19 @@ export class GameModel {
     for (const tower of this.towers) {
       tower.cooldown = Math.max(0, tower.cooldown - delta);
       if (tower.cooldown > 0) continue;
-      const pad = PADS.find(item => item.id === tower.padId)!;
+      const pad = this.pads.find(item => item.id === tower.padId)!;
       const stats = this.getTowerStats(tower);
       const target = this.enemies.filter(enemy => enemy.hp > 0 && Math.hypot(enemy.x - pad.x, enemy.y - pad.y) <= stats.range).sort((a, b) => b.distance - a.distance)[0];
       if (!target) continue;
       tower.cooldown = stats.interval;
-      const life = tower.kind === 'cannon' ? 0.32 : tower.kind === 'arcane' ? 0.2 : 0.18;
+      const life = tower.kind === 'mortar' ? 0.5 : tower.kind === 'cannon' ? 0.32 : tower.kind === 'arcane' || tower.kind === 'tesla' ? 0.2 : 0.18;
       this.shots.push({ id: this.nextId++, kind: tower.kind, from: { x: pad.x, y: pad.y - 22 }, to: { x: target.x, y: target.y }, life, maxLife: life });
-      if (tower.kind === 'cannon') {
-        for (const enemy of this.enemies) if (enemy.hp > 0 && Math.hypot(enemy.x - target.x, enemy.y - target.y) <= 65) this.damage(enemy, stats.damage);
+      if (tower.kind === 'cannon' || tower.kind === 'mortar') {
+        const radius = tower.kind === 'mortar' ? 90 : 65;
+        for (const enemy of this.enemies) if (enemy.hp > 0 && Math.hypot(enemy.x - target.x, enemy.y - target.y) <= radius) this.damage(enemy, stats.damage);
+      } else if (tower.kind === 'tesla') {
+        // A radial pulse damages all foes in tower range, without chain falloff.
+        for (const enemy of this.enemies) if (enemy.hp > 0 && Math.hypot(enemy.x - pad.x, enemy.y - pad.y) <= stats.range) this.damage(enemy, stats.damage);
       } else if (tower.kind === 'arcane') {
         // A chain visits each enemy at most once, including targets killed by its first hit.
         const visited = new Set([target.id]);
@@ -247,13 +249,18 @@ export class GameModel {
       } else {
         this.damage(target, stats.damage * (tower.kind === 'archer' && (target.kind === 'brute' || target.kind === 'boss') ? 0.6 : 1));
         if (tower.kind === 'frost' && target.hp > 0) target.slowUntil = this.time + 2.2;
+        if (tower.kind === 'venom' && target.hp > 0) {
+          const currentDps = (target.poisonUntil ?? 0) > this.time ? target.poisonDps ?? 0 : 0;
+          target.poisonDps = Math.max(currentDps, stats.damage * 1.4);
+          target.poisonUntil = this.time + 3.5;
+        }
       }
     }
     this.enemies = this.enemies.filter(enemy => enemy.hp > 0);
     if (this.waveRemaining === 0) {
       this.gold += 35 + this.wave * 7;
       this.clearedAt = this.time;
-      this.status = this.wave === WAVES.length ? 'won' : 'building';
+      this.status = this.wave === this.waves.length ? 'won' : 'building';
     }
   }
 
@@ -272,7 +279,7 @@ export class GameModel {
   }
 
   reset(): void {
-    this.gold = 240; this.lives = 20; this.wave = 0; this.status = 'building';
+    this.gold = this.level.startingGold; this.lives = 20; this.wave = 0; this.status = 'building';
     this.paused = false; this.speed = 1; this.time = 0; this.kills = 0;
     this.towers = []; this.enemies = []; this.shots = []; this.floats = [];
     this.meteorCooldown = 0; this.nextId = 1; this.pending = []; this.waveTime = 0; this.clearedAt = 0;
@@ -280,6 +287,8 @@ export class GameModel {
 
   snapshot() {
     return {
+      levelIndex: this.levelIndex, levelId: this.level.id, levelName: this.level.name, mapKey: this.level.mapKey, wavesTotal: this.waves.length,
+      path: this.path.map(point => ({ ...point })), pads: this.pads.map(pad => ({ ...pad })),
       gold: this.gold, lives: this.lives, wave: this.wave, status: this.status,
       paused: this.paused, speed: this.speed, time: this.time, kills: this.kills,
       meteorCooldown: this.meteorCooldown, waveRemaining: this.waveRemaining, earlyBonus: this.earlyBonus,

@@ -14,7 +14,8 @@
     "serve": "node scripts/serve.mjs",
     "test:platforms": "node tests/platforms.mjs",
     "test:view": "node tests/view.mjs",
-    "test:animation": "node tests/animation.mjs"
+    "test:animation": "node tests/animation.mjs",
+    "test:campaign": "node tests/campaign.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",
