@@ -50,6 +50,7 @@ jobs:
           CHROMIUM_PATH=$(node --input-type=module -e "import { chromium } from '@playwright/test'; process.stdout.write(chromium.executablePath())")
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:browser
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:view
+          GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:animation
           for browser_engine in chromium firefox webkit; do
             BROWSER="$browser_engine" PLATFORM_BASE=http://127.0.0.1:4173/my-first-game/ npm run test:platforms
           done

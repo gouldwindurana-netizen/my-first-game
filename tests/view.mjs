@@ -43,13 +43,13 @@ async function boot(page) {
 }
 async function layout(page, label, minimumMapWidth = null) {
   await page.waitForFunction(() => {
-    const box = document.querySelector('canvas').getBoundingClientRect();
-    return box.width > 100 && Math.abs(box.width / box.height - 1100 / 680) < .02;
+    const box = document.querySelector('canvas').getBoundingClientRect(), field = document.querySelector('#battlefield').getBoundingClientRect();
+    return box.width > 100 && Math.abs(box.width / box.height - field.width / field.height) < .02;
   });
   const metrics = await page.evaluate(() => {
     const canvas = document.querySelector('canvas'), map = canvas.getBoundingClientRect(), main = document.querySelector('main').getBoundingClientRect();
     return {
-      viewport: innerWidth, viewportHeight: innerHeight, page: document.documentElement.scrollWidth, main: main.width, map: map.width,
+      pageHeight: document.documentElement.scrollHeight, dock: document.querySelector('.tower-dock').getBoundingClientRect().toJSON(), viewport: innerWidth, viewportHeight: innerHeight, page: document.documentElement.scrollWidth, main: main.width, map: map.width,
       wave: document.querySelector('#start-wave').getBoundingClientRect().toJSON(),
       backingWidth: canvas.width, backingHeight: canvas.height,
       resources: [...document.querySelectorAll('.resource b')].map(element => parseFloat(getComputedStyle(element).fontSize)),
@@ -62,6 +62,8 @@ async function layout(page, label, minimumMapWidth = null) {
   assert(metrics.page <= metrics.viewport, `${label}: no horizontal overflow: ${JSON.stringify(metrics)}`);
   assert(metrics.cards.every(card => card.fits), `${label}: tower text fits: ${JSON.stringify(metrics.cards)}`);
   if (minimumMapWidth !== null) {
+    assert(metrics.pageHeight <= metrics.viewportHeight + 1, `${label}: no desktop page scrolling`);
+    assert(metrics.dock.top >= 0 && metrics.dock.bottom <= metrics.viewportHeight, `${label}: tower dock stays visible`);
     assert(metrics.main >= metrics.viewport * .95, `${label}: main uses at least 95% of viewport width`);
     assert(metrics.map >= minimumMapWidth, `${label}: map is ${metrics.map}px, expected at least ${minimumMapWidth}px`);
     assert(metrics.resources.every(size => size >= 18), `${label}: resource text is at least 18px`);
@@ -87,6 +89,11 @@ async function choose(page, kind) {
 async function clickBuild(page, kind, padId) {
   const before = await state(page);
   await choose(page, kind);
+  const chooserOverlapsMap = await page.evaluate(() => {
+    const chooser = document.querySelector('#foundation-picker').getBoundingClientRect(), field = document.querySelector('#battlefield').getBoundingClientRect();
+    return chooser.left < field.right && chooser.right > field.left && chooser.top < field.bottom && chooser.bottom > field.top;
+  });
+  assert.equal(chooserOverlapsMap, false, 'Build-site controls do not cover the battlefield');
   const point = await worldPoint(page, pads[padId].x, pads[padId].y);
   await page.mouse.click(point.x, point.y);
   await page.waitForFunction(count => window.__MOSSGUARD__.towers.length === count, before.towers.length + 1);
@@ -146,6 +153,12 @@ try {
     let metrics = await layout(desktop, '1366×768 desktop', 970);
     assert.equal(metrics.backingWidth, 1100, 'Standard-density compact desktop uses the base render backing');
     await shot(desktop, 'desktop-1366-initial');
+    const baseView = (await state(desktop)).view;
+    await desktop.setViewportSize({ width: 800, height: 900 });
+    await desktop.waitForFunction(() => window.__MOSSGUARD__.view.visibleHeight >= 679);
+    await desktop.setViewportSize({ width: 1366, height: 768 });
+    await desktop.waitForFunction(top => Math.abs(window.__MOSSGUARD__.view.scrollY - top) < 1, baseView.scrollY);
+    checks.push('Tablet-to-desktop resize restores the initial road framing');
     await clickBuild(desktop, 'archer', 0);
     const fontSizes = await desktop.locator('.stat-list > div').evaluateAll(elements => elements.map(element => parseFloat(getComputedStyle(element).fontSize)));
     assert(fontSizes.length >= 3 && fontSizes.every(size => size >= 12), 'Tower stats are at least 12px');
@@ -187,7 +200,7 @@ try {
     assert.deepEqual((await state(desktop)).towers, frozen.towers, 'Resize to a larger render backing preserves tower state');
     await desktop.locator('#battlefield').focus();
     await desktop.keyboard.press('0');
-    await desktop.waitForFunction(() => window.__MOSSGUARD__.view.zoom === 1 && Math.abs(window.__MOSSGUARD__.view.scrollX) < .01 && Math.abs(window.__MOSSGUARD__.view.scrollY) < .01);
+    await desktop.waitForFunction(() => window.__MOSSGUARD__.view.zoom === 1 && Math.abs(window.__MOSSGUARD__.view.scrollX) < .01 && window.__MOSSGUARD__.view.scrollY >= 0 && window.__MOSSGUARD__.view.scrollY < 100);
     assert.equal((await state(desktop)).towers.length, 3);
     await shot(desktop, 'desktop-1920-fit');
     await desktop.setViewportSize({ width: 1366, height: 768 });
@@ -209,7 +222,7 @@ try {
   try {
     await boot(retina);
     const metrics = await layout(retina, 'DPR2 desktop', 970);
-    assert(metrics.backingWidth >= 2200 && metrics.backingHeight >= 1360, 'DPR2 uses a high-resolution render backing');
+    assert(metrics.backingWidth >= 2200 && metrics.backingHeight > 800, 'DPR2 uses a high-resolution render backing');
     await clickBuild(retina, 'archer', 0);
     await retina.locator('#upgrade').click();
     await retina.waitForFunction(() => window.__MOSSGUARD__.towers[0].level === 2);

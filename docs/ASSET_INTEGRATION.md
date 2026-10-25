@@ -11,7 +11,7 @@ Integrated assets:
 
 Tower/enemy sheets are packaged as lossless WebP. Source hashes, dimensions, and conversion notes are retained in `src/assets/pack/provenance.json`. Full alpha and visible source pixels were verified during conversion. Runtime cropping and bottom-center anchoring avoid changing the supplied pictures or sampling adjacent subjects.
 
-These are static source illustrations. Movement uses position, direction mirroring, and a subtle procedural bob; authored multi-frame animations are not claimed.
+These are static source illustrations. The renderer animates them procedurally: role-specific strides and grounded squash/lean, direction mirroring, weapon-specific recoil, crystal orbits, construction and upgrade effects, hit flashes, and short defeat fades. No authored multi-frame sprite strips are claimed. A pausable simulation-linked clock controls poses and bounded effects (160 particles and 30 defeat ghosts maximum). Reduced motion keeps the original artwork still while retaining combat feedback.
 
 The level paintings, proposed campaign JSON, specialist towers, allies, and environment props remain design references. This update retains the tested road, foundations, economy, and 12-wave campaign. The supplied map concepts and blueprint routes describe different layouts; they have not been substituted into the active level.
 

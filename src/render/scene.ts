@@ -22,9 +22,12 @@ export class GroveScene extends Phaser.Scene {
  private lastHudTime = 0;
  private hover: {x:number,y:number}|null=null;
  private viewZoom=1;
- private center={x:550,y:340};
+ private center={x:550,y:260};
+ private animationTime=0;
+ private lastModelTime=0;
  private drag: {startX:number,startY:number,lastX:number,lastY:number,moved:boolean}|null=null;
  constructor(private bridge: SceneBridge) {super('grove');}
+ private get canPan(){return this.viewZoom>1||this.cameras.main.displayHeight<679;}
  private get renderScale(){return this.scale.gameSize.width/1100;}
  preload(){this.load.image('eldervale',mapUrl);preloadAssetSheets(this);}
  create(){
@@ -42,7 +45,7 @@ export class GroveScene extends Phaser.Scene {
   });
   this.input.on('pointermove',(p:Phaser.Input.Pointer)=>{
    const drag=this.drag;
-   if(drag&&p.isDown&&this.viewZoom>1){
+   if(drag&&p.isDown&&this.canPan){
     const cssScale=this.game.canvas.getBoundingClientRect().width/this.scale.gameSize.width;
     if(Math.hypot(p.x-drag.startX,p.y-drag.startY)*cssScale>6)drag.moved=true;
     if(drag.moved){
@@ -73,7 +76,7 @@ export class GroveScene extends Phaser.Scene {
   const camera=this.cameras.main;
   camera.setViewport(0,0,this.scale.gameSize.width,this.scale.gameSize.height);
   camera.setZoom(this.renderScale*this.viewZoom).setBounds(0,0,1100,680).centerOn(this.center.x,this.center.y);
-  camera.preRender();this.center={x:camera.midPoint.x,y:camera.midPoint.y};
+  camera.preRender();
   for(const label of this.labels)label.setResolution(this.renderScale);
   for(const label of this.floatLabels.values())label.setResolution(this.renderScale);
  }
@@ -82,22 +85,27 @@ export class GroveScene extends Phaser.Scene {
   this.viewZoom=Phaser.Math.Clamp(value,1,2.5);this.drag=null;this.applyView();return this.viewZoom;
  }
  changeViewZoom(delta:number):number{return this.setViewZoom(this.viewZoom+delta);}
- resetView():void{this.viewZoom=1;this.center={x:550,y:340};this.drag=null;this.applyView();}
- focusSite(padId:number):void{const pad=PADS.find(p=>p.id===padId);if(pad&&this.viewZoom>1){this.center={x:pad.x,y:pad.y};this.applyView();}}
+ resetView():void{this.viewZoom=1;this.center={x:550,y:260};this.drag=null;this.applyView();}
+ focusSite(padId:number):void{const pad=PADS.find(p=>p.id===padId);if(pad&&this.canPan){this.center={x:pad.x,y:pad.y};this.applyView();}}
  getView(){
   const camera=this.cameras.main;camera.preRender();
   // Expose the visible top-left world position, not Phaser's unzoomed scroll offset.
   const topLeft=camera.getWorldPoint(0,0);
-  return{zoom:this.viewZoom,renderScale:this.renderScale,scrollX:topLeft.x,scrollY:topLeft.y,worldWidth:1100,worldHeight:680};
+  return{zoom:this.viewZoom,renderScale:this.renderScale,scrollX:topLeft.x,scrollY:topLeft.y,worldWidth:1100,worldHeight:680,visibleWidth:camera.displayWidth,visibleHeight:camera.displayHeight,canPan:this.canPan};
  }
+ getAnimationSnapshot(){return this.assetViews?.getSnapshot()||null;}
  update(time:number,delta:number) {
   const m=this.bridge.model;
+  if(m.time<this.lastModelTime)this.animationTime=0;
+  const before=m.time;
   m.update(delta/1000);
+  if(!m.paused)this.animationTime+=m.status==='won'||m.status==='lost'?Math.min(delta/1000,.1)*m.speed:m.time-before;
+  this.lastModelTime=m.time;
   if(time-this.lastHudTime>80){this.bridge.onTick();this.lastHudTime=time;}
   const g=this.paint;g.clear();
   const visualTime=this.bridge.reduceMotion?0:m.time*1000;
-  this.assetViews.sync(m,visualTime/1000);
-  const cursor=this.bridge.meteorArmed?'crosshair':this.viewZoom>1?(this.drag?.moved?'grabbing':'grab'):'default';
+  this.assetViews.sync(m,this.animationTime,this.bridge.reduceMotion);
+  const cursor=this.bridge.meteorArmed?'crosshair':this.canPan?(this.drag?.moved?'grabbing':'grab'):'default';
   this.game.canvas.style.cursor=cursor;
   if(this.bridge.tactical){
    g.lineStyle(3,0xf8de9e,.75);g.strokePoints(PATH,false);

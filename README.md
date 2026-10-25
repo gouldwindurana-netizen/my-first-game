@@ -23,11 +23,11 @@ The workflow cannot enable a new Pages site using `GITHUB_TOKEN` alone. Enabling
 
 ## Web display and supplied assets
 
-The battlefield now uses the available browser width instead of shrinking to fit the window height. The tower bar remains reachable while scrolling, and important HUD values, prices, labels, and action buttons use readable sizes. High-DPI backing resolution keeps graphics sharp on Retina displays and larger desktop viewports.
+The battlefield now uses the available browser width instead of shrinking to fit the window height. On desktop, the field, bottom tower dock, and next-wave button fit inside the viewport; tower inspection scrolls independently. Tablets and phones use a full-width field with controls below. Important HUD values, prices, labels, and action buttons use readable sizes. High-DPI backing resolution keeps graphics sharp on Retina displays and larger desktop viewports.
 
-Use **+ / −** to zoom the battlefield from 100% to 250%, drag to pan while zoomed, and press **0** to reset the view. The fullscreen button expands the game when the browser supports it. Zoom, pan, resize, and fullscreen do not reset the match. Numbered foundation buttons also center the selected site while zoomed.
+Use **+ / −** to zoom the battlefield from 100% to 250%, drag to pan when zoomed or when the desktop field crops the map margins, and press **0** to reset the view. The fullscreen button expands the game when the browser supports it. Zoom, pan, resize, and fullscreen do not reset the match. Numbered foundation buttons also center the selected site while zoomed.
 
-The user's `Mossguard_Design_and_Assets.zip` supplies the twelve tower-tier illustrations, four mapped enemy images, matching SVG icons, and WAV effects. The sheets use individually measured frames, not equal-grid slicing. [Asset integration notes](docs/ASSET_INTEGRATION.md) explain which assets are live and which remain design references. Static illustrations use procedural movement; authored sprite animations are not claimed.
+The user's `Mossguard_Design_and_Assets.zip` supplies the twelve tower-tier illustrations, four mapped enemy images, matching SVG icons, and WAV effects. The sheets use individually measured frames, not equal-grid slicing. [Asset integration notes](docs/ASSET_INTEGRATION.md) explain which assets are live and which remain design references. The supplied illustrations now have distinct procedural walking strides, tower recoil, orbiting magic, construction/upgrade bursts, hit flashes, and fading defeat reactions. Pause freezes these effects, 2× speed follows combat, and Reduced motion removes extra movement. This animates the original artwork without claiming authored frame-by-frame sprite strips.
 
 ## Mobile and other platforms
 
@@ -54,7 +54,7 @@ npm run serve -- --port 4173 --base /my-first-game/
 
 `npm run build:web` builds just the normal website. `npm run build:html` regenerates the single-file sample after source edits. Do not edit the generated sample by hand. Run the normal build after regenerating it to refresh the copy in `dist/`.
 
-For the platform suite, keep the static server running at `/my-first-game/` and run `npm run test:platforms`. Set `BROWSER=firefox` or `BROWSER=webkit` after installing that Playwright browser. `npm run test:browser` accepts `GAME_URL` for the same subpath.
+For the platform suite, keep the static server running at `/my-first-game/` and run `npm run test:platforms`. Set `BROWSER=firefox` or `BROWSER=webkit` after installing that Playwright browser. `npm run test:browser`, `npm run test:view`, and `npm run test:animation` accept `GAME_URL` for the same subpath. The animation suite exercises construction, upgrades, combat reactions, pause, speed, and reduced motion through real UI input.
 
 ## Run
 

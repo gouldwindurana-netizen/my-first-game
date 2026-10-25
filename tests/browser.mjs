@@ -18,7 +18,7 @@ function watch(page, label) {
 async function boot(page) {
   await page.goto(base);
   await page.waitForSelector('#battlefield[data-ready="true"]');
-  await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && Math.abs(canvas.width / canvas.height - 1100 / 680) < .01 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
+  await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
   await page.evaluate(() => document.fonts.ready);
   await page.waitForFunction(() => document.querySelector('canvas').getBoundingClientRect().height > 100);
 }
@@ -33,11 +33,11 @@ async function point(page, x, y, touch = false) {
   if (touch) await page.touchscreen.tap(px, py); else await page.mouse.click(px, py);
 }
 async function fit(page, label) {
-  await page.waitForFunction(() => { const box = document.querySelector('canvas').getBoundingClientRect(); return Math.abs(box.width / box.height - 1100 / 680) < 0.02; });
-  const dimensions = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, canvas: document.querySelector('canvas').getBoundingClientRect().toJSON() }));
+  await page.waitForFunction(() => { const box = document.querySelector('canvas').getBoundingClientRect(), field = document.querySelector('#battlefield').getBoundingClientRect(); return Math.abs(box.width / box.height - field.width / field.height) < 0.02; });
+  const dimensions = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, canvas: document.querySelector('canvas').getBoundingClientRect().toJSON(), field: document.querySelector('#battlefield').getBoundingClientRect().toJSON() }));
   assert(dimensions.scroll <= dimensions.width, `${label} has no horizontal overflow: ${JSON.stringify(dimensions)}`);
   assert(dimensions.canvas.width <= dimensions.width, `${label} battlefield fits viewport`);
-  assert(Math.abs(dimensions.canvas.width / dimensions.canvas.height - 1100 / 680) < 0.02, `${label} battlefield preserves aspect ratio`);
+  assert(Math.abs(dimensions.canvas.width / dimensions.canvas.height - dimensions.field.width / dimensions.field.height) < 0.02, `${label} canvas fills its viewport without distortion`);
   const dockCards = await page.locator('.tower-card').evaluateAll(cards => cards.map(card => { const box = card.getBoundingClientRect(); const info = card.querySelector('.tower-info').getBoundingClientRect(); return { name: card.getAttribute('aria-label'), fits: info.left >= box.left - 1 && info.right <= box.right + 1 && info.top >= box.top - 1 && info.bottom <= box.bottom + 1 }; }));
   assert(dockCards.every(card => card.fits), `${label} tower dock text fits its cards: ${JSON.stringify(dockCards)}`);
   checks.push(`${label} layout and readable tower dock`);
@@ -49,8 +49,7 @@ try {
   await boot(desktop);
   await fit(desktop, 'Desktop');
   assert.equal((await state(desktop)).gold, 240);
-  const commandPreviews = await desktop.locator('.command-towers').boundingBox();
-  assert(commandPreviews && commandPreviews.height < 120, 'Command tower previews stay compact and do not stretch the battlefield');
+  assert.equal(await desktop.locator('.command-towers').isVisible(), false, 'Desktop command panel avoids repeating the dock artwork');
   const perfStart = await state(desktop);
   const wallStart = Date.now();
   await new Promise(resolve => setTimeout(resolve, 2000));

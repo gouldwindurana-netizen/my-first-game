@@ -1,0 +1,104 @@
+/* The playfield owns the desktop viewport. Inspection scrolls independently. */
+.game-shell { position: relative; }
+.build-panel .minimap-panel { display: block; flex: 0 0 112px; margin: 0 14px 12px; min-height: 0; height: 112px; width: calc(100% - 28px); }
+.build-panel .minimap { min-height: 0; height: 86px; background-size: contain; background-repeat: no-repeat; background-position: center; }
+.build-panel .minimap-label { height: 25px; }
+.game-shell.has-inspection .minimap-panel { display: none; }
+.tower-card { transition: border-color .15s, background-color .15s, box-shadow .15s; }
+.tower-card.selected { box-shadow: inset 0 0 22px #bda46520, 0 0 0 1px #d6bd7d; }
+@media (min-width: 981px) and (min-height: 740px) {
+  #app { height: 100dvh; min-height: 0; display: flex; flex-direction: column; }
+  .site-header { flex: 0 0 52px; min-height: 52px; height: 52px; padding: 0 20px; }
+  main { flex: 1; min-height: 0; display: flex; flex-direction: column; max-width: 2000px; padding-top: 9px; padding-bottom: 0; }
+  .mission-heading { flex: 0 0 45px; min-height: 45px; margin-bottom: 10px; }
+  .mission-heading h1 { font-size: 30px; margin-top: 2px; }
+  .chapter-seal { height: 36px; }
+  .site-footer { flex: 0 0 27px; min-height: 27px; padding: 5px 0; }
+  .game-shell { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr) 280px; grid-template-rows: minmax(0, 1fr) 108px; gap: 12px; align-items: stretch; }
+  .battle-column { grid-column: 1; grid-row: 1; align-self: stretch; min-height: 0; display: flex; flex-direction: column; }
+  .battle-bar { flex: 0 0 62px; flex-wrap: nowrap; min-height: 62px; padding: 7px 10px; gap: 8px; }
+  .resource { min-width: 96px; padding: 6px 8px; }
+  .resource small { font-size: 8px; }
+  .resource b { font-size: 19px; }
+  .wave-badge, .wave-badge b { font-size: 21px; }
+  .wave-badge { padding: 6px 8px; margin-left: auto; }
+  .wave-badge .icon { display: none; }
+  .battlefield-wrap { flex: 1; min-height: 0; }
+  #battlefield { height: 100%; aspect-ratio: auto; }
+  .battle-footer { flex: 0 0 30px; min-height: 30px; padding: 5px 12px; }
+  .build-panel { grid-column: 2; grid-row: 1 / span 2; align-self: stretch; position: relative; top: auto; min-height: 0; max-height: none; overflow: hidden; }
+  .build-panel .panel-heading { flex: 0 0 auto; padding: 12px 4px 10px; }
+  .context-panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px; scrollbar-width: thin; scrollbar-color: #527183 #0a1a28; }
+  .build-panel .next-wave { flex: 0 0 auto; position: static; padding: 13px; margin: 0 5px 5px; min-height: 0; box-shadow: 0 -7px 12px #08192570; }
+  .next-wave h3 { font-size: 26px; margin: 8px 0; }
+  .next-wave p { margin-bottom: 12px; min-height: 0; }
+  .wave-button { min-height: 48px; }
+  .build-panel .panel-foot { display: none; }
+  .empty-command { padding-top: 2px; }
+  .empty-command .command-emblem, .empty-command .command-towers { display: none; }
+  .empty-command .empty-title { font-size: 31px; line-height: 1.1; margin: 12px 0; }
+  .empty-command p { font-size: 12px; margin-bottom: 12px; }
+  .empty-command .brief-row { margin: 8px 0 12px; padding: 10px 0; }
+  .empty-command .brief-row b { font-size: 27px; }
+  .empty-command > small { font-size: 11px; }
+  .tower-dock { grid-column: 1; grid-row: 2; position: relative; top: auto; align-self: stretch; padding: 8px; gap: 8px; z-index: 4; }
+  .dock-heading { min-width: 106px; max-width: 116px; padding-right: 10px; }
+  .dock-heading b { font-size: 19px; }
+  .dock-heading small { font-size: 8px; }
+  .dock-emblem { display: none; }
+  .tower-card { min-height: 0; grid-template-columns: 48px minmax(0, 1fr); padding: 9px 6px; gap: 0 5px; }
+  .tower-art { width: 49px; height: 65px; }
+  .tower-info b { font-size: 21px; }
+  .tower-info > span { font-size: 8px; }
+  .tower-cost { font-size: 14px; padding-top: 4px; }
+  .build-panel .foundation-picker { position: static; flex: 0 0 auto; margin: 0 12px 6px; padding: 10px; grid-template-columns: minmax(0, 1fr) 44px; gap: 8px; box-shadow: inset 0 0 0 2px #07131e; }
+  .foundation-heading { grid-column: 1; }
+  .foundation-heading b { font-size: 19px; }
+  .foundation-heading span { display: none; }
+  .foundation-sites { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(4, minmax(44px, 1fr)); }
+  .foundation-picker #cancel-foundation { grid-row: 1; grid-column: 2; align-self: center; min-width: 44px; font-size: 0; }
+  #cancel-foundation .icon { width: 17px; height: 17px; }
+  .field-rail { left: 10px; bottom: 12px; gap: 5px; }
+  .field-rail button { width: 44px; height: 44px; }
+  .field-rail button span { font-size: 7px; }
+  .map-scale { display: none; }
+  .ability { bottom: 12px; right: 12px; min-height: 50px; }
+  .toast { bottom: 75px; }
+  .tower-detail .tower-portrait { height: 86px; }
+  .tower-detail .tower-portrait svg { height: 85px; }
+  .tower-detail .detail-description { margin-top: 7px; }
+  .tower-detail .stat-list { margin: 10px 0; }
+  .tower-detail .stat-list > div { margin: 8px 0; }
+  .tower-detail .tower-actions { margin-top: 10px; }
+  .game-shell:fullscreen { width: 100vw; height: 100dvh; padding: 12px; background: #081521; }
+}
+@media (min-width: 981px) and (max-width: 1450px) {
+  .dock-heading { display: none; }
+}
+/* Tablets get the same full-width field as phones, followed by controls. */
+@media (max-width: 980px), (max-height: 739px) {
+  .game-shell { display: flex; flex-direction: column; gap: 14px; }
+  .battle-column { order: 1; }
+  .tower-dock { order: 2; position: static; }
+  .build-panel .foundation-picker { order: initial; margin: 0 14px 12px; }
+  .build-panel { order: 4; position: relative; top: auto; max-height: none; }
+  .build-panel .minimap-panel { display: none; }
+  .battlefield-wrap { height: auto; }
+  #battlefield { height: auto; aspect-ratio: 1100 / 680; }
+  .game-shell:fullscreen { overflow-y: auto; padding: 8px; background: #081521; }
+}
+@media (min-width: 741px) and (max-width: 980px) {
+  .battle-bar { flex-wrap: nowrap; min-height: 70px; }
+  .resources { width: auto; flex-basis: auto; flex: 1; }
+  .tower-dock { min-height: 120px; }
+  .build-panel { display: grid; grid-template-columns: 1fr 1fr; }
+  .panel-heading { grid-column: 1 / -1; }
+  .build-panel .foundation-picker { grid-column: 1 / -1; }
+  .next-wave { align-self: center; }
+  .build-panel .panel-foot { grid-column: 1 / -1; }
+}
+@media (max-width: 740px) {
+  .tower-dock { border-radius: 4px; }
+  .build-panel .next-wave { margin-top: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .tower-card { transition: none; } }

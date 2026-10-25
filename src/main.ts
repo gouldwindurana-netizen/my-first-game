@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import './style.css';
 import './platform.css';
 import './readability.css';
+import './game-layout.css';
 import { installPlatformLifecycle, focusBattlefield } from './platform';
 import { GameModel, PADS, PATH, TOWER_DEFS, WAVES, type TowerKind } from './game/model';
 import { GroveScene, type SceneBridge } from './render/scene';
@@ -50,12 +51,14 @@ app.innerHTML = `
  <footer class="site-footer"><span>${icon('spark')} Four disciplines. One last stronghold.</span><div class="shortcuts"><span><kbd>1—4</kbd> Towers</span><span><kbd>P</kbd> Pause</span><span><kbd>M</kbd> Tactical map</span><span><kbd>ESC</kbd> Cancel</span></div><span id="record">12 waves. Stand your ground.</span></footer>
 </main>
 <div class="modal-backdrop" id="guide" hidden><section class="modal guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title"><button class="modal-close icon-button" id="close-guide" aria-label="Close field guide">${icon('close')}</button><span class="eyebrow">THE WARDEN’S HANDBOOK</span><h2 id="guide-title">A kingdom worth defending.</h2><p class="modal-intro">The rift has opened beneath the old citadel. Stop the Hollow from reaching your stronghold. Survive all twelve waves to win.</p><div class="guide-steps"><div><span>01</span><h3>Reclaim the ruins</h3><p>Choose a tower from the bottom bar, then click a glowing stone foundation. Every site covers a different stretch of road.</p></div><div><span>02</span><h3>Master four disciplines</h3><p>Rangers catch runners. Cannons break armor. Frost slows the advance. Arcane bolts chain through nearby foes.</p></div><div><span>03</span><h3>Forge your defense</h3><p>Defeat enemies to earn gold. Select a built tower to upgrade twice or sell for 70% of your investment.</p></div><div><span>04</span><h3>Call down Starfall</h3><p>Press F, then target the road for 145 area damage. The spell recharges in 25 seconds. Press M to see tactical ranges.</p></div></div><div class="guide-note">${icon('gold')} Send the next wave within 12 seconds of a clear for up to 24 bonus gold.</div><button id="guide-done" class="primary">For Eldervale ${icon('arrow')}</button></section></div>
-<div class="modal-backdrop" id="settings" hidden><section class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title"><button class="modal-close icon-button" id="close-settings" aria-label="Close settings">${icon('close')}</button><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2 id="settings-title">Warden’s settings</h2><label class="setting-row"><span><b>Sound effects</b><small>Spells, rewards, and tower construction</small></span><input type="checkbox" id="sound-setting"/></label><label class="setting-row"><span><b>Reduced motion</b><small>Keep ambient effects and tower motion still</small></span><input type="checkbox" id="motion-setting"/></label><button id="settings-done" class="primary">Return to battle ${icon('arrow')}</button></section></div>
+<div class="modal-backdrop" id="settings" hidden><section class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title"><button class="modal-close icon-button" id="close-settings" aria-label="Close settings">${icon('close')}</button><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2 id="settings-title">Warden’s settings</h2><label class="setting-row"><span><b>Sound effects</b><small>Spells, rewards, and tower construction</small></span><input type="checkbox" id="sound-setting"/></label><label class="setting-row"><span><b>Reduced motion</b><small>Keep walking, recoil, and ambient motion still</small></span><input type="checkbox" id="motion-setting"/></label><button id="settings-done" class="primary">Return to battle ${icon('arrow')}</button></section></div>
 <div class="modal-backdrop" id="result" hidden><section class="modal result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title"><div class="result-emblem">${icon('shield')}</div><span id="result-eyebrow" class="eyebrow"></span><h2 id="result-title"></h2><p id="result-copy"></p><div class="result-stats"><div><b id="result-waves"></b><small>WAVES FACED</small></div><div><b id="result-kills"></b><small>FOES DEFEATED</small></div><div><b id="result-health"></b><small>STRONGHOLD HEALTH</small></div></div><button id="restart" class="primary">${icon('restart')} Defend again</button><button id="inspect" class="text-button">View the battlefield</button></section></div>
 `;
 
 // Fixed dialogs must share the fullscreen subtree to remain visible during battle.
 for(const id of ['guide','settings','result'])$('game-shell').appendChild($(id));
+$('context').after($('minimap-toggle'));
+$('context').before($('foundation-picker'));
 
 let selectedPad:number|null=null, selectedKind:TowerKind|null=null, meteorArmed=false;
 let resultShown=false, guidePaused=false, settingsPaused=false, lastSignature='', lastStatus=model.status;
@@ -64,12 +67,13 @@ const effects=new GameAudio();
 let sound=false, loadingAudio=false, lastKills=0, lastShotId=0;
 
 const bridge:SceneBridge={model,selectedPad,selectedKind,meteorArmed,tactical:false,reduceMotion:window.matchMedia('(prefers-reduced-motion: reduce)').matches,onPad,onGround,onTick:tick};
-const game = new Phaser.Game({type:Phaser.CANVAS,parent:'battlefield',backgroundColor:'#314936',width:1100*getRenderScale(),height:680*getRenderScale(),transparent:false,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},render:{antialias:true,roundPixels:false},scene:[new GroveScene(bridge)],banner:false});
+const game = new Phaser.Game({type:Phaser.CANVAS,parent:'battlefield',backgroundColor:'#314936',...getRenderSize(),transparent:false,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},render:{antialias:true,roundPixels:false},scene:[new GroveScene(bridge)],banner:false});
 function syncSelection(){bridge.selectedPad=selectedPad;bridge.selectedKind=selectedKind;bridge.meteorArmed=meteorArmed;$('battlefield').classList.toggle('casting',meteorArmed);$('meteor').classList.toggle('armed',meteorArmed);document.querySelectorAll<HTMLButtonElement>('[data-tower]').forEach(b=>{const active=b.dataset.tower===selectedKind;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));});lastSignature='';renderFoundationPicker();tick();}
 function toast(message:string){$('toast').textContent=message;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),3500);}
 function getRenderScale(){return Math.min(2,Math.max(1,Math.ceil(Math.max(window.devicePixelRatio||1,$('battlefield').clientWidth/1100))));}
 function sceneView():GroveScene|null{const scene=game.scene.getScene('grove') as GroveScene|undefined;return scene?.sys?.isActive()?scene:null;}
-function resizeGame(){const scale=getRenderScale();if(game.scale.gameSize.width!==1100*scale)game.scale.setGameSize(1100*scale,680*scale);game.scale.refresh();}
+function getRenderSize(){const field=$('battlefield'),width=1100*getRenderScale();return{width,height:Math.round(width*(field.clientHeight||680)/(field.clientWidth||1100))};}
+function resizeGame(){const size=getRenderSize();if(game.scale.gameSize.width!==size.width||game.scale.gameSize.height!==size.height)game.scale.setGameSize(size.width,size.height);game.scale.refresh();}
 function changeZoom(delta:number){const scene=sceneView();if(!scene)return;const zoom=scene.changeViewZoom(delta);effects.play('ui_click');if(zoom>1)toast('Drag the battlefield to pan. Press 0 to reset the view.');tick();}
 async function toggleFullscreen(){
  const shell=$('game-shell');
@@ -118,6 +122,7 @@ function renderFoundationPicker(){
 function renderContext(){
  const tower=model.towers.find(t=>t.padId===selectedPad);
  const kind=tower?.kind||selectedKind;
+ $('game-shell').classList.toggle('has-inspection',!!kind);
  const signature=[selectedPad,selectedKind,model.gold,tower?.level,tower?.id,model.status,model.paused].join(':');
  if(lastSignature===signature)return;
  lastSignature=signature;
@@ -207,7 +212,7 @@ document.addEventListener('keydown',e=>{
 });
 try{const best=localStorage.getItem('mossguard-best');if(best)setText('record',`Personal best: ${best} / ${WAVES.length} waves defended`);}catch{/* Storage is optional. */}
 // Read-only state for browser checks and bug reports; no production mutation hooks.
-Object.defineProperty(window,'__MOSSGUARD__',{get:()=>({...model.snapshot(),view:sceneView()?.getView()||null})});
+Object.defineProperty(window,'__MOSSGUARD__',{get:()=>({...model.snapshot(),view:sceneView()?.getView()||null,animations:sceneView()?.getAnimationSnapshot()||null})});
 function pauseForBackground(){if(model.status==='wave'&&!model.paused){model.paused=true;meteorArmed=false;syncSelection();}}
 window.addEventListener('blur',pauseForBackground);
 installPlatformLifecycle({onHide:pauseForBackground,onMotionChange:reduced=>{bridge.reduceMotion=reduced;$<HTMLInputElement>('motion-setting').checked=reduced;}});
