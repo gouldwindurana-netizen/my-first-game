@@ -50,8 +50,8 @@ async function boot(page, url, inlineHtml = null) {
   await page.waitForSelector('#battlefield[data-ready="true"]');
   await page.waitForFunction(() => { const canvas = document.querySelector('#battlefield canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
   await page.evaluate(() => document.fonts.ready);
-  assert.equal((await state(page)).gold, 240, 'A new session starts with 240 gold');
-  assert.equal(await page.locator('[data-tower]').count(), 7, 'All seven tower types are available');
+  assert.equal((await state(page)).gold, 300, 'A new session starts with 300 gold');
+  assert.equal(await page.locator('[data-tower]').count(), 17, 'All seventeen tower families are present');
   const pixels = await page.locator('#battlefield canvas').evaluate(canvas => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
@@ -111,7 +111,7 @@ async function build(page, kind, padId, touch = false, captureName = null) {
   await page.waitForFunction(count => window.__MOSSGUARD__.towers.length === count, before.towers.length + 1);
   const after = await state(page);
   assert(after.towers.some(tower => tower.padId === padId && tower.kind === kind), 'Chosen tower is built at the intended named foundation');
-  const costs = { archer: 70, cannon: 120, frost: 90, arcane: 100 };
+  const costs = { archer: 80, cannon: 100, frost: 90, arcane: 160, tesla: 180 };
   assert.equal(after.gold, before.gold - costs[kind], 'Construction spends the expected gold');
 }
 async function pauseAndLifecycle(page) {
@@ -172,6 +172,9 @@ async function profile(name, viewport, touch = false, rotate = null) {
 try {
   await mkdir(screenshots, { recursive: true });
   console.log(`Engine: ${engineName} ${browser.version()}${launch.executablePath ? ` (${launch.executablePath})` : ' (Playwright managed)'}; touch devices below are emulated.`);
+  if (process.env.SKIP_STANDALONE === '1') {
+    console.log('SKIP standalone sample checks: SKIP_STANDALONE=1; hosted profiles only.');
+  } else {
   assert(existsSync(standalone), `Standalone HTML is missing: ${standalone}. Run its export command first.`);
   const html = await readFile(standalone, 'utf8');
   assert(/data:image\/webp;base64,/.test(html), 'Standalone sample embeds the illustrated map');
@@ -201,16 +204,16 @@ try {
     await filePage.locator('#sound').click();
     await filePage.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Mute sound' && !document.querySelector('#sound').hasAttribute('aria-busy'), undefined, { timeout: 20000 });
     checks.push('Standalone offline inline HTML: twelve embedded WAV effects decode and sound enables without network access');
-    await build(filePage, 'arcane', 0);
-    assert.equal((await state(filePage)).gold, 140);
+    await build(filePage, 'tesla', 0);
+    assert.equal((await state(filePage)).gold, 120);
     await filePage.locator('#battlefield').focus();
     await filePage.keyboard.press('Space');
     await filePage.waitForFunction(() => window.__MOSSGUARD__.status === 'wave');
-    await filePage.waitForFunction(() => window.__MOSSGUARD__.enemies.filter(enemy => enemy.hp < enemy.maxHp).length >= 2, undefined, { timeout: 20000 });
+    await filePage.waitForFunction(() => window.__MOSSGUARD__.enemies.some(enemy => enemy.hp < enemy.maxHp && enemy.hp % 1 !== 0), undefined, { timeout: 20000 });
     const chain = await state(filePage);
-    assert(chain.enemies.some(enemy => enemy.hp < enemy.maxHp && enemy.hp % 1 !== 0), 'Offline arcane combat damages a secondary target with chain falloff');
+    assert(chain.enemies.some(enemy => enemy.hp < enemy.maxHp && enemy.hp % 1 !== 0), 'Offline Tesla combat damages a secondary target with chain falloff');
     await filePage.waitForFunction(() => window.__MOSSGUARD__.kills > 0, undefined, { timeout: 20000 });
-    assert((await state(filePage)).gold > 140, 'Offline combat awards gold');
+    assert((await state(filePage)).gold > 120, 'Offline combat awards gold');
     await pauseAndLifecycle(filePage);
     await screenshot(filePage, 'standalone-offline-combat');
     const http = offlineRequests.filter(request => /^https?:/.test(request.url));
@@ -222,6 +225,8 @@ try {
     await screenshot(filePage, 'standalone-failure').catch(() => {});
     throw error;
   } finally { await offline.close(); }
+
+  }
 
   await profile('desktop-1280', { width: 1280, height: 900 });
   await profile('iphone-portrait', { width: 390, height: 844 }, true, { width: 844, height: 390 });

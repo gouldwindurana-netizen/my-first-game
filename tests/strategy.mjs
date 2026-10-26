@@ -63,7 +63,7 @@ try {
   await page.locator('[data-foundation="2"]').click();
   await page.waitForFunction(id => window.__MOSSGUARD__.towers.find(tower => tower.id === id)?.padId === 2, first.id);
   const moved = await state(page), movedTower = moved.towers.find(tower => tower.id === first.id);
-  assert.equal(moved.gold, beforeMove.gold - 14, 'A ranger relocation costs twenty percent of base cost');
+  assert.equal(moved.gold, beforeMove.gold - 16, 'A ranger relocation costs twenty percent of base cost');
   assert.equal(movedTower.spent, first.spent, 'Movement fees are not added to refundable tower investment');
   assert.equal(movedTower.targeting, 'strongest', 'Moving preserves target priority');
   assert.equal(moved.towers.length, beforeMove.towers.length, 'Moving relocates the same tower rather than duplicating it');
@@ -81,7 +81,7 @@ try {
   await page.locator('#battlefield').focus(); await page.keyboard.press('u');
   await page.waitForFunction(id => window.__MOSSGUARD__.towers.find(tower => tower.id === id)?.level === 2, first.id);
   const upgraded = await state(page), upgradedTower = upgraded.towers.find(tower => tower.id === first.id);
-  assert.equal(upgraded.gold, moved.gold - 56, 'The upgrade hotkey pays the actual upgrade cost');
+  assert.equal(upgraded.gold, moved.gold - 55, 'The upgrade hotkey pays the actual upgrade cost');
   await page.keyboard.press('x');
   await page.waitForFunction(id => !window.__MOSSGUARD__.towers.some(tower => tower.id === id), first.id);
   const sold = await state(page);

@@ -39,7 +39,7 @@ async function boot(page) {
     return state?.view && canvas?.width >= 1100 && state.view.worldWidth === 1100 && state.view.worldHeight === 680;
   });
   await page.evaluate(() => document.fonts.ready);
-  assert.equal((await state(page)).gold, 240);
+  assert.equal((await state(page)).gold, 300);
 }
 async function layout(page, label, minimumMapWidth = null) {
   await page.waitForFunction(() => {
@@ -99,7 +99,7 @@ async function clickBuild(page, kind, padId) {
   await page.waitForFunction(count => window.__MOSSGUARD__.towers.length === count, before.towers.length + 1);
   const after = await state(page);
   assert(after.towers.some(tower => tower.kind === kind && tower.padId === padId), `Pointer builds ${kind} at the intended world-space foundation`);
-  assert.equal(after.gold, before.gold - ({ archer: 70, cannon: 120, frost: 90, arcane: 100 })[kind]);
+  assert.equal(after.gold, before.gold - ({ archer: 80, cannon: 100, frost: 90, arcane: 160 })[kind]);
 }
 async function zoomTo(page, target) {
   while ((await state(page)).view.zoom < target - .01) await page.locator('#zoom-in').click();
@@ -162,7 +162,7 @@ try {
     await clickBuild(desktop, 'archer', 0);
     const fontSizes = await desktop.locator('.stat-list > div').evaluateAll(elements => elements.map(element => parseFloat(getComputedStyle(element).fontSize)));
     assert(fontSizes.length >= 3 && fontSizes.every(size => size >= 12), 'Tower stats are at least 12px');
-    assert.equal(await desktop.locator('[data-tower] .tower-art svg[data-asset]').count(), 7, 'Dock uses supplied tower frame artwork for all seven tower types');
+    assert.equal(await desktop.locator('[data-tower] .tower-art svg[data-asset]').count(), 17, 'Dock reuses supplied frame artwork for all seventeen tower families');
     checks.push('1366 desktop: base pointer placement, large stats, and supplied tower artwork');
 
     await zoomTo(desktop, 1.5);
@@ -230,8 +230,8 @@ try {
     await retina.locator('#upgrade').click();
     await retina.waitForFunction(() => window.__MOSSGUARD__.towers[0].level === 2);
     assert.equal(await retina.locator('#context svg[data-asset="archer-2"]').count(), 1, 'Level II uses the supplied upgrade artwork');
-    await retina.locator('#upgrade').click();
-    await retina.waitForFunction(() => window.__MOSSGUARD__.towers[0].level === 3);
+    await retina.locator('[data-branch="A"]').click();
+    await retina.waitForFunction(() => window.__MOSSGUARD__.towers[0].level === 3 && window.__MOSSGUARD__.towers[0].branch === 'A');
     assert.equal(await retina.locator('#context svg[data-asset="archer-3"]').count(), 1, 'Level III uses the supplied upgrade artwork');
     await shot(retina, 'desktop-dpr2-upgraded');
     checks.push('DPR2 pointer placement and three supplied tower tiers');

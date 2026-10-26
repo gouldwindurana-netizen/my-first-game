@@ -1,10 +1,10 @@
-import type { EnemyKind } from '../game/model';
+import type { VisualUnitKind } from '../walking-assets';
 
 /** One left-contact to left-contact cycle, including both feet's support phases. */
 export const WALK_FRAME_COUNT = 24;
 export const ANIMATION_FPS = 24;
 export const animationTick = (seconds: number): number => Number.isFinite(seconds) && seconds > 0 ? Math.floor(seconds * ANIMATION_FPS + 1e-7) : 0;
-export const WALK_DISTANCE_PER_CYCLE: Readonly<Record<EnemyKind, number>> = {
+export const WALK_DISTANCE_PER_CYCLE: Readonly<Record<VisualUnitKind, number>> = {
   grunt: 48,
   runner: 62,
   brute: 38,
@@ -26,7 +26,7 @@ export interface WalkCycleSample {
  * All spawns begin at contact frame 0; staggered spawn times spread their poses
  * naturally. The ID is reserved for callers, without a discontinuous phase offset.
  */
-export function sampleWalkCycle(kind: EnemyKind, distance: number, _id: number, reduced = false): WalkCycleSample {
+export function sampleWalkCycle(kind: VisualUnitKind, distance: number, _id: number, reduced = false): WalkCycleSample {
   if (reduced || !Number.isFinite(distance) || distance <= 0) {
     return { frame: 0, phase: 0, foot: 'left', cycle: 0 };
   }

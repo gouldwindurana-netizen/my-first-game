@@ -48,7 +48,7 @@ try {
   watch(desktop, 'desktop');
   await boot(desktop);
   await fit(desktop, 'Desktop');
-  assert.equal((await state(desktop)).gold, 240);
+  assert.equal((await state(desktop)).gold, 300);
   assert.equal(await desktop.locator('.command-towers').isVisible(), false, 'Desktop command panel avoids repeating the dock artwork');
   const perfStart = await state(desktop);
   const wallStart = Date.now();
@@ -57,8 +57,8 @@ try {
   console.log(`Performance: ${(perfEnd.time - perfStart.time).toFixed(2)} game seconds in ${((Date.now() - wallStart) / 1000).toFixed(2)} wall seconds`);
   assert.equal(await desktop.locator('#meteor').isDisabled(), true, 'Meteor disabled before a wave');
   await desktop.screenshot({ path: 'artifacts/desktop-initial.png', fullPage: true });
-  assert.equal(await desktop.locator('[data-tower]').count(), 7, 'All seven tower disciplines are available');
-  assert.match(await desktop.locator('#wave').innerText(), /\/ 12$/, 'Campaign has twelve waves');
+  assert.equal(await desktop.locator('[data-tower]').count(), 17, 'All seventeen tower families are available');
+  assert.match(await desktop.locator('#wave').innerText(), /\/ 6$/, 'Training stage has six waves');
   await desktop.locator('#rail-map').click();
   assert.equal(await desktop.locator('#rail-map').getAttribute('aria-pressed'), 'true');
   assert.equal(await desktop.locator('#minimap-toggle').evaluate(element => element.classList.contains('active')), true);
@@ -67,18 +67,18 @@ try {
   await desktop.locator('#rail-map').click();
   assert.equal(await desktop.locator('#rail-map').getAttribute('aria-pressed'), 'false');
   assert.equal(await desktop.locator('#minimap-toggle').evaluate(element => element.classList.contains('active')), false);
-  checks.push('Seven towers, twelve opening-level waves, and tactical map/minimap controls');
+  checks.push('Seventeen towers, six training waves, and tactical map/minimap controls');
 
   await desktop.locator('[data-tower="archer"]').click();
   await point(desktop, 234, 241);
   await desktop.waitForFunction(() => window.__MOSSGUARD__.towers.length === 1);
-  assert.equal((await state(desktop)).gold, 170);
+  assert.equal((await state(desktop)).gold, 220);
   await desktop.locator('[data-tower="cannon"]').click();
   await point(desktop, 422, 294);
   await desktop.waitForFunction(() => window.__MOSSGUARD__.towers.length === 2);
-  assert.equal((await state(desktop)).gold, 50);
+  assert.equal((await state(desktop)).gold, 120);
   await point(desktop, 234, 241);
-  assert.equal(await desktop.locator('#upgrade').isDisabled(), true, 'Unaffordable upgrades are disabled');
+  assert.equal(await desktop.locator('#upgrade').isDisabled(), false, 'Affordable tier-II upgrades remain available');
   checks.push('Tower placement and gold spending');
 
   await desktop.locator('[data-tower="frost"]').click();
@@ -92,7 +92,7 @@ try {
   await desktop.waitForFunction(() => window.__MOSSGUARD__.status === 'wave' && window.__MOSSGUARD__.enemies.length > 0);
   assert.equal(await desktop.locator('#start-wave').isDisabled(), true);
   await desktop.waitForFunction(() => window.__MOSSGUARD__?.kills >= 1, undefined, { timeout: 20000 });
-  assert((await state(desktop)).gold >= 61, 'Combat awards gold');
+  assert((await state(desktop)).gold > 120, 'Combat awards gold');
   checks.push('Keyboard wave start, live spawning, combat, and rewards');
 
   await desktop.locator('#pause').click();
@@ -161,7 +161,7 @@ try {
   await desktop.locator('#sell').click();
   const afterSale = await state(desktop);
   assert.equal(afterSale.towers.some(tower => tower.padId === 2), false);
-  assert(afterSale.gold >= beforeSale.gold + 84, 'Selling refunds 70%');
+  assert(afterSale.gold >= beforeSale.gold + 70, 'Selling refunds 70%');
   checks.push('Upgrade and sale');
   await desktop.screenshot({ path: 'artifacts/desktop-combat.png', fullPage: true });
   if (await desktop.locator('#sound').getAttribute('aria-label') === 'Mute sound') await desktop.locator('#sound').click();
@@ -175,27 +175,25 @@ try {
   await desktop.screenshot({ path: 'artifacts/desktop-1280.png', fullPage: true });
   console.log('1280px controls:', await desktop.locator('#start-wave').boundingBox());
 
-  // Only arcane towers attack on this fresh page. Two wounded foes at the same time
-  // before the lead foe can reach the distant tower demonstrates a real chain hit.
-  const arcane = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
-  watch(arcane, 'arcane');
-  await boot(arcane);
-  await arcane.locator('[data-tower="arcane"]').click();
-  await point(arcane, 234, 241);
-  await arcane.locator('[data-tower="arcane"]').click();
-  await point(arcane, 961, 271);
-  const arcaneBuilt = await state(arcane);
-  assert.equal(arcaneBuilt.towers.filter(tower => tower.kind === 'arcane').length, 2);
-  assert.equal(arcaneBuilt.gold, 40);
-  await arcane.locator('#start-wave').click();
-  await arcane.waitForFunction(() => window.__MOSSGUARD__.enemies.filter(enemy => enemy.hp < enemy.maxHp).length >= 2, undefined, { timeout: 20000 });
-  const chainState = await state(arcane);
-  assert(chainState.enemies.every(enemy => enemy.distance < 400), 'The chain is observed before the distant tower can attack');
+  // Only one Tesla coil attacks. Fractional wounds on its secondary targets demonstrate
+  // the actual three-target chain rather than damage from two separate towers.
+  const tesla = await browser.newPage({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
+  watch(tesla, 'tesla');
+  await boot(tesla);
+  await tesla.locator('[data-tower="tesla"]').click();
+  await point(tesla, 234, 241);
+  const teslaBuilt = await state(tesla);
+  assert.equal(teslaBuilt.towers.filter(tower => tower.kind === 'tesla').length, 1);
+  assert.equal(teslaBuilt.gold, 120);
+  await tesla.locator('#start-wave').click();
+  await tesla.waitForFunction(() => window.__MOSSGUARD__.enemies.some(enemy => enemy.hp < enemy.maxHp && enemy.hp % 1 !== 0), undefined, { timeout: 20000 });
+  const chainState = await state(tesla);
+  assert.equal(chainState.towers.length, 1, 'One Tesla is the only source of tower damage');
   assert(chainState.enemies.some(enemy => enemy.hp < enemy.maxHp && enemy.hp % 1 !== 0), 'A secondary target receives fractional chain-falloff damage');
-  await arcane.screenshot({ path: 'artifacts/arcane-combat.png', fullPage: true });
-  await arcane.waitForFunction(() => window.__MOSSGUARD__.kills >= 1, undefined, { timeout: 20000 });
-  assert((await state(arcane)).gold > 40, 'Arcane kills award gold');
-  checks.push('Arcane placement, real chain damage/falloff, kills, and rewards');
+  await tesla.screenshot({ path: 'artifacts/tesla-combat.png', fullPage: true });
+  await tesla.waitForFunction(() => window.__MOSSGUARD__.kills >= 1, undefined, { timeout: 20000 });
+  assert((await state(tesla)).gold > 120, 'Tesla kills award gold');
+  checks.push('Tesla placement, real chain damage/falloff, kills, and rewards');
 
   const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   const mobile = await mobileContext.newPage();
@@ -208,7 +206,7 @@ try {
   await mobile.waitForFunction(() => window.__MOSSGUARD__.towers.length === 1);
   const mobileState = await state(mobile);
   assert.equal(mobileState.towers[0].kind, 'frost');
-  assert.equal(mobileState.gold, 150);
+  assert.equal(mobileState.gold, 210);
   await mobile.locator('#how-to').tap();
   assert.equal(await mobile.locator('#guide').isVisible(), true);
   await mobile.locator('#guide-done').tap();
@@ -218,7 +216,7 @@ try {
   checks.push('Mobile touch placement and guide');
   assert.deepEqual(failures, [], `No browser runtime/HTTP errors: ${failures.join('; ')}`);
   console.log(`PASS: ${checks.length} browser checks\n${checks.map(check => `  ✓ ${check}`).join('\n')}`);
-  console.log('Screenshots: artifacts/desktop-initial.png, artifacts/desktop-combat.png, artifacts/desktop-1280.png, artifacts/arcane-combat.png, artifacts/mobile.png');
+  console.log('Screenshots: artifacts/desktop-initial.png, artifacts/desktop-combat.png, artifacts/desktop-1280.png, artifacts/tesla-combat.png, artifacts/mobile.png');
 } finally {
   await browser.close();
 }

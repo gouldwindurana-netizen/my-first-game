@@ -1,527 +1,198 @@
-import { describe, expect, it } from 'vitest';
-import { ENEMY_DEFS, GameModel, LEVELS, PATH_LENGTH, TOWER_DEFS, WAVES, positionAt, type Enemy, type EnemyKind, type TowerKind, type TowerTargetMode } from './model';
+import { describe,expect,it } from 'vitest';
+import { GameModel,LEVELS,TOWER_DEFS,ENEMY_DEFS,TOWER_KINDS,DIFFICULTIES,lineBlocked,positionAt,type Enemy,type EnemyKind,type TowerKind,type TowerBranchKey,type Tower } from './model';
 
-function enemy(id: number, kind: EnemyKind, distance = 210, hp = ENEMY_DEFS[kind].hp): Enemy {
-  return { id, kind, ...positionAt(distance), hp, maxHp: hp, distance, speed: ENEMY_DEFS[kind].speed, slowUntil: 0 };
+function enemy(game:GameModel,id:number,kind:EnemyKind,distance=210,hp=ENEMY_DEFS[kind].hp):Enemy {
+  return{id,kind,...positionAt(distance,game.path),hp,maxHp:hp,distance,speed:ENEMY_DEFS[kind].speed,slowUntil:0};
 }
-function advance(game: GameModel, seconds: number): void {
-  for (let remaining = seconds; remaining > 0; remaining -= 0.1) game.update(Math.min(0.1, remaining));
+function advance(game:GameModel,seconds:number){for(let i=0;i<Math.ceil(seconds*10);i++)game.update(Math.min(.1,seconds-i*.1));}
+function armed(kind:TowerKind,branch?:TowerBranchKey){
+  const game=new GameModel();game.setProgression({},TOWER_KINDS);game.gold=10000;game.build(0,kind);
+  Object.defineProperty(game,'trees',{get:()=>[],configurable:true});
+  const tower=game.towers[0];if(branch){game.upgrade(tower.id);if(branch==='D')game.difficulty='hell';game.upgrade(tower.id,branch);}
+  game.status='wave';game.wave=1;return{game,tower};
+}
+function placeAtTower(game:GameModel,tower:Tower,kind:EnemyKind,hp=1000,id=1000){
+  const point=game.getTowerPosition(tower),road=game.nearestPathPoint(point.x,point.y);
+  const e=enemy(game,id,kind,road.distance,hp);e.speed=0;game.enemies.push(e);return e;
 }
 
-describe('tower economy', () => {
-  it('charges exact costs and rejects occupied pads, missing pads, and unaffordable builds', () => {
-    const game = new GameModel();
-    expect(game.build(0, 'cannon')).toBe(true);
-    expect(game.gold).toBe(120);
-    expect(game.build(0, 'archer')).toBe(false);
-    expect(game.build(99, 'archer')).toBe(false);
-    expect(game.build(1, 'cannon')).toBe(true);
-    expect(game.build(2, 'archer')).toBe(false);
-    expect(game.gold).toBe(0);
-    expect(game.towers).toHaveLength(2);
+describe('gold, construction and branch contracts',()=>{
+  it('keeps relocated road traps off foundations and rejects overlapping moves without charging',()=>{
+    const game=new GameModel();game.gold=2000;
+    expect(game.build(0,'trap')).toBe(true);const trap=game.towers[0];
+    expect(game.moveTower(trap.id,2)).toBe(true);expect(trap.padId).toBe(-trap.id);
+    expect(game.build(2,'archer')).toBe(true);
+    expect(game.build(1,'trap')).toBe(true);const before=game.gold,position={...game.getTowerPosition(trap)};
+    expect(game.moveTower(trap.id,1)).toBe(false);expect(game.gold).toBe(before);expect(game.getTowerPosition(trap)).toEqual(position);
   });
-
-  it('upgrades to level III, rejects further upgrades, and refunds 70% of total investment', () => {
-    const game = new GameModel();
-    game.gold = 1000;
-    game.build(0, 'archer');
-    const tower = game.towers[0];
-    const initial = game.getTowerStats(tower);
-    expect(game.upgrade(tower.id)).toBe(true);
-    expect(game.upgrade(tower.id)).toBe(true);
-    expect(tower.level).toBe(3);
-    expect(game.getTowerStats(tower).damage).toBeGreaterThan(initial.damage);
-    expect(game.getTowerStats(tower).range).toBeGreaterThan(initial.range);
-    expect(game.upgrade(tower.id)).toBe(false);
-    const beforeSale = game.gold;
-    expect(game.sell(tower.id)).toBe(true);
-    expect(game.gold).toBe(beforeSale + Math.floor(tower.spent * 0.7));
-    expect(game.sell(tower.id)).toBe(false);
-    expect(game.towers).toHaveLength(0);
-    expect(game.upgrade(999)).toBe(false);
+  it('expires lingering fields during preparation and freezes their lifetime while paused',()=>{
+    const game=new GameModel();game.zones=[{id:100,towerId:1,kind:'earth',x:400,y:300,radius:50,damage:8,damageType:'earth',expiresAt:.15,effects:{}}];
+    game.paused=true;game.update(.1);expect(game.zones).toHaveLength(1);expect(game.time).toBe(0);
+    game.paused=false;game.update(.1);expect(game.zones).toHaveLength(1);game.update(.1);expect(game.zones).toHaveLength(0);
   });
-});
-
-describe('combat and abilities', () => {
-  it('targets the furthest enemy and awards gold once for its defeat', () => {
-    const game = new GameModel();
-    game.build(0, 'archer');
-    game.startWave();
-    game.enemies = [enemy(100, 'grunt', 200), enemy(101, 'grunt', 220, 10)];
-    const before = game.gold;
-    game.update(0.01);
-    expect(game.enemies.some(item => item.id === 101)).toBe(false);
-    expect(game.enemies.find(item => item.id === 100)?.hp).toBe(52);
-    expect(game.kills).toBe(1);
-    expect(game.gold).toBe(before + ENEMY_DEFS.grunt.reward);
+  it('charges the requested base and tier-two prices, rejects invalid and occupied sites',()=>{
+    const game=new GameModel();const initial=game.gold;
+    expect(game.build(0,'archer')).toBe(true);expect(game.gold).toBe(initial-80);
+    expect(game.build(0,'cannon')).toBe(false);expect(game.build(999,'archer')).toBe(false);
+    expect(game.upgrade(game.towers[0].id)).toBe(true);expect(game.gold).toBe(initial-80-55);
+    game.gold=0;expect(game.build(1,'cannon')).toBe(false);
   });
-
-  it('applies cannon damage to a nearby group but leaves distant enemies alone', () => {
-    const game = new GameModel();
-    game.build(0, 'cannon');
-    game.startWave();
-    game.enemies = [enemy(100, 'brute', 200), enemy(101, 'brute', 230), enemy(102, 'brute', 650)];
-    game.update(0.01);
-    expect(game.enemies.find(item => item.id === 100)?.hp).toBe(122);
-    expect(game.enemies.find(item => item.id === 101)?.hp).toBe(122);
-    expect(game.enemies.find(item => item.id === 102)?.hp).toBe(165);
+  it('enforces premium unlocks in the model and applies a purchased family',()=>{
+    const game=new GameModel();game.gold=1000;expect(game.build(0,'void')).toBe(false);
+    expect(game.setProgression({},['void'])).toBe(true);expect(game.build(0,'void')).toBe(true);
+    expect(game.build(1,'nexus')).toBe(false);
   });
-
-  it('slows movement with frost and reduces arrow damage against armor', () => {
-    const game = new GameModel();
-    game.build(0, 'frost');
-    game.startWave();
-    game.enemies = [enemy(100, 'grunt')];
-    game.update(0.01);
-    const target = game.enemies.find(item => item.id === 100)!;
-    expect(target.slowUntil).toBeGreaterThan(game.time);
-    const before = target.distance;
-    game.update(0.1);
-    expect(target.distance - before).toBeCloseTo(48 * 0.55 * 0.1);
-
-    const archer = new GameModel();
-    archer.build(0, 'archer');
-    archer.startWave();
-    archer.enemies = [enemy(101, 'brute')];
-    archer.update(0.01);
-    expect(archer.enemies.find(item => item.id === 101)?.hp).toBeCloseTo(165 - 16 * 0.6);
+  it('offers mutually exclusive branches and model-enforces the Hell specialization',()=>{
+    const game=new GameModel();game.gold=10000;game.build(0,'archer');const t=game.towers[0];
+    game.upgrade(t.id);const before=game.gold;expect(game.upgrade(t.id,'D')).toBe(false);expect(game.gold).toBe(before);
+    expect(game.upgrade(t.id,'B')).toBe(true);expect(t.branch).toBe('B');expect(game.upgrade(t.id,'C')).toBe(false);
+    expect(game.getTowerStats(t).effects.pierce).toBe(2);
+    const hell=new GameModel();hell.setDifficulty('hell');hell.gold=10000;hell.build(0,'archer');hell.upgrade(hell.towers[0].id);expect(hell.upgrade(hell.towers[0].id,'D')).toBe(true);
   });
-
-  it('chains arcane damage to the nearest distinct enemy, with falloff and a limited jump range', () => {
-    const game = new GameModel();
-    game.build(0, 'arcane');
-    game.startWave();
-    game.enemies = [enemy(100, 'brute', 200), enemy(101, 'brute', 170), enemy(102, 'brute', 70), enemy(103, 'brute', 650)];
-    game.update(0.01);
-    expect(game.enemies.find(item => item.id === 100)?.hp).toBe(165 - 24);
-    expect(game.enemies.find(item => item.id === 101)?.hp).toBeCloseTo(165 - 24 * 0.65);
-    expect(game.enemies.find(item => item.id === 102)?.hp).toBe(165);
-    expect(game.enemies.find(item => item.id === 103)?.hp).toBe(165);
-    const bolts = game.shots.filter(shot => shot.kind === 'arcane');
-    expect(bolts).toHaveLength(2);
-    expect(bolts[1].from).toEqual({ x: game.enemies.find(item => item.id === 100)!.x, y: game.enemies.find(item => item.id === 100)!.y });
-    expect(bolts[1].maxLife).toBe(0.2);
-
-    const isolated = new GameModel();
-    isolated.build(0, 'arcane');
-    isolated.startWave();
-    isolated.enemies = [enemy(100, 'brute', 200), enemy(101, 'brute', 100)];
-    isolated.update(0.01);
-    expect(isolated.enemies.find(item => item.id === 101)?.hp).toBe(165);
-    expect(isolated.shots.filter(shot => shot.kind === 'arcane')).toHaveLength(1);
+  it('sells for 70% of paid investment and charges a nonrefundable move fee',()=>{
+    const game=new GameModel();game.gold=1000;game.build(0,'archer');const t=game.towers[0];game.upgrade(t.id);t.cooldown=3;
+    const before=game.gold,spent=t.spent;expect(game.moveTower(t.id,1)).toBe(true);expect(game.gold).toBe(before-16);expect(t.spent).toBe(spent);expect(t.cooldown).toBe(3);
+    expect(game.sell(t.id)).toBe(true);expect(game.gold).toBe(before-16+Math.floor(spent*.7));expect(game.sell(t.id)).toBe(false);
   });
-
-  it('grows arcane chains from two to four targets through upgrades', () => {
-    for (let level = 1; level <= 3; level++) {
-      const game = new GameModel();
-      game.gold = 1000;
-      game.build(0, 'arcane');
-      for (let upgrade = 1; upgrade < level; upgrade++) game.upgrade(game.towers[0].id);
-      game.startWave();
-      game.enemies = [200, 170, 140, 110].map((distance, index) => enemy(100 + index, 'brute', distance, 1000));
-      game.update(0.01);
-      const hits = game.enemies.filter(item => item.id >= 100 && item.hp < 1000);
-      expect(hits).toHaveLength(level + 1);
-      const damage = game.getTowerStats(game.towers[0]).damage;
-      for (let index = 0; index < level + 1; index++) {
-        expect(game.enemies.find(item => item.id === 100 + index)?.hp).toBeCloseTo(1000 - damage * 0.65 ** index);
-      }
-    }
-  });
-
-  it('does not revisit dead arcane targets or award their rewards twice', () => {
-    const game = new GameModel();
-    game.gold = 1000;
-    game.build(0, 'arcane');
-    game.upgrade(game.towers[0].id);
-    game.upgrade(game.towers[0].id);
-    game.startWave();
-    game.enemies = [enemy(100, 'brute', 200, 10), enemy(101, 'brute', 170, 10)];
-    const before = game.gold;
-    game.update(0.01);
-    expect(game.enemies.some(item => item.id === 100 || item.id === 101)).toBe(false);
-    expect(game.kills).toBe(2);
-    expect(game.gold).toBe(before + 2 * ENEMY_DEFS.brute.reward);
-    expect(game.shots.filter(shot => shot.kind === 'arcane')).toHaveLength(2);
-  });
-
-  it('casts a targeted meteor, respects its cooldown, and recharges over simulation time', () => {
-    const game = new GameModel();
-    const impact = positionAt(210);
-    expect(game.meteor(impact.x, impact.y)).toBe(false);
-    game.startWave();
-    game.enemies = [enemy(100, 'grunt'), enemy(101, 'brute', 230), enemy(102, 'grunt', 600)];
-    expect(game.meteor(impact.x, impact.y)).toBe(true);
-    expect(game.enemies.some(item => item.id === 100)).toBe(false);
-    expect(game.enemies.find(item => item.id === 101)?.hp).toBe(20);
-    expect(game.enemies.find(item => item.id === 102)?.hp).toBe(52);
-    expect(game.meteor(impact.x, impact.y)).toBe(false);
-    game.update(0.1);
-    expect(game.meteorCooldown).toBeCloseTo(24.9);
+  it('merges meta bonuses once, uses auras, and preserves branch identity',()=>{
+    const {game,tower}=armed('archer','C');const base=game.getTowerStats(tower);
+    game.status='building';game.setProgression({damage:.2,range:.1,haste:.15,grandmastery:.2},TOWER_KINDS);
+    const boosted=game.getTowerStats(tower);expect(boosted.damage).toBe(Math.round(base.damage*1.2));expect(boosted.range).toBeCloseTo(base.range*1.1);expect(boosted.interval).toBeCloseTo(base.interval/1.15);
+    game.build(1,'arcane');const aura=game.towers.at(-1)!;game.upgrade(aura.id);game.upgrade(aura.id,'C');
+    expect(game.getTowerStats(tower).damage).toBeGreaterThan(boosted.damage);expect(tower.branch).toBe('C');
   });
 });
 
-describe('wave and game lifecycle', () => {
-  it('pauses all simulation, clamps delayed frames, and supports double speed', () => {
-    const game = new GameModel();
-    game.startWave();
-    game.paused = true;
-    const snapshot = game.snapshot();
-    game.update(10);
-    expect(game.snapshot()).toEqual(snapshot);
-    game.paused = false;
-    game.update(10);
-    expect(game.time).toBeCloseTo(0.1);
-    game.speed = 2;
-    game.update(0.1);
-    expect(game.time).toBeCloseTo(0.3);
-    game.update(Number.NaN);
-    expect(game.time).toBeCloseTo(0.3);
-  });
-
-  it('counts pending enemies and blocks overlapping waves', () => {
-    const game = new GameModel();
-    expect(game.startWave()).toBe(true);
-    expect(game.waveRemaining).toBe(7);
-    expect(game.startWave()).toBe(false);
-    game.update(0.1);
-    expect(game.enemies).toHaveLength(1);
-    expect(game.waveRemaining).toBe(7);
-  });
-
-  it('finishes a wave, pays its reward, and gives a decaying early-call bonus', () => {
-    const game = new GameModel();
-    game.build(0, 'archer');
-    game.build(1, 'archer');
-    game.build(2, 'archer');
-    game.startWave();
-    advance(game, 70);
-    expect(game.status).toBe('building');
-    expect(game.waveRemaining).toBe(0);
-    expect(game.kills).toBe(7);
-    expect(game.lives).toBe(20);
-    // Start immediately after a fresh wave-clear transition to inspect its reward.
-    game.reset();
-    game.gold = 10000;
-    game.build(0, 'archer');
-    game.build(1, 'archer');
-    game.build(2, 'archer');
-    game.startWave();
-    while (game.status === 'wave') game.update(0.1);
-    expect(game.earlyBonus).toBe(24);
-    advance(game, 6);
-    expect(game.earlyBonus).toBe(12);
-    const before = game.gold;
-    expect(game.startWave()).toBe(true);
-    expect(game.gold).toBe(before + 12);
-    expect(game.wave).toBe(2);
-  });
-
-  it('leaks enemies, reaches loss, rejects end-game actions, and fully resets', () => {
-    const game = new GameModel();
-    game.startWave();
-    game.lives = 1;
-    game.enemies = [enemy(100, 'grunt', PATH_LENGTH - 1)];
-    game.update(0.1);
-    expect(game.status).toBe('lost');
-    expect(game.lives).toBe(0);
-    expect(game.build(0, 'archer')).toBe(false);
-    expect(game.startWave()).toBe(false);
-    const time = game.time;
-    game.update(1);
-    expect(game.time).toBe(time);
-    game.reset();
-    expect(game.status).toBe('building');
-    expect(game.gold).toBe(240);
-    expect(game.lives).toBe(20);
-    expect(game.wave).toBe(0);
-    expect(game.enemies).toHaveLength(0);
-    expect(game.towers).toHaveLength(0);
-    expect(game.waveRemaining).toBe(0);
-  });
-
-  it('can win the entire campaign by investing earned gold in a mixed defense', () => {
-    const game = new GameModel();
-    const plan: { padId: number; kind: TowerKind }[] = [
-      { padId: 0, kind: 'archer' }, { padId: 2, kind: 'cannon' },
-      { padId: 1, kind: 'frost' }, { padId: 5, kind: 'archer' },
-      { padId: 4, kind: 'cannon' }, { padId: 3, kind: 'frost' },
-      { padId: 6, kind: 'cannon' }, { padId: 7, kind: 'archer' },
-    ];
-    let nextBuild = 0;
-    for (let step = 0; step < 15000 && game.status !== 'won' && game.status !== 'lost'; step++) {
-      if (nextBuild < plan.length && game.build(plan[nextBuild].padId, plan[nextBuild].kind)) nextBuild++;
-      else if (nextBuild === plan.length) for (const tower of game.towers) game.upgrade(tower.id);
-      if (game.status === 'building') game.startWave();
-      if (game.meteorCooldown === 0 && game.enemies.length >= 4) {
-        const center = game.enemies[Math.floor(game.enemies.length / 2)];
-        game.meteor(center.x, center.y);
-      }
-      game.update(0.1);
+describe('damage, targeting, cover and detection',()=>{
+  it('respects first, strongest and fastest priorities including slows',()=>{
+    for(const mode of ['first','strongest','fastest'] as const){
+      const {game,tower}=armed('archer');game.setTargeting(tower.id,mode);
+      const a=enemy(game,1000,'grunt',220,1000),b=enemy(game,1001,'grunt',210,1400),c=enemy(game,1002,'runner',200,1000);a.speed=b.speed=0;c.speed=5;
+      game.enemies=[a,b,c];game.update(.01);const damaged=[a,b,c].filter(e=>e.hp<e.maxHp);expect(damaged.map(e=>e.id)).toEqual([mode==='first'?1000:mode==='strongest'?1001:1002]);
     }
-    expect(game.wave).toBe(WAVES.length);
-    expect(game.status).toBe('won');
-    expect(game.lives).toBeGreaterThan(0);
-    expect(game.kills).toBeGreaterThan(100);
+  });
+  it('uses physical armor, elemental resistance and weakness rather than enemy-name exceptions',()=>{
+    const physical=armed('archer'),heavy=placeAtTower(physical.game,physical.tower,'brute');physical.game.update(.01);
+    expect(heavy.hp).toBeCloseTo(1000-TOWER_DEFS.archer.damage*(1-ENEMY_DEFS.brute.armor));
+    const magic=armed('arcane'),same=placeAtTower(magic.game,magic.tower,'brute');magic.game.update(.01);expect(same.hp).toBe(1000-TOWER_DEFS.arcane.damage);
+    const ice=armed('frost'),runner=placeAtTower(ice.game,ice.tower,'runner');ice.game.update(.01);expect(runner.hp).toBeCloseTo(1000-TOWER_DEFS.frost.damage*1.15);
+  });
+  it('detects segment-tree intersections, including tangency but not trees beyond the victim',()=>{
+    expect(lineBlocked({x:0,y:0},{x:100,y:0},[{x:50,y:5,radius:5}])).toBe(true);
+    expect(lineBlocked({x:0,y:0},{x:100,y:0},[{x:150,y:0,radius:10}])).toBe(false);
+  });
+  it('blocks direct fire behind trees while mortar arcs over the same cover',()=>{
+    const {game,tower}=armed('archer'),target=placeAtTower(game,tower,'grunt'),point=game.getTowerPosition(tower);
+    Object.defineProperty(game,'trees',{get:()=>[{x:(point.x+target.x)/2,y:(point.y+target.y)/2,radius:12}]});
+    game.update(.01);expect(target.hp).toBe(1000);tower.kind='mortar';tower.cooldown=0;game.update(.01);expect(target.hp).toBeLessThan(1000);
+  });
+  it('requires detection for hidden enemies and offers base Magic as well as premium Truesight',()=>{
+    const arrows=armed('archer'),hidden=placeAtTower(arrows.game,arrows.tower,'scout',1000,1005);arrows.game.update(.01);expect(hidden.hp).toBe(1000);
+    arrows.game.build(2,'arcane');arrows.game.towers.at(-1)!.cooldown=100;arrows.game.update(.01);
+    expect(hidden.revealedUntil).toBeGreaterThan(arrows.game.time);expect(hidden.hp).toBeLessThan(1000);
+    const sight=armed('truesight'),ghost=placeAtTower(sight.game,sight.tower,'shadowwraith');sight.game.update(.01);expect(ghost.hp).toBeLessThan(1000-23);
+  });
+  it('skips flying enemies for ground cannons, traps, earth and melee but permits arrows',()=>{
+    for(const kind of ['cannon','earth','barracks'] as const){const {game,tower}=armed(kind),bat=placeAtTower(game,tower,'bat');game.update(.01);expect(bat.hp).toBe(1000);expect(bat.blockedBy).toBeUndefined();}
+    const {game,tower}=armed('archer'),bat=placeAtTower(game,tower,'bat');game.update(.01);expect(bat.hp).toBeLessThan(1000);
+  });
+  it('makes dodge deterministic while reliable area attacks cannot be dodged',()=>{
+    const run=(kind:TowerKind)=>{const {game,tower}=armed(kind);const target=placeAtTower(game,tower,'raider',1000,1);game.update(.01);return target.hp;};
+    expect(run('archer')).toBe(run('archer'));expect(run('cannon')).toBeLessThan(1000);
   });
 });
 
-describe('regional campaign levels', () => {
-  it('uses distinct supplied-map routes, named foundations, and eight-wave regional defenses', () => {
-    const game = new GameModel();
-    const routes = new Set<string>();
-    for (let index = 0; index < LEVELS.length; index++) {
-      expect(game.selectLevel(index)).toBe(true);
-      expect(game.level).toBe(LEVELS[index]);
-      expect(game.currentLevelIndex).toBe(index);
-      expect(game.gold).toBe(LEVELS[index].startingGold);
-      expect(game.pads.every(pad => pad.name.length > 0)).toBe(true);
-      expect(game.pads.map(pad => pad.id)).toEqual(game.pads.map((_, padIndex) => padIndex));
-      expect(game.pathLength).toBeGreaterThan(900);
-      expect(game.waves).toHaveLength(index === 0 ? 12 : 8);
-      expect(game.waves.every(wave => wave.enemies.length > 0)).toBe(true);
-      routes.add(JSON.stringify(game.path));
-      game.startWave(); game.update(.1);
-      expect(game.enemies[0].x).toBeCloseTo(positionAt(game.enemies[0].distance, game.path).x);
-      expect(game.enemies[0].y).toBeCloseTo(positionAt(game.enemies[0].distance, game.path).y);
-      expect(game.enemies[0].hp).toBe(Math.round(ENEMY_DEFS.grunt.hp * game.level.enemyMultiplier));
-      game.reset();
-    }
-    expect(routes.size).toBe(5);
+describe('statuses and branch attack patterns',()=>{
+  it('ticks burn and poison across exact expiry and freezes their clocks on pause',()=>{
+    const game=new GameModel();game.status='wave';game.wave=1;const e=enemy(game,1000,'grunt',200,1000);e.speed=0;e.poisonDps=20;e.poisonUntil=.15;e.burnDps=10;e.burnUntil=.25;game.enemies=[e];
+    game.update(.1);expect(e.hp).toBeCloseTo(997);game.paused=true;advance(game,1);expect(e.hp).toBeCloseTo(997);game.paused=false;advance(game,.2);expect(e.hp).toBeCloseTo(994.5);
+    advance(game,.5);expect(e.hp).toBeCloseTo(994.5);
   });
-
-  it('rejects invalid or active-combat switches and resets every transient when choosing a region', () => {
-    const game = new GameModel(1);
-    game.build(0, 'venom'); game.startWave(); game.update(.1);
-    const active = game.snapshot();
-    expect(game.selectLevel(2)).toBe(false);
-    expect(game.snapshot()).toEqual(active);
-    game.reset();
-    expect(game.currentLevelIndex).toBe(1);
-    expect(game.gold).toBe(260);
-    game.build(0, 'mortar'); game.paused = true; game.speed = 2; game.meteorCooldown = 12;
-    expect(game.selectLevel(3)).toBe(true);
-    expect(game.currentLevelIndex).toBe(3);
-    expect(game.gold).toBe(300);
-    expect(game.status).toBe('building'); expect(game.paused).toBe(false); expect(game.speed).toBe(1);
-    expect(game.wave).toBe(0); expect(game.time).toBe(0); expect(game.meteorCooldown).toBe(0);
-    expect(game.towers).toHaveLength(0); expect(game.enemies).toHaveLength(0); expect(game.shots).toHaveLength(0); expect(game.floats).toHaveLength(0);
-    expect(game.selectLevel(-1)).toBe(false); expect(game.selectLevel(100)).toBe(false); expect(game.selectLevel(1.5)).toBe(false);
-    expect(game.currentLevelIndex).toBe(3);
-    const snapshot = game.snapshot(); snapshot.path[0].x = -999; snapshot.pads[0].name = 'changed';
-    expect(game.path[0].x).not.toBe(-999); expect(game.pads[0].name).not.toBe('changed');
+  it('integrates a slow or stun expiring partway through a simulation step',()=>{
+    const game=new GameModel();game.status='wave';game.wave=1;const e=enemy(game,1000,'grunt',200,1000);e.speed=100;e.slowUntil=.05;e.slowStrength=.5;e.stunUntil=.02;game.enemies=[e];game.update(.1);
+    expect(e.distance).toBeCloseTo(206.5);
   });
-
-  it('leaks at the selected route endpoint and reaches its own final wave', () => {
-    for (let index = 1; index < LEVELS.length; index++) {
-      const game = new GameModel(index);
-      game.startWave();
-      const target = enemy(1000, 'brute', game.pathLength - 1);
-      game.enemies = [target];
-      game.update(.1);
-      expect(game.lives).toBe(18);
-      expect(game.enemies.some(enemy => enemy.id === 1000)).toBe(false);
-      game.reset();
-      game.wave = game.waves.length - 1;
-      expect(game.startWave()).toBe(true);
-      expect(game.wave).toBe(8);
-      expect(game.nextWave()).toBeUndefined();
+  it('applies stun, root and knockback but honors full crowd-control immunity',()=>{
+    for(const [kind,branch,status] of [['chrono','A','stunUntil'],['frost','A','rootUntil'],['sonic','A','distance']] as const){
+      const {game,tower}=armed(kind,branch),e=placeAtTower(game,tower,'grunt');const before=e.distance;game.update(.01);
+      expect(status==='distance'?e.distance<before:(e[status]||0)>game.time).toBe(true);
+      const other=armed(kind,branch),immune=placeAtTower(other.game,other.tower,'stonegolem');const original=immune.distance;other.game.update(.01);expect(immune.stunUntil||0).toBe(0);expect(immune.rootUntil||0).toBe(0);expect(immune.slowUntil).toBe(0);expect(immune.distance).toBe(original);
     }
+  });
+  it('strips armor and curses subsequent incoming damage',()=>{
+    const {game,tower}=armed('venom','C'),e=placeAtTower(game,tower,'brute');game.update(.01);expect(e.armorShred).toBe(.35);
+    game.build(2,'archer');const archer=game.towers.at(-1)!;tower.cooldown=100;const before=e.hp;game.update(.01);expect(e.hp).toBeLessThan(before-15);
+    const curse=armed('arcane','B'),victim=placeAtTower(curse.game,curse.tower,'grunt');curse.game.update(.01);expect(victim.curse).toBe(.25);
+  });
+  it('multishots and chains visit distinct foes, while pierce hits enemies on a line',()=>{
+    const multi=armed('archer','A');const p=multi.game.nearestPathPoint(234,241).distance;multi.game.enemies=[0,12,24,36].map((offset,i)=>{const e=enemy(multi.game,1000+i,'grunt',p+offset,1000);e.speed=0;return e;});multi.game.update(.01);expect(multi.game.enemies.filter(e=>e.hp<1000)).toHaveLength(3);
+    const chain=armed('tesla','A');chain.game.enemies=[0,12,24,36,48,60,72,84].map((offset,i)=>{const e=enemy(chain.game,2000+i,'grunt',p+offset,1000);e.speed=0;return e;});chain.game.update(.01);expect(chain.game.enemies.filter(e=>e.hp<1000)).toHaveLength(7);
+    const pierce=armed('archer','B'),origin=pierce.game.getTowerPosition(pierce.tower);const old=pierce.game.path;const e1=enemy(pierce.game,3001,'grunt',p,1000),e2=enemy(pierce.game,3002,'grunt',p,1000);e1.speed=e2.speed=0;
+    const road=pierce.game.nearestPathPoint(origin.x,origin.y);e1.x=road.x;e1.y=road.y;e2.x=road.x;e2.y=road.y; // Coincident lane targets must each be hit once.
+    pierce.game.enemies=[e1,e2];pierce.game.update(.01);expect(pierce.game.enemies.filter(e=>e.hp<1000)).toHaveLength(2);expect(old).toBe(pierce.game.path);
+  });
+  it('creates real lingering fields and poisons enemies entering a cloud after impact',()=>{
+    const {game,tower}=armed('venom','A'),first=placeAtTower(game,tower,'grunt');game.update(.01);expect(game.zones).toHaveLength(1);tower.cooldown=100;
+    const newcomer=enemy(game,1002,'grunt',first.distance,1000);newcomer.speed=0;game.enemies.push(newcomer);game.update(.1);expect(newcomer.poisonUntil).toBeGreaterThan(game.time);expect(newcomer.hp).toBeLessThan(1000);
+  });
+  it('spreads poison from a defeated victim without giving duplicate kill rewards',()=>{
+    const game=new GameModel();game.status='wave';game.wave=1;const victim=enemy(game,1000,'grunt',210,1),nearby=enemy(game,1001,'grunt',220,1000);victim.poisonUntil=4;victim.poisonDps=30;victim.poisonSpread=true;victim.speed=nearby.speed=0;game.enemies=[victim,nearby];const gold=game.gold;
+    game.update(.1);expect(game.kills).toBe(1);expect(game.gold).toBe(gold+ENEMY_DEFS.grunt.reward);expect(nearby.poisonUntil).toBeGreaterThan(game.time);advance(game,.2);expect(game.kills).toBe(1);
   });
 });
 
-describe('specialist towers', () => {
-  it('hits a distant armored cluster with mortar shells beyond cannon range', () => {
-    const game = new GameModel(); game.build(0, 'mortar'); game.startWave();
-    game.enemies = [enemy(100, 'brute', 450), enemy(101, 'brute', 390), enemy(102, 'brute', 1000)];
-    const pad = game.pads[0], target = game.enemies[0];
-    expect(Math.hypot(target.x - pad.x, target.y - pad.y)).toBeGreaterThan(TOWER_DEFS.cannon.range);
-    expect(Math.hypot(target.x - pad.x, target.y - pad.y)).toBeLessThan(TOWER_DEFS.mortar.range);
-    game.update(.01);
-    expect(game.enemies.find(enemy => enemy.id === 100)?.hp).toBe(165 - TOWER_DEFS.mortar.damage);
-    expect(game.enemies.find(enemy => enemy.id === 101)?.hp).toBe(165 - TOWER_DEFS.mortar.damage);
-    expect(game.enemies.find(enemy => enemy.id === 102)?.hp).toBe(165);
-    expect(game.shots[0].kind).toBe('mortar');
+describe('physical troops and finite-use traps',()=>{
+  it('soldiers march to the rally point, fight nearest ground enemies, block them and return',()=>{
+    const game=new GameModel();game.build(0,'barracks');const tower=game.towers[0],start=game.getTowerPosition(tower);expect(game.troops).toHaveLength(2);
+    advance(game,3);expect(Math.hypot(game.troops[0].x-start.x,game.troops[0].y-start.y)).toBeGreaterThan(20);
+    const road=game.nearestPathPoint(tower.rally!.x,tower.rally!.y),target=enemy(game,1000,'grunt',road.distance,1000);target.speed=0;game.status='wave';game.wave=1;game.enemies=[target];advance(game,.5);
+    expect(game.troops.some(t=>t.state==='fighting')).toBe(true);expect(target.blockedBy).toBeDefined();expect(target.hp).toBeLessThan(1000);
+    game.enemies=[];game.status='building';advance(game,2);expect(game.troops.every(t=>t.targetId===null)).toBe(true);expect(game.troops.every(t=>Math.hypot(t.x-t.rally.x,t.y-t.rally.y)<3)).toBe(true);
   });
-
-  it('pulses every target within Tesla radius with no chain falloff', () => {
-    const game = new GameModel(); game.build(0, 'tesla'); game.startWave();
-    game.enemies = [enemy(100, 'brute', 210), enemy(101, 'brute', 230), enemy(102, 'brute', 250), enemy(103, 'brute', 650)];
-    game.update(.01);
-    for (const id of [100, 101, 102]) expect(game.enemies.find(enemy => enemy.id === id)?.hp).toBe(165 - TOWER_DEFS.tesla.damage);
-    expect(game.enemies.find(enemy => enemy.id === 103)?.hp).toBe(165);
-    expect(game.shots.filter(shot => shot.kind === 'tesla')).toHaveLength(1);
+  it('elite barracks change troop count and dead soldiers respawn after a delay',()=>{
+    const {game,tower}=armed('barracks','C');expect(game.troops).toHaveLength(1);expect(game.troops[0].maxHp).toBe(760);
+    const soldier=game.troops[0];soldier.hp=0;soldier.respawnAt=game.time+8;game.status='building';advance(game,7);expect(soldier.hp).toBe(0);advance(game,1.1);expect(soldier.hp).toBe(soldier.maxHp);expect(game.setRally(tower.id,NaN,0)).toBe(false);
   });
-
-  it('keeps venom damage active after a target leaves range and pays its defeat once', () => {
-    const game = new GameModel(); game.build(0, 'venom'); game.startWave();
-    game.enemies = [enemy(100, 'brute', 210, 25)];
-    game.update(.01);
-    const target = game.enemies.find(enemy => enemy.id === 100)!;
-    expect(target.hp).toBe(17);
-    expect(target.poisonUntil).toBeCloseTo(game.time + 3.5);
-    target.distance = 1100;
-    const before = game.gold;
-    advance(game, 2);
-    expect(game.enemies.some(enemy => enemy.id === 100)).toBe(false);
-    expect(game.kills).toBe(1);
-    expect(game.gold).toBe(before + ENEMY_DEFS.brute.reward);
-    const after = game.gold;
-    advance(game, .5);
-    expect(game.gold).toBe(after);
+  it('validates trap locations, spends finite charges and requires a paid rearm',()=>{
+    const game=new GameModel();game.gold=10000;const point=positionAt(230,game.path),before=game.gold;
+    expect(game.buildTrap(NaN,0)).toBe(false);expect(game.buildTrap(0,0)).toBe(false);expect(game.gold).toBe(before);expect(game.buildTrap(point.x,point.y)).toBe(true);const trap=game.towers[0];expect(trap.padId).toBeLessThan(0);expect(game.buildTrap(point.x,point.y)).toBe(false);
+    game.status='wave';game.wave=1;const target=enemy(game,1000,'brute',230,10000);target.speed=0;game.enemies=[target];advance(game,8);expect(trap.uses).toBe(0);const hp=target.hp;advance(game,2);expect(target.hp).toBe(hp);
+    const rearmGold=game.gold;expect(game.rearmTrap(trap.id)).toBe(true);expect(game.gold).toBe(rearmGold-63);expect(trap.uses).toBe(trap.maxUses);
   });
-
-  it('refreshes toxin without stacking damage and freezes it while paused', () => {
-    const game = new GameModel(); game.gold = 1000;
-    game.build(0, 'venom'); game.build(1, 'venom'); game.startWave();
-    game.enemies = [enemy(100, 'brute', 210, 1000)];
-    game.update(.01);
-    const target = game.enemies.find(enemy => enemy.id === 100)!;
-    expect(target.poisonDps).toBe(TOWER_DEFS.venom.damage * 1.4);
-    const hp = target.hp;
-    for (const tower of game.towers) tower.cooldown = 100;
-    game.paused = true; advance(game, 2); expect(target.hp).toBe(hp);
-    game.paused = false; advance(game, 1);
-    expect(target.hp).toBeCloseTo(hp - 11.2);
-    const expiry = target.poisonUntil!;
-    advance(game, 3);
-    const expired = target.hp;
-    expect(game.time).toBeGreaterThan(expiry);
-    advance(game, 1); expect(target.hp).toBe(expired);
-  });
-
-  it('upgrades and sells each specialist through the same economy as core towers', () => {
-    for (const kind of ['mortar', 'tesla', 'venom'] as const) {
-      const game = new GameModel(); game.gold = 1000; game.build(0, kind);
-      const tower = game.towers[0], first = game.getTowerStats(tower);
-      game.upgrade(tower.id); game.upgrade(tower.id);
-      expect(tower.level).toBe(3); expect(game.getTowerStats(tower).damage).toBeGreaterThan(first.damage);
-      expect(game.getTowerStats(tower).range).toBeGreaterThan(first.range);
-      const before = game.gold; game.sell(tower.id);
-      expect(game.gold).toBe(before + Math.floor(tower.spent * .7));
-    }
+  it('preserves used charges through relocation and upgrades instead of refilling for free',()=>{
+    const game=new GameModel();game.gold=10000;game.build(0,'trap');const trap=game.towers[0];trap.uses=1;expect(game.moveTower(trap.id,2)).toBe(true);expect(trap.uses).toBe(1);game.upgrade(trap.id);expect(trap.uses).toBe(1);game.upgrade(trap.id,'A');expect(trap.maxUses).toBe(6);expect(trap.uses).toBe(3);
   });
 });
 
-
-describe('regional campaign balance', () => {
-  it('can win every new region by investing earned gold and using Starfall', () => {
-    const plans: { padId: number; kind: TowerKind }[][] = [[],
-      [{padId:0,kind:'archer'},{padId:2,kind:'cannon'},{padId:4,kind:'mortar'},{padId:3,kind:'frost'},{padId:5,kind:'venom'},{padId:1,kind:'mortar'}],
-      [{padId:0,kind:'archer'},{padId:1,kind:'cannon'},{padId:2,kind:'tesla'},{padId:5,kind:'frost'},{padId:4,kind:'venom'},{padId:6,kind:'mortar'},{padId:3,kind:'mortar'}],
-      [{padId:0,kind:'archer'},{padId:1,kind:'cannon'},{padId:3,kind:'frost'},{padId:4,kind:'mortar'},{padId:2,kind:'mortar'}],
-      [{padId:1,kind:'archer'},{padId:0,kind:'cannon'},{padId:4,kind:'frost'},{padId:3,kind:'mortar'},{padId:2,kind:'mortar'},{padId:5,kind:'venom'}],
-    ];
-    for (let region = 1; region < LEVELS.length; region++) {
-      const game = new GameModel(region), plan = plans[region];
-      let nextBuild = 0;
-      for (let step = 0; step < 15000 && game.status !== 'won' && game.status !== 'lost'; step++) {
-        if (nextBuild < plan.length && game.build(plan[nextBuild].padId, plan[nextBuild].kind)) nextBuild++;
-        else if (nextBuild === plan.length) for (const tower of game.towers) game.upgrade(tower.id);
-        if (game.status === 'building') game.startWave();
-        if (game.meteorCooldown === 0 && game.enemies.length >= 4) {
-          const center = game.enemies[Math.floor(game.enemies.length / 2)]; game.meteor(center.x, center.y);
-        }
-        game.update(.1);
-      }
-      expect(game.status, `${game.level.name}: wave ${game.wave}, lives ${game.lives}, kills ${game.kills}`).toBe('won');
-      expect(game.wave).toBe(game.waves.length);
-      expect(game.lives).toBeGreaterThan(0);
-    }
+describe('enemy abilities and lifecycle',()=>{
+  it('splits before wave completion and rewards each defeat only once',()=>{
+    const game=new GameModel();game.status='wave';game.wave=1;const e=enemy(game,1000,'voidling',200,1);e.poisonDps=100;e.poisonUntil=1;game.enemies=[e];game.update(.1);expect(game.enemies.filter(e=>e.kind==='grunt')).toHaveLength(2);expect(game.status).toBe('wave');expect(game.kills).toBe(1);
   });
-});
-
-
-describe('tower strategy controls', () => {
-  it('selects first, last, strongest remaining health, and fastest actual movement', () => {
-    const expected: Record<TowerTargetMode, number> = { first: 100, last: 103, strongest: 101, fastest: 102 };
-    for (const mode of ['first', 'last', 'strongest', 'fastest'] as const) {
-      const game = new GameModel(); game.build(0, 'archer');
-      const tower = game.towers[0];
-      expect(tower.targeting).toBe('first');
-      expect(game.setTargeting(tower.id, mode)).toBe(true);
-      game.startWave();
-      game.enemies = [enemy(100, 'grunt', 270), enemy(101, 'brute', 230), enemy(102, 'runner', 250), enemy(103, 'grunt', 210)];
-      const health = new Map(game.enemies.map(item => [item.id, item.hp]));
-      game.update(.001);
-      const hit = game.enemies.filter(item => health.has(item.id) && item.hp < health.get(item.id)!);
-      expect(hit.map(item => item.id), mode).toEqual([expected[mode]]);
-      expect(game.shots).toHaveLength(1);
-    }
-    const slowed = new GameModel(); slowed.build(0, 'archer');
-    slowed.setTargeting(slowed.towers[0].id, 'fastest'); slowed.startWave();
-    slowed.enemies = [enemy(100, 'runner', 250), enemy(101, 'grunt', 230)];
-    slowed.enemies[0].slowUntil = 100;
-    slowed.update(.001);
-    expect(slowed.enemies.find(item => item.id === 100)?.hp).toBe(37);
-    expect(slowed.enemies.find(item => item.id === 101)?.hp).toBe(52 - 16);
+  it('suppresses split-on-death while sonic silence is active',()=>{
+    const {game,tower}=armed('sonic','B'),e=placeAtTower(game,tower,'voidling',1);game.update(.01);expect(e.hp).toBe(0);expect(game.enemies.some(e=>e.kind==='grunt')).toBe(false);
   });
-
-  it('resolves equal targeting priorities by enemy id and rejects invalid or terminal changes', () => {
-    for (const mode of ['first', 'last', 'strongest', 'fastest'] as const) {
-      const game = new GameModel(); game.build(0, 'archer');
-      game.setTargeting(game.towers[0].id, mode); game.startWave();
-      game.enemies = [enemy(101, 'grunt', 220, 100), enemy(100, 'grunt', 220, 100)];
-      for (const unit of game.enemies) unit.speed = 0;
-      game.update(.001);
-      expect(game.enemies.find(item => item.id === 100)?.hp, mode).toBe(84);
-      expect(game.enemies.find(item => item.id === 101)?.hp, mode).toBe(100);
-    }
-    const game = new GameModel(); game.build(0, 'archer');
-    const tower = game.towers[0];
-    expect(game.setTargeting(999, 'last')).toBe(false);
-    expect(game.setTargeting(tower.id, 'flying' as TowerTargetMode)).toBe(false);
-    expect(tower.targeting).toBe('first');
-    for (const status of ['won', 'lost'] as const) {
-      game.status = status;
-      expect(game.setTargeting(tower.id, 'last')).toBe(false);
-      expect(tower.targeting).toBe('first');
-    }
+  it('summons zero-gold skeletons and heals nearby damaged enemies',()=>{
+    const game=new GameModel();game.status='wave';game.wave=1;const caster=enemy(game,1000,'necromancer',200,1000),healer=enemy(game,1001,'shaman',205,1000),ally=enemy(game,1002,'grunt',210,1000);caster.speed=healer.speed=ally.speed=0;caster.nextAbilityAt=healer.nextAbilityAt=0;ally.hp=500;game.enemies=[caster,healer,ally];game.update(.01);expect(game.enemies.some(e=>e.kind==='skeleton'&&e.summoned)).toBe(true);expect(ally.hp).toBe(530);
+    const skeleton=game.enemies.find(e=>e.kind==='skeleton')!;skeleton.hp=1;skeleton.poisonDps=100;skeleton.poisonUntil=10;const before=game.gold;game.update(.1);expect(game.gold).toBe(before);
   });
-
-  it('relocates an upgraded tower for a non-refundable fee without resetting its combat state', () => {
-    const game = new GameModel(); game.gold = 1000; game.build(0, 'archer');
-    const tower = game.towers[0]; game.upgrade(tower.id); game.setTargeting(tower.id, 'strongest');
-    tower.cooldown = .45;
-    const before = { ...tower }, gold = game.gold, fee = game.moveCost(tower);
-    expect(fee).toBe(14);
-    expect(game.moveTower(tower.id, 1)).toBe(true);
-    expect(tower).toEqual({ ...before, padId: 1 });
-    expect(game.gold).toBe(gold - fee);
-    expect(game.build(0, 'cannon')).toBe(true);
-    const beforeSale = game.gold;
-    expect(game.sell(tower.id)).toBe(true);
-    expect(game.gold).toBe(beforeSale + Math.floor(before.spent * .7));
+  it('teleports on its ability timer and a shield absorbs a tower disruption once',()=>{
+    const game=new GameModel();game.status='wave';game.wave=1;const e=enemy(game,1000,'voidling',200,1000);e.speed=0;e.nextTeleportAt=0;game.enemies=[e];game.update(.01);expect(e.distance).toBe(265);
+    const shield=armed('prism','B'),conduit=placeAtTower(shield.game,shield.tower,'stormconduit');conduit.nextAbilityAt=0;shield.game.update(.01);expect(shield.tower.shieldCharges).toBe(0);expect(shield.tower.disabledUntil||0).toBe(0);conduit.nextAbilityAt=0;shield.game.update(.01);expect(shield.tower.disabledUntil).toBeGreaterThan(shield.game.time);
   });
-
-  it('rejects impossible relocation without spending gold and clears strategy state on reset', () => {
-    const game = new GameModel(); game.gold = 1000; game.build(0, 'venom'); game.build(1, 'archer');
-    const tower = game.towers[0];
-    for (const [id, padId] of [[999, 2], [tower.id, 0], [tower.id, 1], [tower.id, -1], [tower.id, 99], [tower.id, 1.5]]) {
-      const before = game.snapshot();
-      expect(game.moveTower(id, padId)).toBe(false); expect(game.snapshot()).toEqual(before);
-    }
-    game.gold = game.moveCost(tower) - 1;
-    const poor = game.snapshot(); expect(game.moveTower(tower.id, 2)).toBe(false); expect(game.snapshot()).toEqual(poor);
-    game.gold = 1000;
-    for (const status of ['won', 'lost'] as const) {
-      game.status = status; const before = game.snapshot();
-      expect(game.moveTower(tower.id, 2)).toBe(false); expect(game.snapshot()).toEqual(before);
-    }
-    game.reset(); game.build(0, 'archer');
-    expect(game.towers[0].targeting).toBe('first'); expect(game.towers[0].padId).toBe(0);
+  it('scales health and speed by difficulty and wave, and never permits changes during combat',()=>{
+    const values=[];for(const difficulty of ['easy','normal','hard','hell'] as const){const game=new GameModel();expect(game.setDifficulty(difficulty)).toBe(true);expect(game.maxLives).toBe(DIFFICULTIES[difficulty].lives);game.startWave();game.update(.01);values.push({hp:game.enemies[0].maxHp,speed:game.enemies[0].speed});expect(game.setDifficulty('normal')).toBe(false);expect(game.setProgression({damage:1},TOWER_KINDS)).toBe(false);}
+    expect(values.map(v=>v.hp)).toEqual([...values.map(v=>v.hp)].sort((a,b)=>a-b));expect(values[3].speed).toBeGreaterThan(values[0].speed);
+    const later=new GameModel();later.wave=3;later.startWave();later.update(.01);expect(later.enemies[0].speed).toBeGreaterThan(ENEMY_DEFS[later.enemies[0].kind].speed);
   });
-
-  it('advances movement and cooldowns at triple speed, with safe fallback for unsupported values', () => {
-    const game = new GameModel(); game.startWave(); game.meteor(0, 0); game.speed = 3;
-    game.update(.1);
-    expect(game.time).toBeCloseTo(.3);
-    expect(game.enemies[0].distance).toBeCloseTo(48 * .3);
-    expect(game.meteorCooldown).toBeCloseTo(24.7);
-    game.paused = true; const before = game.snapshot(); game.update(10); expect(game.snapshot()).toEqual(before);
-    for (const invalid of [0, -1, 2.5, Number.NaN, Number.POSITIVE_INFINITY]) {
-      const fallback = new GameModel(); fallback.speed = invalid; fallback.update(.1);
-      expect(fallback.time).toBeCloseTo(.1);
-    }
+  it('pauses all state, clamps late frames, supports 3× and loses more lives to bosses',()=>{
+    const game=new GameModel();game.startWave();game.paused=true;const before=game.snapshot();game.update(10);expect(game.snapshot()).toEqual(before);game.paused=false;game.update(10);expect(game.time).toBeCloseTo(.1);game.speed=3;game.update(.1);expect(game.time).toBeCloseTo(.4);
+    game.enemies=[enemy(game,1000,'boss',game.pathLength-1)];game.update(.1);expect(game.lives).toBe(game.maxLives-8);
+  });
+  it('offers mixed next-wave counts and optional auto-wave, with 1–3 stars at victory',()=>{
+    const game=new GameModel();expect(game.wavePreview().reduce((sum,group)=>sum+group.count,0)).toBe(game.nextWave()!.enemies.length);game.wave=1;game.autoWave=true;advance(game,3.1);expect(game.status).toBe('wave');
+    game.status='won';game.lives=game.maxLives;expect(game.stars).toBe(3);game.lives=Math.floor(game.maxLives*.5);expect(game.stars).toBe(2);game.lives=1;expect(game.stars).toBe(1);
+  });
+  it('has twelve scripted stages ending in bosses and returns detached snapshots',()=>{
+    expect(LEVELS).toHaveLength(12);for(let i=0;i<LEVELS.length;i++){const game=new GameModel(i);expect(game.waves.at(-1)!.enemies.some(e=>['boss','bonedragon','hellwarden'].includes(e.kind))).toBe(true);expect(game.pads.every(p=>!/[0-9]/.test(p.name))).toBe(true);const copy=game.snapshot();copy.path[0].x=-999;expect(game.path[0].x).not.toBe(-999);}
   });
 });

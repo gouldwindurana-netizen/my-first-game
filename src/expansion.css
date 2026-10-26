@@ -1,0 +1,39 @@
+/* Strategy controls share the existing bounded combat shell. */
+.campaign-tools { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-top: 18px; }
+.campaign-tools label { flex: 1; min-width: 180px; display: grid; gap: 7px; color: #b8c9ce; font-size: 12px; }
+.campaign-tools select, .campaign-tools button, .context-journal { min-height: 44px; padding: 9px 12px; color: #e6d8ad; background: #173748; border: 1px solid #738477; border-radius: 4px; font-size: 12px; }
+.campaign-tools select:disabled { opacity: .6; }
+.campaign-rewards { color: #a7c0c7; font-size: 12px; line-height: 1.6; }
+.branch-options { display: grid; gap: 7px; margin: 14px 0; }
+.branch-options h3 { color: #d8c596; font-size: 14px; margin: 0 0 3px; }
+.branch-options button { display: grid; gap: 5px; min-height: 44px; padding: 10px; color: #dcd3b6; text-align: left; background: #123044; border: 1px solid #567287; border-radius: 4px; }
+.branch-options button strong { font-size: 12px; line-height: 1.4; }
+.branch-options button span { font-size: 11px; line-height: 1.5; color: #a9c1cb; }
+.branch-options button small { color: #e0c280; font-size: 11px; }
+.branch-options button:disabled { opacity: .55; cursor: default; }
+.branch-options button:hover:not(:disabled) { border-color: #e7cd8d; background: #234655; }
+.effect-summary, .trap-charges { font-size: 11px; line-height: 1.65; color: #bbd8d6; }
+.trap-charges { color: #e6c286; }
+.tower-actions { flex-wrap: wrap; }
+.tower-actions button { min-height: 44px; height: auto; line-height: 1.5; padding: 8px; font-size: 11px; }
+.tower-actions #upgrade { flex: 1 0 100%; }
+.strategy-controls button { min-height: 44px; }
+.context-journal { width: 100%; line-height: 1.5; }
+.tower-card.locked { opacity: .5; filter: saturate(.5); }
+.tower-card.locked .tower-key { font-size: 0; }
+.tower-card.locked .tower-key::after { content: '◆'; color: #bfa0ef; font-size: 11px; }
+.tower-dock .tower-info b { font-size: 19px; line-height: 1.05; }
+.tower-dock .tower-cost { font-size: 12px; }
+.wave-preview-modal { width: 600px; max-width: 100%; }
+.wave-preview-modal > p, #wave-preview-content p { color: #aec6cf; font-size: 13px; line-height: 1.6; }
+.wave-preview-modal > .primary { width: 100%; margin-top: 14px; }
+#wave-preview-close { min-width: 44px; min-height: 44px; font-size: 26px; }
+.wave-enemy-list { display: grid; gap: 8px; margin-top: 15px; }
+.wave-enemy-list article { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 13px; border: 1px solid #42697a; background: #102c3c; border-radius: 3px; font-size: 13px; }
+.wave-enemy-list strong { color: #e6d6ad; }
+.wave-enemy-list span { color: #bad8dd; }
+#settings-progression { margin: 12px 0; width: 100%; }
+#header-wallet { color: #d6c49a; letter-spacing: 0; }
+.tower-detail .detail-description { min-height: 0; }
+@media(max-width:740px) { .tower-dock .tower-info b { font-size: 17px; }.campaign-tools { gap: 8px; }.campaign-tools button { width: 100%; } }
+@media(max-height:520px) { .tower-dock .tower-info b { font-size: 16px; }.branch-options button { padding: 8px; } }
