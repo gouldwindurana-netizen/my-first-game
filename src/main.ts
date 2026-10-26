@@ -11,6 +11,7 @@ import './game-layout.css';
 import './campaign.css';
 import './unit-preview.css';
 import './strategy.css';
+import './viewport-fit.css';
 import { installPlatformLifecycle, focusBattlefield } from './platform';
 import { GameModel, LEVELS, TOWER_DEFS, TARGET_MODES, type TowerTargetMode, type TowerKind } from './game/model';
 import { GroveScene, type SceneBridge } from './render/scene';
@@ -67,6 +68,13 @@ app.innerHTML = `
 for(const id of ['guide','settings','result','campaign','unit-preview'])$('game-shell').appendChild($(id));
 $('context').after($('minimap-toggle'));
 $('context').before($('foundation-picker'));
+const closeInspection=document.createElement('button');
+closeInspection.id='close-inspection';
+closeInspection.className='close-inspection';
+closeInspection.setAttribute('aria-label','Close tower details');
+closeInspection.innerHTML=`${icon('close')}<span>Back to battlefield</span>`;
+$('context').before(closeInspection);
+closeInspection.addEventListener('click',()=>{selectedKind=null;selectedPad=null;movingTowerId=null;syncSelection();focusBattlefield();});
 
 let selectedPad:number|null=null, selectedKind:TowerKind|null=null, meteorArmed=false, movingTowerId:number|null=null;
 let resultShown=false, guidePaused=false, settingsPaused=false, campaignPaused=false, lastSignature='', lastStatus=model.status;
@@ -207,7 +215,7 @@ function showResult(){
 function resetSelection(){movingTowerId=null;selectedPad=null;selectedKind=null;meteorArmed=false;resultShown=false;lastStatus=model.status;lastKills=0;lastShotId=0;lastSignature='';$('result').hidden=true;sceneView()?.resetLevel();syncSelection();updateRecord();}
 function restart(){model.reset();resetSelection();toast('A fresh beginning. Choose your first defense.');}
 function renderLevels(){
- $('level-list').innerHTML=LEVELS.map((level,index)=>`<button data-level="${index}" class="${index===model.currentLevelIndex?'selected ':''}${progress[level.id]?.completed?'completed':''}" aria-pressed="${index===model.currentLevelIndex}" ${model.status==='wave'?'disabled':''}><span class="level-thumb"><img src="${LEVEL_ART[level.mapKey]}" alt=""/></span><span class="level-copy"><small>${level.subtitle}</small><strong>${level.name}</strong><span>${level.waves.length} waves · ${level.pads.length} foundations</span></span><span class="level-state">${progress[level.id]?.completed?'✓ Secured':index===model.currentLevelIndex?'Current map':'Play battlefield'}</span></button>`).join('');
+ $('level-list').innerHTML=LEVELS.map((level,index)=>`<button data-level="${index}" class="${index===model.currentLevelIndex?'selected ':''}${progress[level.id]?.completed?'completed':''}" aria-pressed="${index===model.currentLevelIndex}" ${model.status==='wave'?'disabled':''}><span class="level-thumb" style="aspect-ratio:${level.world.width}/${level.world.height}"><img src="${LEVEL_ART[level.mapKey]}" alt=""/></span><span class="level-copy"><small>${level.subtitle}</small><strong>${level.name}</strong><span>${level.waves.length} waves · ${level.pads.length} foundations</span></span><span class="level-state">${progress[level.id]?.completed?'✓ Secured':index===model.currentLevelIndex?'Current map':'Play battlefield'}</span></button>`).join('');
  setText('campaign-note',model.status==='wave'?'Finish the current wave before changing battlefields. Your defense is paused while this menu is open.':'Each battlefield has its own route and waves. Changing maps starts a fresh defense.');
  $('level-list').querySelectorAll<HTMLButtonElement>('[data-level]').forEach(button=>button.addEventListener('click',()=>changeLevel(Number(button.dataset.level))));
 }
@@ -223,6 +231,7 @@ function updateLevelLabels(){
  const mapLabel=document.querySelector('.map-label')!;mapLabel.innerHTML=`<span class="map-pin"></span> ${level.name.toUpperCase()}`;
  document.querySelector('.minimap-label')!.innerHTML=`<span>${level.name.toUpperCase()}</span><b>STAGE ${String(model.currentLevelIndex+1).padStart(2,'0')}</b>`;
  const minimap=document.querySelector<HTMLElement>('.minimap')!;minimap.style.backgroundImage=`linear-gradient(#06202d44,#06202d44),url("${LEVEL_ART[level.mapKey]}")`;
+ minimap.querySelector('svg')!.setAttribute('viewBox',`0 0 ${level.world.width} ${level.world.height}`);
  document.querySelector('.minimap polyline')!.setAttribute('points',model.path.map(p=>`${p.x},${p.y}`).join(' '));
  $('battlefield').setAttribute('aria-label',`${level.name} battlefield. Choose a tower and a glowing foundation. Use the named-site buttons for keyboard or touch placement.`);
  updateRecord();

@@ -1,10 +1,12 @@
 import type { Point, WaveDef, EnemyKind } from './model';
+import { MAP_GEOMETRY } from './map-geometry';
 
 export interface Foundation extends Point { id: number; name: string; }
 export interface LevelDef {
   id: string; name: string; mapKey: string; subtitle: string; description: string;
   path: Point[]; pads: Foundation[]; waves: WaveDef[]; startingGold: number; enemyMultiplier: number;
   camera: Point;
+  world: { width: number; height: number };
 }
 
 const ELDER_PATH: Point[] = [
@@ -156,4 +158,10 @@ export const LEVELS: LevelDef[] = [
   { id: 'ember', name: 'Ember Chasm', mapKey: 'ember', subtitle: 'THE ASHEN CROSSING', description: 'Hold the lava bridge and the long road to the obsidian gate.', path: EMBER_PATH, pads: EMBER_PADS, waves: EMBER_WAVES, startingGold: 280, enemyMultiplier: 1.07, camera: { x: 550, y: 340 } },
   { id: 'mirewood', name: 'Mirewood Causeway', mapKey: 'mirewood', subtitle: 'THE SUNKEN ROAD', description: 'Five islands defend a winding causeway through the haunted fen.', path: MIREWOOD_PATH, pads: MIREWOOD_PADS, waves: MIRE_WAVES, startingGold: 300, enemyMultiplier: 1.06, camera: { x: 550, y: 340 } },
   { id: 'crystal', name: 'Crystal Hollow', mapKey: 'crystal', subtitle: 'THE HEART BELOW', description: 'Defend the crystal bridge and the eastern cavern gate.', path: CRYSTAL_PATH, pads: CRYSTAL_PADS, waves: CRYSTAL_WAVES, startingGold: 320, enemyMultiplier: 1.1, camera: { x: 550, y: 340 } },
-];
+].map(level => {
+  const world = MAP_GEOMETRY[level.mapKey];
+  // Roads were traced against the old stretched 1100×680 panels. Apply the
+  // same correction to every gameplay landmark as to the restored artwork.
+  const fit = <T extends Point>(point: T): T => ({ ...point, y: point.y * world.height / 680 });
+  return { ...level, world, path: level.path.map(fit), pads: level.pads.map(fit), camera: fit(level.camera) };
+});

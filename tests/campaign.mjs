@@ -28,7 +28,8 @@ async function boot(page, inlineHtml = null) {
 }
 async function capture(page, name) { await page.screenshot({ path: `artifacts/campaign/${name}.png`, fullPage: true }); }
 async function openCampaign(page, touch = false) {
-  if (touch) await page.locator('#levels-open').tap(); else await page.locator('#levels-open').click();
+  const opener = await page.locator('#levels-open').isVisible() ? page.locator('#levels-open') : page.locator('#rail-levels');
+  if (touch) await opener.tap(); else await opener.click();
   await page.locator('#campaign').waitFor({ state: 'visible' });
   assert.equal(await page.locator('#campaign [data-level]').count(), 5, 'All five maps are available from the campaign menu');
 }

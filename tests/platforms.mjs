@@ -55,7 +55,14 @@ async function boot(page, url, inlineHtml = null) {
   const pixels = await page.locator('#battlefield canvas').evaluate(canvas => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    return [[100, 100], [550, 340], [900, 500], [400, 600]].map(([x, y]) => Array.from(ctx.getImageData(x, y, 1, 1).data));
+    // Sample actual map landmarks after the fitted camera transform. Canvas
+    // corners can now correctly contain letterboxing on short/wide screens.
+    const view = window.__MOSSGUARD__.view;
+    return [[100, 100], [550, 340], [900, 500], [400, 600]].map(([x, y]) => {
+      const u = Math.max(0, Math.min(canvas.width - 1, Math.round((x - view.scrollX) * view.renderScale * view.zoom)));
+      const v = Math.max(0, Math.min(canvas.height - 1, Math.round((y - view.scrollY) * view.renderScale * view.zoom)));
+      return Array.from(ctx.getImageData(u, v, 1, 1).data);
+    });
   });
   assert(pixels && pixels.every(pixel => pixel[3] === 255) && new Set(pixels.map(pixel => pixel.join(','))).size > 1, 'The rendered map is populated with visible image content');
 }
@@ -108,6 +115,7 @@ async function build(page, kind, padId, touch = false, captureName = null) {
   assert.equal(after.gold, before.gold - costs[kind], 'Construction spends the expected gold');
 }
 async function pauseAndLifecycle(page) {
+  if (await page.locator('#close-inspection').isVisible()) await page.locator('#close-inspection').click();
   await page.locator('#pause').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.paused);
   const frozen = await state(page);

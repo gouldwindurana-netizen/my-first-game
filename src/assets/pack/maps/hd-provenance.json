@@ -1,0 +1,93 @@
+{
+  "source": "User-supplied Mossguard_Design_and_Assets.zip, cropped level-concepts-01 panels retained beside restorations.",
+  "method": "Imagegen referenced-image edits; each source was visually inspected before generation. Requested faithful higher-resolution material detail, original complete bounds, exact composition/landmarks, original palette, no text/UI/numbers/units.",
+  "generatedOn": "2026-10-26",
+  "tool": "image_gen.imagegen",
+  "limitations": "Generative restoration adds new fine detail. It cannot recover unavailable original high-resolution pixels. Gameplay landmarks were visually checked; source crops remain tracked for comparison.",
+  "assets": [
+    {
+      "mapKey": "frostbound",
+      "source": "maps/frostbound.webp",
+      "sourceSha256": "bd758c69f09abc10813f03d982b1ac605e7fa683acaf81a3e270554d8672092d",
+      "sourceSize": [
+        757,
+        324
+      ],
+      "generatedImage": "exec-677d492e-a8c0-49f5-99d1-89f762944df2.png",
+      "generatedSha256": "b0946693110286a96222c98bda4374f954155596762d49d081118e22290356e2",
+      "file": "maps/hd-frostbound.webp",
+      "sha256": "00594ab2169ae109b1a8c00b60bd248f46ab8cbab2062d38323f1f95688840f8",
+      "size": [
+        1918,
+        820
+      ],
+      "bytes": 2767332,
+      "encoding": "Lossless WebP; RGB pixels verified identical to the generated restoration; no crop or rescale.",
+      "displayAspect": "Use original source aspect ratio; generated raster differs by less than 0.2%.",
+      "review": "All original road routes, round site counts, bridges, portal and gate layout retained. Generated detail is a faithful reinterpretation, not recovered original high-resolution pixels. Landmark centers visually within approximately 1% of source normalized positions."
+    },
+    {
+      "mapKey": "ember",
+      "source": "maps/ember.webp",
+      "sourceSha256": "3487b486c40c9792dacf8b648b17c4850a6715c27d0bceba9c00cbf44f1001cc",
+      "sourceSize": [
+        759,
+        320
+      ],
+      "generatedImage": "exec-8acce969-f450-441e-bbe9-0ce13d787981.png",
+      "generatedSha256": "2629ed336e860158a5c7433ff54f802e67bd9d6ce4d0257afdd911c62fdccdac",
+      "file": "maps/hd-ember.webp",
+      "sha256": "a5f30ca2efef12843276797c9c0387afa0ed57e33257578b66f56dc204635d14",
+      "size": [
+        1932,
+        814
+      ],
+      "bytes": 2350474,
+      "encoding": "Lossless WebP; RGB pixels verified identical to the generated restoration; no crop or rescale.",
+      "displayAspect": "Use original source aspect ratio; generated raster differs by less than 0.2%.",
+      "review": "All original road routes, round site counts, bridges, portal and gate layout retained. Generated detail is a faithful reinterpretation, not recovered original high-resolution pixels. Landmark centers visually within approximately 1% of source normalized positions."
+    },
+    {
+      "mapKey": "mirewood",
+      "source": "maps/mirewood.webp",
+      "sourceSha256": "5bb0771f64a3354b058d684714e514b3b895f41ac417680beda51f2a094c6c72",
+      "sourceSize": [
+        760,
+        324
+      ],
+      "generatedImage": "exec-2ec42344-b851-410d-8fec-7066f9ae599c.png",
+      "generatedSha256": "0a76ede31649eead778affd17107213c3212228855d459b8c9ff35d8af123a50",
+      "file": "maps/hd-mirewood.webp",
+      "sha256": "29123faf9c6d83d6a3fcdb7b812d2c0866a5117b4965ca459d3b710a397a2df8",
+      "size": [
+        1922,
+        818
+      ],
+      "bytes": 2854250,
+      "encoding": "Lossless WebP; RGB pixels verified identical to the generated restoration; no crop or rescale.",
+      "displayAspect": "Use original source aspect ratio; generated raster differs by less than 0.2%.",
+      "review": "All original road routes, round site counts, bridges, portal and gate layout retained. Generated detail is a faithful reinterpretation, not recovered original high-resolution pixels. Landmark centers visually within approximately 1% of source normalized positions."
+    },
+    {
+      "mapKey": "crystal",
+      "source": "maps/crystal.webp",
+      "sourceSha256": "40ac226b9c6401a656d969025a80c334da04635cba0afb504c9aeee9d8b3bd7e",
+      "sourceSize": [
+        757,
+        344
+      ],
+      "generatedImage": "exec-40f38bfc-37d7-480f-814a-1d8f73c4ef73.png",
+      "generatedSha256": "ba8d21e36fcf97a3a7431e2a96d01237947a39faaa829d4e2856954b2d238095",
+      "file": "maps/hd-crystal.webp",
+      "sha256": "37eff360fef04a97363caecbeb7b07574b7eec30f6fd4e04ffa6cd6b185e0eea",
+      "size": [
+        1862,
+        845
+      ],
+      "bytes": 2703672,
+      "encoding": "Lossless WebP; RGB pixels verified identical to the generated restoration; no crop or rescale.",
+      "displayAspect": "Use original source aspect ratio; generated raster differs by less than 0.2%.",
+      "review": "All original road routes, round site counts, bridges, portal and gate layout retained. Generated detail is a faithful reinterpretation, not recovered original high-resolution pixels. Landmark centers visually within approximately 1% of source normalized positions."
+    }
+  ]
+}

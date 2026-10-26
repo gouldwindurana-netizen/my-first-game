@@ -17,7 +17,9 @@
     "test:animation": "node tests/animation.mjs",
     "test:campaign": "node tests/campaign.mjs",
     "test:walking": "node tests/walking.mjs",
-    "test:strategy": "node tests/strategy.mjs"
+    "test:strategy": "node tests/strategy.mjs",
+    "test:fit": "node tests/viewport-fit.mjs",
+    "test:environment": "node tests/environment.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

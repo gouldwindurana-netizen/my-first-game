@@ -1,0 +1,250 @@
+/* Bound the battle to the available viewport. Only inspection content scrolls. */
+html, body { min-height: 0; height: 100%; overflow: hidden; }
+body { min-width: 320px; }
+#app { height: 100dvh; min-height: 0; display: flex; flex-direction: column; }
+.site-header { flex: 0 0 52px; min-height: 52px; height: 52px; padding: 0 16px; gap: 28px; }
+main { width: calc(100% - 28px); max-width: 2000px; flex: 1; min-height: 0; display: flex; flex-direction: column; padding-top: 8px; padding-bottom: 0; }
+.mission-heading { flex: 0 0 45px; min-height: 45px; margin-bottom: 8px; }
+.mission-heading h1 { font-size: 30px; }
+.site-footer { flex: 0 0 24px; min-height: 24px; padding: 4px 0; }
+.game-shell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-rows: minmax(0, 1fr) 98px;
+  gap: 10px;
+  align-items: stretch;
+}
+.battle-column { order: initial; grid-column: 1; grid-row: 1; align-self: stretch; min-height: 0; display: flex; flex-direction: column; }
+.battle-bar { flex: 0 0 60px; min-height: 60px; height: 60px; padding: 6px 9px; flex-wrap: nowrap; gap: 8px; }
+.resources { flex: 1; flex-basis: auto; width: auto; height: auto; gap: 5px; }
+.resource { min-width: 85px; min-height: 42px; flex: initial; padding: 6px 8px; gap: 6px; }
+.resource small { display: block; font-size: 8px; margin-bottom: 3px; }
+.resource b { font-size: 19px; }
+.resource .icon { width: 19px; height: 19px; }
+.wave-badge { margin: 0 0 0 auto; padding: 6px 4px; }
+.wave-badge, .wave-badge b { font-size: 20px; }
+.wave-badge .icon { display: none; }
+.map-controls { margin-left: 0; gap: 5px; }
+.map-button { min-width: 44px; width: 44px; height: 44px; font-size: 17px; }
+.battlefield-wrap { flex: 1; min-height: 0; height: auto; background: #091724; }
+#battlefield { height: 100%; aspect-ratio: auto; }
+.battle-footer { flex: 0 0 28px; min-height: 28px; height: 28px; padding: 5px 10px; font-size: 9px; }
+.build-panel { display: flex; order: initial; grid-column: 2; grid-row: 1 / span 2; position: relative; top: auto; align-self: stretch; min-height: 0; max-height: none; overflow: hidden; }
+.build-panel .panel-heading { flex: 0 0 auto; padding: 10px 4px 8px; }
+.context-panel { flex: 1 1 auto; min-height: 0; padding: 12px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #527183 #0a1a28; }
+.build-panel .next-wave { flex: 0 0 auto; min-height: 0; position: static; padding: 12px; margin: 0 5px 5px; background: #0b2030; box-shadow: 0 -5px 10px #08192570; }
+.next-wave h3 { font-size: 24px; margin: 7px 0; }
+.next-wave p { min-height: 0; margin-bottom: 10px; font-size: 11px; }
+.wave-button { min-height: 46px; padding: 10px; position: static; width: 100%; }
+.build-panel .panel-foot { display: none; }
+.empty-command { padding-top: 2px; }
+.empty-command .command-emblem, .empty-command .command-towers { display: none; }
+.empty-command .empty-title { font-size: 30px; line-height: 1.1; margin: 10px 0; }
+.empty-command p { font-size: 12px; margin-bottom: 10px; }
+.empty-command .brief-row { margin: 8px 0 10px; padding: 10px 0; }
+.empty-command .brief-row b { font-size: 26px; }
+.tower-dock { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; grid-template-rows: minmax(0, 1fr); order: initial; grid-column: 1; grid-row: 2; align-self: stretch; position: relative; top: auto; z-index: 4; min-height: 0; padding: 7px; gap: 7px; }
+.tower-dock .dock-heading, .tower-dock .dock-tip { display: none; }
+.tower-dock #tower-prev { grid-column: 1; grid-row: 1; }
+.tower-dock #tower-next { grid-column: 3; grid-row: 1; }
+.tower-dock .tower-list { grid-column: 2; grid-row: 1; align-self: stretch; grid-auto-columns: minmax(174px, 1fr); }
+.tower-dock .tower-card { min-height: 0; height: 100%; padding: 6px; }
+.tower-dock .tower-art { height: 58px; }
+.tower-dock .tower-info b { font-size: 20px; }
+.tower-dock .tower-cost { padding-top: 3px; font-size: 13px; }
+.dock-scroll { height: 48px; }
+.build-panel .minimap-panel { display: none; }
+.build-panel .foundation-picker { position: static; flex: 0 0 auto; min-height: 0; max-height: 50%; overflow-y: auto; margin: 0 10px 8px; padding: 9px; grid-template-columns: minmax(0, 1fr) 44px; gap: 7px; }
+.foundation-picker .foundation-heading { grid-column: 1; }
+.foundation-picker .foundation-heading b { font-size: 18px; }
+.foundation-picker .foundation-heading span { display: none; }
+.foundation-picker .foundation-sites { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.foundation-picker #cancel-foundation { grid-column: 2; grid-row: 1; min-width: 44px; width: 44px; font-size: 0; padding: 8px; }
+.field-rail { left: 8px; bottom: 10px; gap: 5px; }
+.field-rail button { min-width: 44px; width: 44px; height: 44px; }
+.field-rail button span { font-size: 7px; }
+.map-scale { display: none; }
+.ability { right: 10px; bottom: 10px; min-height: 48px; min-width: 150px; padding: 7px 9px; }
+.ability b { font-size: 22px; }
+.ability small { font-size: 8px; }
+.toast { bottom: 67px; }
+.close-inspection { display: none; }
+.game-shell:fullscreen { width: 100%; height: 100dvh; min-height: 0; padding: 10px; overflow: hidden; background: #081521; }
+
+/* Compact laptops and landscape tablets retain the field/dock/command grid. */
+@media (min-width: 741px) and (max-width: 1100px) {
+  .game-shell { grid-template-columns: minmax(0, 1fr) 230px; gap: 8px; }
+  .site-header { gap: 18px; }
+  .site-header nav { gap: 16px; font-size: 11px; }
+  .resource { min-width: 0; padding: 5px; gap: 4px; }
+  .resource small { display: none; }
+  .resource b { font-size: 16px; }
+  .resource .icon { width: 15px; height: 15px; }
+  .wave-badge, .wave-badge b { font-size: 16px; }
+  .wave-badge { border: 0; padding: 4px 0; }
+  .battle-footer > span:last-child { display: none; }
+  .tower-dock .tower-list { grid-auto-columns: 166px; }
+  .tower-detail .tower-portrait { height: 75px; }
+  .tower-detail .tower-portrait svg { height: 75px; }
+  .detail-description { font-size: 11px; }
+}
+@media (max-height: 740px) {
+  .site-footer { display: none; }
+  .mission-heading { flex-basis: 38px; min-height: 38px; margin-bottom: 6px; }
+  .mission-heading h1 { font-size: 25px; }
+  .mission-heading .eyebrow { display: none; }
+  .chapter-seal { height: 32px; }
+  .game-shell { grid-template-rows: minmax(0, 1fr) 88px; }
+  .battle-bar { flex-basis: 54px; min-height: 54px; height: 54px; padding-top: 4px; padding-bottom: 4px; }
+  .build-panel .panel-heading { padding: 7px 4px; }
+  .next-wave p { display: none; }
+  .next-wave h3 { font-size: 21px; }
+  .build-panel .next-wave { padding: 8px; }
+  .empty-command .brief-row, .empty-command .eyebrow { display: none; }
+  .tower-dock .tower-art { height: 50px; }
+  .tower-dock .tower-info b { font-size: 19px; }
+  .tower-detail .tower-portrait, .tower-detail .detail-description { display: none; }
+  .tower-detail .stat-list { margin: 8px 0; padding: 4px 0; }
+  .tower-detail .stat-list > div { margin: 6px 0; }
+  .upgrade-heading, .upgrade-track { display: none; }
+}
+@media (max-height: 520px) and (min-width: 741px) {
+  .site-header, .mission-heading { display: none; }
+  main { width: calc(100% - 16px); padding: 8px 0; }
+  .game-shell { grid-template-columns: minmax(0, 1fr) 216px; grid-template-rows: minmax(0, 1fr) 78px; gap: 7px; }
+  .game-shell:fullscreen { padding: 7px; }
+  .battle-footer { display: none; }
+  .battle-bar { flex-basis: 52px; min-height: 52px; height: 52px; }
+  .panel-heading { display: none; }
+  .build-panel .context-panel { padding: 8px; }
+  .build-panel .next-wave { padding: 6px; }
+  .next-wave .next-label, .next-wave h3 { display: none; }
+  .tower-dock { padding: 5px; }
+  .tower-dock .tower-list { grid-auto-columns: 150px; }
+  .tower-dock .tower-info b { font-size: 17px; }
+  .tower-dock .tower-art { width: 40px; height: 44px; }
+  .tower-dock .tower-card { grid-template-columns: 40px minmax(0, 1fr); padding: 4px; }
+  .field-rail { flex-direction: row; bottom: 7px; left: 7px; }
+  #rail-towers, #rail-skills { display: none; }
+  .ability { min-width: 128px; min-height: 44px; right: 7px; bottom: 7px; }
+  .ability .key { display: none; }
+  .ability-icon { width: 25px; height: 25px; }
+  .view-controls { top: 7px; right: 7px; padding: 3px; gap: 3px; }
+  .zoom-label { min-width: 38px; }
+  .view-controls button { width: 44px; min-width: 44px; height: 44px; }
+  .map-label { top: 12px; left: 12px; font-size: 7px; }
+}
+
+/* Portrait phones use a compact command row; details are a dismissible drawer. */
+@media (max-width: 740px), (max-width: 980px) and (orientation: portrait) {
+  .site-header { flex-basis: 52px; min-height: 52px; height: 52px; padding: 0 10px; gap: 5px; }
+  .brand { font-size: 18px; gap: 6px; }
+  .brand-mark { width: 27px; min-width: 27px; height: 32px; }
+  .brand small { font-size: 5px; letter-spacing: 1px; margin-top: 4px; }
+  .site-header nav, .edition { display: none; }
+  .header-right { margin-left: auto; gap: 3px; }
+  .header-right .icon-button { min-width: 44px; min-height: 44px; }
+  main { width: calc(100% - 16px); padding-top: 4px; padding-bottom: max(6px, env(safe-area-inset-bottom, 0px)); }
+  .mission-heading { flex-basis: 35px; min-height: 35px; margin-bottom: 5px; }
+  .mission-heading h1 { font-size: 23px; line-height: 1; margin: 0; }
+  .mission-heading .eyebrow, .mission-meta .difficulty { display: none; }
+  .mission-meta .text-button { min-height: 32px; font-size: 0; padding: 4px; }
+  .mission-meta .text-button .icon { width: 17px; height: 17px; }
+  .chapter-seal { height: 27px; width: 26px; font-size: 14px; }
+  .site-footer { display: none; }
+  .game-shell { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 86px 60px; gap: 7px; }
+  .battle-column { grid-column: 1; grid-row: 1; }
+  .battle-bar { flex: 0 0 98px; height: 98px; min-height: 98px; padding: 4px 6px; flex-wrap: wrap; gap: 3px; }
+  .resources { flex: 1 0 100%; width: 100%; height: 42px; justify-content: space-between; gap: 4px; }
+  .resource { min-width: 0; flex: 1; min-height: 38px; padding: 5px; gap: 5px; }
+  .resource small { display: none; }
+  .resource b { font-size: 17px; }
+  .resource .icon { width: 18px; height: 18px; }
+  .wave-badge, .wave-badge b { font-size: 17px; }
+  .wave-badge { padding: 3px; margin: 0 auto 0 0; }
+  .map-controls { gap: 5px; }
+  .battle-footer { flex-basis: 25px; height: 25px; min-height: 25px; font-size: 8px; }
+  .battle-footer > span:last-child { display: none; }
+  .tower-dock { grid-column: 1; grid-row: 2; padding: 5px; gap: 5px; }
+  .tower-dock .tower-list { grid-auto-columns: 158px; padding-bottom: 4px; }
+  .tower-dock .tower-card { grid-template-columns: 41px minmax(0, 1fr); padding: 5px; }
+  .tower-dock .tower-art { width: 41px; height: 48px; }
+  .tower-dock .tower-info b { font-size: 18px; }
+  .tower-dock .tower-cost { font-size: 12px; }
+  .build-panel { grid-column: 1; grid-row: 3; display: block; position: static; overflow: visible; box-shadow: none; }
+  .build-panel .panel-heading, .build-panel .context-panel, .build-panel .panel-foot, .build-panel .minimap-panel { display: none; }
+  .build-panel .next-wave { display: grid; grid-template-columns: minmax(0, 1fr) minmax(155px, 52%); align-items: center; gap: 8px; height: 100%; min-height: 0; margin: 0; padding: 6px; border: 0; box-shadow: none; }
+  .next-wave .next-label, .next-wave p { display: none; }
+  .next-wave h3 { font-size: 19px; margin: 0; line-height: 1.05; }
+  .wave-button { min-height: 44px; height: 44px; padding: 8px; font-size: 11px; }
+  .wave-button .key { display: none; }
+  .build-panel .foundation-picker { position: absolute; z-index: 13; left: 7px; right: 7px; bottom: 162px; max-height: min(400px, calc(100dvh - 290px)); margin: 0; padding: 10px; background: #0b2032; border-color: #ad9765; box-shadow: 0 6px 22px #0009; }
+  .game-shell.has-inspection:has(.foundation-picker[hidden]) .context-panel { display: block; position: absolute; z-index: 12; right: 7px; left: 7px; top: 52px; bottom: 162px; padding: 51px 13px 13px; background: #0b2032f7; border: 1px solid #7d8063; box-shadow: 0 6px 22px #0009; }
+  .game-shell.has-inspection:has(.foundation-picker[hidden]) .close-inspection { display: inline-flex; align-items: center; justify-content: center; gap: 8px; position: absolute; z-index: 14; right: 14px; left: 14px; top: 59px; min-height: 44px; height: 44px; color: #e0cc98; border: 1px solid #496b80; border-radius: 3px; background: #183644; font-size: 12px; }
+  .close-inspection .icon { width: 17px; height: 17px; }
+  .tower-detail .tower-portrait { display: none; }
+  .tower-detail .detail-description { display: block; min-height: 0; font-size: 11px; }
+  .tower-detail .upgrade-track, .tower-detail .upgrade-heading { display: none; }
+  .view-controls { top: 7px; right: 7px; padding: 3px; gap: 3px; }
+  .view-controls button { width: 44px; min-width: 44px; height: 44px; }
+  .zoom-label { min-width: 37px; font-size: 11px; }
+  .map-label { top: 69px; left: 9px; font-size: 7px; }
+  .map-label .map-divider, .map-label > span:last-child { display: none; }
+  .field-rail { flex-direction: row; left: 7px; bottom: 7px; gap: 4px; }
+  #rail-towers, #rail-skills { display: none; }
+  #rail-settings { display: flex; }
+  .field-rail button { width: 44px; height: 44px; }
+  .field-rail button span { font-size: 6px; }
+  .ability { right: 7px; bottom: 7px; min-width: 128px; min-height: 44px; height: 44px; padding: 6px 8px; gap: 6px; }
+  .ability b { font-size: 19px; }
+  .ability small { font-size: 6px; }
+  .ability .key { display: none; }
+  .ability-icon { width: 25px; height: 25px; }
+  .ability-icon .icon { width: 20px; height: 20px; }
+  .toast { bottom: 61px; font-size: 10px; }
+  .game-shell:fullscreen { padding: 7px; }
+}
+@media (max-width: 740px) and (max-height: 600px) {
+  .site-header, .mission-heading { display: none; }
+  main { padding-top: 6px; }
+}
+
+/* Wide, short phone windows use the same bounded side command as landscape tablets. */
+@media (min-width: 480px) and (max-width: 740px) and (orientation: landscape) {
+  .site-header, .mission-heading { display: none; }
+  main { padding: 6px 0; }
+  .game-shell { grid-template-columns: minmax(0, 1fr) 194px; grid-template-rows: minmax(0, 1fr) 76px; gap: 6px; }
+  .battle-column { grid-column: 1; grid-row: 1; }
+  .battle-bar { flex: 0 0 52px; min-height: 52px; height: 52px; padding: 3px 5px; flex-wrap: nowrap; gap: 4px; }
+  .resources { flex: 1; flex-basis: auto; width: auto; height: auto; gap: 3px; }
+  .resource { min-height: 36px; padding: 4px 2px; gap: 2px; }
+  .resource b { font-size: 12px; }
+  .resource .icon { width: 12px; height: 12px; }
+  .wave-badge { display: none; }
+  .battle-footer { display: none; }
+  .tower-dock { grid-column: 1; grid-row: 2; padding: 4px; }
+  .tower-dock .tower-list { grid-auto-columns: 144px; }
+  .tower-dock .tower-info b { font-size: 16px; }
+  .tower-dock .tower-art { width: 36px; height: 42px; }
+  .tower-dock .tower-card { grid-template-columns: 36px minmax(0, 1fr); padding: 4px; }
+  .build-panel { grid-column: 2; grid-row: 1 / span 2; display: flex; position: relative; overflow: hidden; }
+  .build-panel .context-panel, .game-shell.has-inspection:has(.foundation-picker[hidden]) .context-panel { display: block; position: static; padding: 8px; background: none; border: 0; box-shadow: none; }
+  .game-shell.has-inspection:has(.foundation-picker[hidden]) .close-inspection { display: none; }
+  .build-panel .next-wave { display: block; height: auto; padding: 6px; margin: 0 4px 4px; }
+  .next-wave h3 { display: block; font-size: 18px; padding-bottom: 6px; }
+  .build-panel .foundation-picker { position: static; margin: 0 6px 6px; max-height: 64%; padding: 7px; box-shadow: none; }
+  .foundation-picker .foundation-heading b { font-size: 15px; }
+  .foundation-picker .foundation-sites { gap: 4px; }
+  .foundation-sites button { font-size: 10px; padding: 5px; }
+  .foundation-sites button .icon { display: none; }
+  .empty-command .empty-title { font-size: 25px; }
+  .empty-command p { font-size: 10px; }
+  .map-label { display: none; }
+  .ability { min-width: 118px; }
+  .ability b { font-size: 17px; }
+  .view-controls { padding: 2px; gap: 2px; top: 5px; right: 5px; }
+  .zoom-label { min-width: 30px; font-size: 10px; }
+  .game-shell:fullscreen { padding: 6px; }
+}

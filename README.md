@@ -4,7 +4,7 @@ A playable, fantasy tower defense game built with **Phaser 3, TypeScript, and Vi
 
 ## Test the HTML sample without installing anything
 
-Download **[`samples/mossguard.html`](samples/mossguard.html)** (about 14.8 MiB). It contains the entire playable game, including its engine, styles, fonts, all five maps, and license notices. There are no external runtime downloads.
+Download **[`samples/mossguard.html`](samples/mossguard.html)**. It contains the entire playable game, including its engine, styles, fonts, all five maps, and license notices. There are no external runtime downloads.
 
 On a desktop, save the file and open it in a modern browser. If you download it from GitHub, use **Download raw file**, rather than the GitHub code viewer. On a phone, use the hosted GitHub Pages site or a local web server: some Files/Quick Look apps display HTML instead of running JavaScript.
 
@@ -23,9 +23,13 @@ The workflow cannot enable a new Pages site using `GITHUB_TOKEN` alone. Enabling
 
 ## Web display and supplied assets
 
-Eldervale uses the available browser width. The new regions fit their entire taller routes into the field, with zoom and pan available for a closer view. On desktop, the field, bottom tower dock, and next-wave button fit inside the viewport; tower inspection scrolls independently. Tablets and phones use a full-width field with controls below. Important HUD values, prices, labels, and action buttons use readable sizes. High-DPI backing resolution keeps graphics sharp on Retina displays and larger desktop viewports.
+Every map fits completely at 100% without stretching. The four additional regions use roughly 1,900-pixel-wide, lossless restorations of the supplied concept panels, with their original panoramic proportions. Roads, foundations, previews, and the tactical minimap share the corrected coordinates. These generated edits add fine detail; they do not recover unavailable original high-resolution pixels. High-DPI canvas backing keeps the interface and sprites sharp on Retina displays.
 
-Use **+ / −** to zoom the battlefield from 100% to 250%, drag to pan when zoomed or when the desktop field crops the map margins, and press **0** to reset the view. The fullscreen button expands the game when the browser supports it. Zoom, pan, resize, and fullscreen do not reset the match. Numbered foundation buttons also center the selected site while zoomed.
+The field, tower dock, and next-wave action fit the available viewport, including short laptops, portrait phones, landscape phones, and native fullscreen. Desktop inspection scrolls independently; portrait tower details use a dismissible drawer. Use **Back to battlefield** to close it. Named foundation controls retain 44px touch targets and have no site numbers.
+
+Use **+ / −** to zoom from 100% to 250%, drag to pan when zoomed, and press **0** to fit the entire map again. The fullscreen button expands the game when the browser supports it. Zoom, pan, resize, and fullscreen preserve the match. Named foundation buttons also center the selected site while zoomed.
+
+Scenery on all five maps uses seamless 12-second loops: flowing waterfalls and ripples, snow, lava and embers, swamp mist and reeds, crystal glints, and torch flames. Small feathered water/lava pieces use the actual map texture. Authored 24-fps samples interpolate at display refresh, including the last-to-first transition. Pause freezes scenery; reduced motion disables decorative motion. Combat speed does not accelerate the scenery loop.
 
 The user's `Mossguard_Design_and_Assets.zip` supplies twelve original tower-tier illustrations, three specialist tower illustrations, four mapped enemy images, four additional map panels, matching SVG icons, and WAV effects. The sheets use individually measured frames, not equal-grid slicing. [Asset integration notes](docs/ASSET_INTEGRATION.md) explain which assets are live and which remain design references. All four moving unit types use 24-frame, motion-interpolated walking cycles derived from eight generated key poses per character. Pose presentation runs at 24 fps; movement, projectiles, recoil, and other effects retain smooth display-rate interpolation. Original key poses remain intact at every third frame. Intermediate textures can look softer in the close-up viewer. Feet, legs, arms, and equipment change pose inside the frames; combat no longer rocks or squashes a static unit image to imply walking. Frames follow traveled distance, so pause, frost slowing, and game speed affect footfalls naturally. Tower recoil, magic, build/upgrade bursts, hit flashes, and defeat reactions remain active. Reduced motion holds neutral unit poses. Open **Field guide → Preview walking units** for a close-up, pausable, slow-motion view of all four cycles.
 
@@ -39,7 +43,7 @@ The user's `Mossguard_Design_and_Assets.zip` supplies twelve original tower-tier
 | Mirewood Causeway | 8 | 5 | Islands linked by a winding causeway |
 | Crystal Hollow | 8 | 6 | Crystal bridges and a cavern road |
 
-The four new backgrounds are cropped from the supplied concept sheets. Each specialist uses its single supplied base illustration at all three upgrade levels, with scale, level pips, and effects marking upgrades; extra authored tier illustrations are not claimed.
+The four additional backgrounds are faithful higher-resolution edits of panels from the supplied concept sheets; original crops and provenance remain in the repository. Each specialist uses its single supplied base illustration at all three upgrade levels, with scale, level pips, and effects marking upgrades; extra authored tier illustrations are not claimed.
 
 ## Mobile and other platforms
 
@@ -66,7 +70,7 @@ npm run serve -- --port 4173 --base /my-first-game/
 
 `npm run build:web` builds just the normal website. `npm run build:html` regenerates the single-file sample after source edits. Do not edit the generated sample by hand. Run the normal build after regenerating it to refresh the copy in `dist/`.
 
-For the platform suite, keep the static server running at `/my-first-game/` and run `npm run test:platforms`. Set `BROWSER=firefox` or `BROWSER=webkit` after installing that Playwright browser. `npm run test:browser`, `npm run test:view`, `npm run test:animation`, `npm run test:campaign`, and `npm run test:walking` accept `GAME_URL` for the same subpath. The animation suite exercises construction, upgrades, combat reactions, pause, speed, and reduced motion through real UI input. The walking suite checks distinct atlas poses, all four close-up cycles, live walking/running frames, slowing, stable body transforms, mobile controls, and offline animation.
+For the platform suite, keep the static server running at `/my-first-game/` and run `npm run test:platforms`. Set `BROWSER=firefox` or `BROWSER=webkit` after installing that Playwright browser. Browser suites accept `GAME_URL` for the same subpath. `npm run test:fit` checks ten viewport sizes, native fullscreen, and reachable combat controls. `npm run test:environment` checks map proportions, high-resolution art, pointer placement, actual scenery pixels, pause, speed, reduced motion, and bounded textures across map changes. The animation and walking suites cover construction, combat reactions, 24-fps unit animation, slowing, mobile controls, and offline animation.
 
 ## Run
 
@@ -139,10 +143,12 @@ The 28 deterministic combat tests cover purchases, upgrades, sales, invalid acti
 - `src/render/forest.ts` — legacy procedural illustrations retained as reference; the current renderer uses the supplied assets.
 - `src/render/asset-views.ts` and `src/asset-art.ts` — supplied sprite frames and matching UI portraits.
 - `src/render/walk-cycle.ts` and `src/walking-assets.ts` — distance-based walking frames and shared atlas metadata.
+- `src/game/map-geometry.ts` — native map proportions used by the model and camera.
+- `src/render/environment.ts` and `src/render/environment-motion.ts` — bounded local scenery textures and periodic interpolated tracks.
 - `src/unit-preview.ts` — close-up unit animation viewer, using the same atlases and frame selector as combat.
 - `src/assets/pack/` — supplied atlas artwork, WAV audio, SVG UI, frame metadata, and provenance.
 - `src/audio.ts` — user-gesture audio decoding and bounded effect playback.
-- `src/readability.css`, `src/game-layout.css`, and `src/campaign.css` — responsive interface, tower carousel, campaign menu, and fullscreen layout.
+- `src/readability.css`, `src/game-layout.css`, `src/campaign.css`, and `src/viewport-fit.css` — responsive interface, tower carousel, campaign menu, and viewport/fullscreen layout.
 - `src/assets/eldervale.webp` — the concept-inspired painted citadel battlefield.
 - `src/render/scene.ts` — Phaser rendering, effects, and world input.
 - `src/main.ts` — accessible DOM HUD, controls, guide, results, sound, and local best score.

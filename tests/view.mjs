@@ -194,17 +194,20 @@ try {
     await shot(desktop, 'desktop-1366-zoom200');
 
     await desktop.setViewportSize({ width: 1920, height: 1080 });
-    await desktop.waitForFunction(() => document.querySelector('#battlefield canvas').width >= 2200 && window.__MOSSGUARD__.view.renderScale === 2);
+    await desktop.waitForFunction(() => document.querySelector('#battlefield canvas').width >= 2200 && window.__MOSSGUARD__.view.backingScale === 2);
     metrics = await layout(desktop, '1920×1080 desktop', 1450);
     assert.equal((await state(desktop)).gold, frozen.gold);
     assert.deepEqual((await state(desktop)).towers, frozen.towers, 'Resize to a larger render backing preserves tower state');
     await desktop.locator('#battlefield').focus();
     await desktop.keyboard.press('0');
-    await desktop.waitForFunction(() => window.__MOSSGUARD__.view.zoom === 1 && Math.abs(window.__MOSSGUARD__.view.scrollX) < .01 && window.__MOSSGUARD__.view.scrollY >= 0 && window.__MOSSGUARD__.view.scrollY < 100);
+    await desktop.waitForFunction(() => {
+      const v = window.__MOSSGUARD__.view;
+      return v.zoom === 1 && v.scrollX <= .1 && v.scrollY <= .1 && v.scrollX + v.visibleWidth >= v.worldWidth - .1 && v.scrollY + v.visibleHeight >= v.worldHeight - .1;
+    });
     assert.equal((await state(desktop)).towers.length, 3);
     await shot(desktop, 'desktop-1920-fit');
     await desktop.setViewportSize({ width: 1366, height: 768 });
-    await desktop.waitForFunction(() => document.querySelector('#battlefield canvas').width === 1100 && window.__MOSSGUARD__.view.renderScale === 1);
+    await desktop.waitForFunction(() => document.querySelector('#battlefield canvas').width === 1100 && window.__MOSSGUARD__.view.backingScale === 1);
     assert.deepEqual((await state(desktop)).towers, frozen.towers, 'Resize back to the base backing preserves tower state');
     assert.equal((await state(desktop)).gold, frozen.gold);
     checks.push('Render backing 1×→2×→1× and reset-to-fit preserve game state');
@@ -284,6 +287,7 @@ try {
     await mobile.locator('[data-foundation="0"]').tap();
     await mobile.waitForFunction(() => window.__MOSSGUARD__.towers[0]?.kind === 'arcane');
     assert.equal((await state(mobile)).gold, 140);
+    if (await mobile.locator('#close-inspection').isVisible()) await mobile.locator('#close-inspection').tap();
     await mobile.locator('#zoom-in').tap();
     await mobile.waitForFunction(() => window.__MOSSGUARD__.view.zoom === 1.25);
     await mobile.locator('#zoom-out').tap();

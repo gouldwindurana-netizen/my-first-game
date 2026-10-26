@@ -62,7 +62,9 @@ try {
   await desktop.locator('#rail-map').click();
   assert.equal(await desktop.locator('#rail-map').getAttribute('aria-pressed'), 'true');
   assert.equal(await desktop.locator('#minimap-toggle').evaluate(element => element.classList.contains('active')), true);
-  await desktop.locator('#minimap-toggle').click();
+  // The compact command panel keeps the minimap state synchronized; the field
+  // rail is the persistent tactical control across every viewport size.
+  await desktop.locator('#rail-map').click();
   assert.equal(await desktop.locator('#rail-map').getAttribute('aria-pressed'), 'false');
   assert.equal(await desktop.locator('#minimap-toggle').evaluate(element => element.classList.contains('active')), false);
   checks.push('Seven towers, twelve opening-level waves, and tactical map/minimap controls');
