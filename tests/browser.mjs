@@ -18,23 +18,23 @@ function watch(page, label) {
 async function boot(page) {
   await page.goto(base);
   await page.waitForSelector('#battlefield[data-ready="true"]');
-  await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
+  await page.waitForFunction(() => { const canvas = document.querySelector('#battlefield canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForFunction(() => document.querySelector('canvas').getBoundingClientRect().height > 100);
+  await page.waitForFunction(() => document.querySelector('#battlefield canvas').getBoundingClientRect().height > 100);
 }
 async function point(page, x, y, touch = false) {
-  await page.locator('canvas').scrollIntoViewIfNeeded();
-  const canvas = await page.locator('canvas').boundingBox();
+  await page.locator('#battlefield canvas').scrollIntoViewIfNeeded();
+  const canvas = await page.locator('#battlefield canvas').boundingBox();
   assert(canvas && canvas.width > 0 && canvas.height > 0, 'Battlefield is visible');
-  const geometry = await page.locator('canvas').evaluate(element => ({ width: element.width, height: element.height, view: window.__MOSSGUARD__.view }));
+  const geometry = await page.locator('#battlefield canvas').evaluate(element => ({ width: element.width, height: element.height, view: window.__MOSSGUARD__.view }));
   const { view } = geometry;
   const px = canvas.x + (x - view.scrollX) * view.renderScale * view.zoom / geometry.width * canvas.width;
   const py = canvas.y + (y - view.scrollY) * view.renderScale * view.zoom / geometry.height * canvas.height;
   if (touch) await page.touchscreen.tap(px, py); else await page.mouse.click(px, py);
 }
 async function fit(page, label) {
-  await page.waitForFunction(() => { const box = document.querySelector('canvas').getBoundingClientRect(), field = document.querySelector('#battlefield').getBoundingClientRect(); return Math.abs(box.width / box.height - field.width / field.height) < 0.02; });
-  const dimensions = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, canvas: document.querySelector('canvas').getBoundingClientRect().toJSON(), field: document.querySelector('#battlefield').getBoundingClientRect().toJSON() }));
+  await page.waitForFunction(() => { const box = document.querySelector('#battlefield canvas').getBoundingClientRect(), field = document.querySelector('#battlefield').getBoundingClientRect(); return Math.abs(box.width / box.height - field.width / field.height) < 0.02; });
+  const dimensions = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, canvas: document.querySelector('#battlefield canvas').getBoundingClientRect().toJSON(), field: document.querySelector('#battlefield').getBoundingClientRect().toJSON() }));
   assert(dimensions.scroll <= dimensions.width, `${label} has no horizontal overflow: ${JSON.stringify(dimensions)}`);
   assert(dimensions.canvas.width <= dimensions.width, `${label} battlefield fits viewport`);
   assert(Math.abs(dimensions.canvas.width / dimensions.canvas.height - dimensions.field.width / dimensions.field.height) < 0.02, `${label} canvas fills its viewport without distortion`);
@@ -201,7 +201,7 @@ try {
   await boot(mobile);
   await fit(mobile, 'Mobile');
   await mobile.locator('[data-tower="frost"]').tap();
-  await mobile.locator('canvas').scrollIntoViewIfNeeded();
+  await mobile.locator('#battlefield canvas').scrollIntoViewIfNeeded();
   await point(mobile, 571, 237, true);
   await mobile.waitForFunction(() => window.__MOSSGUARD__.towers.length === 1);
   const mobileState = await state(mobile);

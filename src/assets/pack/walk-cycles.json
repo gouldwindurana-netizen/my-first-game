@@ -1,0 +1,31 @@
+{
+  "frameWidth": 192,
+  "frameHeight": 192,
+  "frameCount": 8,
+  "origin": {
+    "x": 0.5,
+    "y": 0.9583333333333334
+  },
+  "units": {
+    "grunt": {
+      "file": "walk-grunt.webp",
+      "texture": "walk-grunt",
+      "bodyHeight": 141.9355
+    },
+    "runner": {
+      "file": "walk-runner.webp",
+      "texture": "walk-runner",
+      "bodyHeight": 136.3478
+    },
+    "brute": {
+      "file": "walk-brute.webp",
+      "texture": "walk-brute",
+      "bodyHeight": 151.513
+    },
+    "boss": {
+      "file": "walk-boss.webp",
+      "texture": "walk-boss",
+      "bodyHeight": 157.6348
+    }
+  }
+}

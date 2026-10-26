@@ -48,11 +48,11 @@ async function boot(page, url, inlineHtml = null) {
   if (inlineHtml !== null) await page.setContent(inlineHtml, { waitUntil: 'load' });
   else await page.goto(url);
   await page.waitForSelector('#battlefield[data-ready="true"]');
-  await page.waitForFunction(() => { const canvas = document.querySelector('canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
+  await page.waitForFunction(() => { const canvas = document.querySelector('#battlefield canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
   await page.evaluate(() => document.fonts.ready);
   assert.equal((await state(page)).gold, 240, 'A new session starts with 240 gold');
   assert.equal(await page.locator('[data-tower]').count(), 7, 'All seven tower types are available');
-  const pixels = await page.locator('canvas').evaluate(canvas => {
+  const pixels = await page.locator('#battlefield canvas').evaluate(canvas => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
     return [[100, 100], [550, 340], [900, 500], [400, 600]].map(([x, y]) => Array.from(ctx.getImageData(x, y, 1, 1).data));
@@ -61,11 +61,11 @@ async function boot(page, url, inlineHtml = null) {
 }
 async function layout(page, label, mobile = false) {
   await page.waitForFunction(() => {
-    const box = document.querySelector('canvas').getBoundingClientRect(), field = document.querySelector('#battlefield').getBoundingClientRect();
+    const box = document.querySelector('#battlefield canvas').getBoundingClientRect(), field = document.querySelector('#battlefield').getBoundingClientRect();
     return box.width > 100 && box.height > 50 && Math.abs(box.width / box.height - field.width / field.height) < .02;
   });
   const metrics = await page.evaluate(() => {
-    const canvas = document.querySelector('canvas');
+    const canvas = document.querySelector('#battlefield canvas');
     const box = canvas.getBoundingClientRect();
     return {
       width: innerWidth, scroll: document.documentElement.scrollWidth,

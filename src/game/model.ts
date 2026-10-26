@@ -6,6 +6,8 @@ export type Point = { x: number; y: number };
 export type TowerKind = 'archer' | 'cannon' | 'frost' | 'arcane' | 'mortar' | 'tesla' | 'venom';
 export type EnemyKind = 'grunt' | 'runner' | 'brute' | 'boss';
 export type GameStatus = 'building' | 'wave' | 'won' | 'lost';
+export const TARGET_MODES = ['first', 'last', 'strongest', 'fastest'] as const;
+export type TowerTargetMode = typeof TARGET_MODES[number];
 
 export const TOWER_DEFS: Record<TowerKind, {
   name: string; description: string; cost: number; damage: number;
@@ -34,7 +36,7 @@ export interface Enemy {
   distance: number; speed: number; slowUntil: number; poisonUntil?: number; poisonDps?: number;
 }
 export interface Tower {
-  id: number; padId: number; kind: TowerKind; level: number; cooldown: number; spent: number;
+  id: number; padId: number; kind: TowerKind; level: number; cooldown: number; spent: number; targeting: TowerTargetMode;
 }
 export interface Shot {
   id: number; kind: TowerKind; from: Point; to: Point; life: number; maxLife: number;
@@ -118,7 +120,28 @@ export class GameModel {
     const def = TOWER_DEFS[kind];
     if (!this.actionable || !def || !this.pads.some(pad => pad.id === padId) || this.towers.some(tower => tower.padId === padId) || this.gold < def.cost) return false;
     this.gold -= def.cost;
-    this.towers.push({ id: this.nextId++, padId, kind, level: 1, cooldown: 0, spent: def.cost });
+    this.towers.push({ id: this.nextId++, padId, kind, level: 1, cooldown: 0, spent: def.cost, targeting: 'first' });
+    return true;
+  }
+
+  setTargeting(id: number, mode: TowerTargetMode): boolean {
+    const tower = this.towers.find(item => item.id === id);
+    if (!this.actionable || !tower || !TARGET_MODES.includes(mode)) return false;
+    tower.targeting = mode;
+    return true;
+  }
+
+  /** Relocation is a service fee, not an additional refundable tower investment. */
+  moveCost(tower: Tower): number { return Math.max(10, Math.ceil(TOWER_DEFS[tower.kind].cost * .2)); }
+
+  moveTower(id: number, padId: number): boolean {
+    const tower = this.towers.find(item => item.id === id);
+    if (!this.actionable || !tower || !this.pads.some(pad => pad.id === padId) || this.towers.some(item => item.padId === padId)) return false;
+    const fee = this.moveCost(tower);
+    if (this.gold < fee) return false;
+    this.gold -= fee;
+    tower.padId = padId;
+    // Retain level, targeting, investment, and cooldown: moving never grants a free shot.
     return true;
   }
 
@@ -177,7 +200,7 @@ export class GameModel {
 
   update(deltaSeconds: number): void {
     if (this.paused || !this.actionable || !Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return;
-    const delta = Math.min(deltaSeconds, 0.1) * (this.speed === 2 ? 2 : 1);
+    const delta = Math.min(deltaSeconds, 0.1) * (this.speed === 2 || this.speed === 3 ? this.speed : 1);
     this.time += delta;
     this.meteorCooldown = Math.max(0, this.meteorCooldown - delta);
     for (const shot of this.shots) shot.life -= delta;
@@ -218,7 +241,12 @@ export class GameModel {
       if (tower.cooldown > 0) continue;
       const pad = this.pads.find(item => item.id === tower.padId)!;
       const stats = this.getTowerStats(tower);
-      const target = this.enemies.filter(enemy => enemy.hp > 0 && Math.hypot(enemy.x - pad.x, enemy.y - pad.y) <= stats.range).sort((a, b) => b.distance - a.distance)[0];
+      const priority = (enemy: Enemy): number => tower.targeting === 'last' ? -enemy.distance
+        : tower.targeting === 'strongest' ? enemy.hp
+        : tower.targeting === 'fastest' ? enemy.speed * (enemy.slowUntil > this.time ? .55 : 1)
+        : enemy.distance;
+      const target = this.enemies.filter(enemy => enemy.hp > 0 && Math.hypot(enemy.x - pad.x, enemy.y - pad.y) <= stats.range)
+        .sort((a, b) => priority(b) - priority(a) || a.id - b.id)[0];
       if (!target) continue;
       tower.cooldown = stats.interval;
       const life = tower.kind === 'mortar' ? 0.5 : tower.kind === 'cannon' ? 0.32 : tower.kind === 'arcane' || tower.kind === 'tesla' ? 0.2 : 0.18;

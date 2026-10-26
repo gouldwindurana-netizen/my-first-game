@@ -30,14 +30,18 @@ try {
   const first = (await anim()).enemies[0];
   await wait(140);
   const next = (await anim()).enemies.find(e => e.id === first.id);
-  assert(next && next.x !== first.x && next.rotation !== first.rotation, 'Moving enemies change both position and walking pose');
+  assert(next && next.x !== first.x && next.walkFrame !== first.walkFrame, 'Moving enemies advance actual walking frames');
+  assert.notEqual(next.frameName, first.frameName, 'The rendered Phaser texture frame changes with the stride');
+  assert.equal(next.rotation, 0, 'Walking does not rotate the whole illustration');
+  assert.equal(next.scaleX, first.scaleX, 'Walking preserves the whole-body horizontal scale');
+  assert.equal(next.scaleY, first.scaleY, 'Walking preserves the whole-body vertical scale');
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0].fireSequence > 0, undefined, { timeout: 15000 });
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.some(e => e.hitSequence > 0), undefined, { timeout: 15000 });
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.deaths > 0 && window.__MOSSGUARD__.animations.ghosts > 0, undefined, { timeout: 15000 });
   await page.screenshot({ path: 'artifacts/animation/combat-a.png' });
   await wait(120);
   await page.screenshot({ path: 'artifacts/animation/combat-b.png' });
-  checks.push('live enemy stride, firing recoil, hit response, and defeat feedback');
+  checks.push('live walking frames, firing recoil, hit response, and defeat feedback');
   await page.locator('#pause').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.paused);
   const frozen = await anim();
@@ -59,8 +63,8 @@ try {
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.reduced);
   const reduced = await anim();
   assert.equal(reduced.particles, 0); assert.equal(reduced.ghosts, 0);
-  assert(reduced.enemies.every(e => e.rotation === 0), 'Reduced motion removes enemy rocking');
-  checks.push('reduced motion disables walking sway and particle/ghost motion');
+  assert(reduced.enemies.every(e => e.rotation === 0 && e.walkFrame === 0), 'Reduced motion holds the neutral walking frame');
+  checks.push('reduced motion holds neutral unit frames and disables particle/ghost motion');
   assert.deepEqual(errors, []);
   console.log(`PASS: ${checks.length} animation checks\n${checks.map(c => `  ✓ ${c}`).join('\n')}`);
 } catch (error) { await page.screenshot({ path: 'artifacts/animation/failure.png' }).catch(() => {}); throw error; }

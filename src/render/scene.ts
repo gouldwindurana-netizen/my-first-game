@@ -25,6 +25,7 @@ export class GroveScene extends Phaser.Scene {
  private viewZoom=1;
  private center={x:550,y:260};
  private animationTime=0;
+ private presentationTime=0;
  private lastModelTime=0;
  private drag: {startX:number,startY:number,lastX:number,lastY:number,moved:boolean}|null=null;
  constructor(private bridge: SceneBridge) {super('grove');}
@@ -100,7 +101,7 @@ export class GroveScene extends Phaser.Scene {
   if(!this.mapImage)return;
   const level=this.bridge.model.level;this.currentMap=level.mapKey;
   this.mapImage.setTexture(`level-${level.mapKey}`).setDisplaySize(1100,680).setName(`level-map-${level.mapKey}`);
-  this.assetViews.reset();this.animationTime=0;this.lastModelTime=0;this.hover=null;this.drag=null;
+  this.assetViews.reset();this.animationTime=0;this.presentationTime=0;this.lastModelTime=0;this.hover=null;this.drag=null;
   for(const label of this.floatLabels.values())label.destroy();this.floatLabels.clear();
   this.resetView();
  }
@@ -108,15 +109,15 @@ export class GroveScene extends Phaser.Scene {
  update(time:number,delta:number) {
   const m=this.bridge.model;
   if(this.currentMap!==m.level.mapKey)this.resetLevel();
-  if(m.time<this.lastModelTime)this.animationTime=0;
+  if(m.time<this.lastModelTime){this.animationTime=0;this.presentationTime=0;}
   const before=m.time;
   m.update(delta/1000);
-  if(!m.paused)this.animationTime+=m.status==='won'||m.status==='lost'?Math.min(delta/1000,.1)*m.speed:m.time-before;
+  if(!m.paused){this.animationTime+=m.status==='won'||m.status==='lost'?Math.min(delta/1000,.1)*m.speed:m.time-before;this.presentationTime+=Math.min(delta/1000,.1);}
   this.lastModelTime=m.time;
   if(time-this.lastHudTime>80){this.bridge.onTick();this.lastHudTime=time;}
   const g=this.paint;g.clear();
   const visualTime=this.bridge.reduceMotion?0:m.time*1000;
-  this.assetViews.sync(m,this.animationTime,this.bridge.reduceMotion);
+  this.assetViews.sync(m,this.animationTime,this.bridge.reduceMotion,this.presentationTime);
   const cursor=this.bridge.meteorArmed?'crosshair':this.canPan?(this.drag?.moved?'grabbing':'grab'):'default';
   this.game.canvas.style.cursor=cursor;
   if(this.bridge.tactical){

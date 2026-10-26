@@ -1,0 +1,382 @@
+{
+  "version": 1,
+  "method": "bidirectional dense optical flow, premultiplied alpha, two in-betweens per key-pose pair",
+  "targetFps": 24,
+  "sourceKeyframeCount": 8,
+  "outputFrameCount": 24,
+  "authoringScript": "scripts/interpolate-walk-cycles.py",
+  "opencvVersion": "5.0.0",
+  "runtimeDependency": false,
+  "units": {
+    "grunt": {
+      "sourceFile": "walk-grunt.webp",
+      "sourceSha256": "e8458f439c21460f8e9c0c977320bc455da91363c31337940e87062abe524492",
+      "outputSha256": "45ff7780ec5ffa9a4e38b319f182959242cf2baeb759e53c5f56462470f0f405",
+      "keyframesPreservedAtIndices": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21
+      ],
+      "frameCount": 24,
+      "width": 4608,
+      "height": 192,
+      "flowMetrics": [
+        {
+          "pair": [
+            0,
+            1
+          ],
+          "visibleMeanDisplacement": 5.0885,
+          "lowerBodyMeanDisplacement": 7.2594,
+          "meanForwardBackwardConfidence": 0.9399
+        },
+        {
+          "pair": [
+            1,
+            2
+          ],
+          "visibleMeanDisplacement": 3.4677,
+          "lowerBodyMeanDisplacement": 4.8384,
+          "meanForwardBackwardConfidence": 0.9489
+        },
+        {
+          "pair": [
+            2,
+            3
+          ],
+          "visibleMeanDisplacement": 6.6848,
+          "lowerBodyMeanDisplacement": 8.7874,
+          "meanForwardBackwardConfidence": 0.8078
+        },
+        {
+          "pair": [
+            3,
+            4
+          ],
+          "visibleMeanDisplacement": 5.9455,
+          "lowerBodyMeanDisplacement": 6.9959,
+          "meanForwardBackwardConfidence": 0.7981
+        },
+        {
+          "pair": [
+            4,
+            5
+          ],
+          "visibleMeanDisplacement": 5.5843,
+          "lowerBodyMeanDisplacement": 8.3017,
+          "meanForwardBackwardConfidence": 0.946
+        },
+        {
+          "pair": [
+            5,
+            6
+          ],
+          "visibleMeanDisplacement": 3.3093,
+          "lowerBodyMeanDisplacement": 4.5566,
+          "meanForwardBackwardConfidence": 0.8642
+        },
+        {
+          "pair": [
+            6,
+            7
+          ],
+          "visibleMeanDisplacement": 3.9583,
+          "lowerBodyMeanDisplacement": 6.193,
+          "meanForwardBackwardConfidence": 0.9326
+        },
+        {
+          "pair": [
+            7,
+            0
+          ],
+          "visibleMeanDisplacement": 4.055,
+          "lowerBodyMeanDisplacement": 6.5051,
+          "meanForwardBackwardConfidence": 0.7847
+        }
+      ]
+    },
+    "runner": {
+      "sourceFile": "walk-runner.webp",
+      "sourceSha256": "2f36b325015696501deb01f7f270ab81df7e4444fcf584779083765bc96feb62",
+      "outputSha256": "1390df75c1750e7976584ad51c27d22fc1c8bf8c34936c059f693e18401cbfc6",
+      "keyframesPreservedAtIndices": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21
+      ],
+      "frameCount": 24,
+      "width": 4608,
+      "height": 192,
+      "flowMetrics": [
+        {
+          "pair": [
+            0,
+            1
+          ],
+          "visibleMeanDisplacement": 5.463,
+          "lowerBodyMeanDisplacement": 6.3996,
+          "meanForwardBackwardConfidence": 0.9231
+        },
+        {
+          "pair": [
+            1,
+            2
+          ],
+          "visibleMeanDisplacement": 11.7467,
+          "lowerBodyMeanDisplacement": 12.0259,
+          "meanForwardBackwardConfidence": 0.797
+        },
+        {
+          "pair": [
+            2,
+            3
+          ],
+          "visibleMeanDisplacement": 5.9503,
+          "lowerBodyMeanDisplacement": 7.0342,
+          "meanForwardBackwardConfidence": 0.6961
+        },
+        {
+          "pair": [
+            3,
+            4
+          ],
+          "visibleMeanDisplacement": 14.2796,
+          "lowerBodyMeanDisplacement": 14.8228,
+          "meanForwardBackwardConfidence": 0.633
+        },
+        {
+          "pair": [
+            4,
+            5
+          ],
+          "visibleMeanDisplacement": 4.4599,
+          "lowerBodyMeanDisplacement": 5.4018,
+          "meanForwardBackwardConfidence": 0.7825
+        },
+        {
+          "pair": [
+            5,
+            6
+          ],
+          "visibleMeanDisplacement": 9.5761,
+          "lowerBodyMeanDisplacement": 9.2508,
+          "meanForwardBackwardConfidence": 0.6234
+        },
+        {
+          "pair": [
+            6,
+            7
+          ],
+          "visibleMeanDisplacement": 4.9543,
+          "lowerBodyMeanDisplacement": 6.171,
+          "meanForwardBackwardConfidence": 0.7264
+        },
+        {
+          "pair": [
+            7,
+            0
+          ],
+          "visibleMeanDisplacement": 5.6485,
+          "lowerBodyMeanDisplacement": 6.1669,
+          "meanForwardBackwardConfidence": 0.6304
+        }
+      ]
+    },
+    "brute": {
+      "sourceFile": "walk-brute.webp",
+      "sourceSha256": "4fa1fa7a8c6ad6493c040fd943533aee37bba0cae60405f1c4bbec7cd598ea4a",
+      "outputSha256": "2b2c2a62c6e9196fdcf5ca8de567a3f0caa0a5ac6bafa9278663fcd9f88c0db1",
+      "keyframesPreservedAtIndices": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21
+      ],
+      "frameCount": 24,
+      "width": 4608,
+      "height": 192,
+      "flowMetrics": [
+        {
+          "pair": [
+            0,
+            1
+          ],
+          "visibleMeanDisplacement": 2.7744,
+          "lowerBodyMeanDisplacement": 4.0229,
+          "meanForwardBackwardConfidence": 0.9934
+        },
+        {
+          "pair": [
+            1,
+            2
+          ],
+          "visibleMeanDisplacement": 3.5026,
+          "lowerBodyMeanDisplacement": 5.2342,
+          "meanForwardBackwardConfidence": 0.988
+        },
+        {
+          "pair": [
+            2,
+            3
+          ],
+          "visibleMeanDisplacement": 5.3449,
+          "lowerBodyMeanDisplacement": 7.6373,
+          "meanForwardBackwardConfidence": 0.8157
+        },
+        {
+          "pair": [
+            3,
+            4
+          ],
+          "visibleMeanDisplacement": 8.676,
+          "lowerBodyMeanDisplacement": 12.1661,
+          "meanForwardBackwardConfidence": 0.615
+        },
+        {
+          "pair": [
+            4,
+            5
+          ],
+          "visibleMeanDisplacement": 6.6243,
+          "lowerBodyMeanDisplacement": 7.7568,
+          "meanForwardBackwardConfidence": 0.7104
+        },
+        {
+          "pair": [
+            5,
+            6
+          ],
+          "visibleMeanDisplacement": 6.2929,
+          "lowerBodyMeanDisplacement": 8.1327,
+          "meanForwardBackwardConfidence": 0.7216
+        },
+        {
+          "pair": [
+            6,
+            7
+          ],
+          "visibleMeanDisplacement": 7.3061,
+          "lowerBodyMeanDisplacement": 10.4328,
+          "meanForwardBackwardConfidence": 0.666
+        },
+        {
+          "pair": [
+            7,
+            0
+          ],
+          "visibleMeanDisplacement": 3.0688,
+          "lowerBodyMeanDisplacement": 3.8917,
+          "meanForwardBackwardConfidence": 0.9695
+        }
+      ]
+    },
+    "boss": {
+      "sourceFile": "walk-boss.webp",
+      "sourceSha256": "b0ea4a0a1d220ae9b885b1eca1855c5d969c30135ed2698957ad728a458d10de",
+      "outputSha256": "78c34e846d21845a012014d7079931a2dbfdf18bb1c178708b5ba6765b72b1e1",
+      "keyframesPreservedAtIndices": [
+        0,
+        3,
+        6,
+        9,
+        12,
+        15,
+        18,
+        21
+      ],
+      "frameCount": 24,
+      "width": 4608,
+      "height": 192,
+      "flowMetrics": [
+        {
+          "pair": [
+            0,
+            1
+          ],
+          "visibleMeanDisplacement": 4.4763,
+          "lowerBodyMeanDisplacement": 4.862,
+          "meanForwardBackwardConfidence": 0.8964
+        },
+        {
+          "pair": [
+            1,
+            2
+          ],
+          "visibleMeanDisplacement": 5.1022,
+          "lowerBodyMeanDisplacement": 5.6116,
+          "meanForwardBackwardConfidence": 0.8734
+        },
+        {
+          "pair": [
+            2,
+            3
+          ],
+          "visibleMeanDisplacement": 12.9777,
+          "lowerBodyMeanDisplacement": 15.0208,
+          "meanForwardBackwardConfidence": 0.8468
+        },
+        {
+          "pair": [
+            3,
+            4
+          ],
+          "visibleMeanDisplacement": 14.9415,
+          "lowerBodyMeanDisplacement": 15.2813,
+          "meanForwardBackwardConfidence": 0.6991
+        },
+        {
+          "pair": [
+            4,
+            5
+          ],
+          "visibleMeanDisplacement": 10.0395,
+          "lowerBodyMeanDisplacement": 8.7795,
+          "meanForwardBackwardConfidence": 0.9325
+        },
+        {
+          "pair": [
+            5,
+            6
+          ],
+          "visibleMeanDisplacement": 4.7989,
+          "lowerBodyMeanDisplacement": 6.0171,
+          "meanForwardBackwardConfidence": 0.898
+        },
+        {
+          "pair": [
+            6,
+            7
+          ],
+          "visibleMeanDisplacement": 3.6585,
+          "lowerBodyMeanDisplacement": 4.7917,
+          "meanForwardBackwardConfidence": 0.8943
+        },
+        {
+          "pair": [
+            7,
+            0
+          ],
+          "visibleMeanDisplacement": 9.6386,
+          "lowerBodyMeanDisplacement": 10.843,
+          "meanForwardBackwardConfidence": 0.898
+        }
+      ]
+    }
+  },
+  "occlusionHandling": "Foreground-only bilinear forward splatting, local stretch-hole repair, visibility-weighted color and foreground alpha coverage.",
+  "limitations": "Classical optical flow softens fine texture details between key poses; all original key poses remain sharp and unchanged. Review at runtime display scale."
+}

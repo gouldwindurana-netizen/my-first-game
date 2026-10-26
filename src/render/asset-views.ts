@@ -1,14 +1,24 @@
 import Phaser from 'phaser';
 import { TOWER_DEFS, type GameModel, type Enemy, type EnemyKind, type TowerKind } from '../game/model';
 import { suppliedAtlas, TOWER_ATLAS_URL, ENEMY_ATLAS_URL, TOWER_TEXTURE, ENEMY_TEXTURE, SPECIALIST_TEXTURE, SPECIALIST_ATLAS_URL, getTowerTexture } from '../asset-art';
-import { walkPose, towerRecoil } from './animation-pose';
+import { towerRecoil } from './animation-pose';
+import { sampleWalkCycle, ANIMATION_FPS, animationTick } from './walk-cycle';
+import { UNIT_KINDS, getWalkingAsset, walkFrameName } from '../walking-assets';
 
 export function preloadAssetSheets(scene: Phaser.Scene): void {
   scene.load.image(TOWER_TEXTURE, TOWER_ATLAS_URL);
   scene.load.image(ENEMY_TEXTURE, ENEMY_ATLAS_URL);
   scene.load.image(SPECIALIST_TEXTURE, SPECIALIST_ATLAS_URL);
+  for (const kind of UNIT_KINDS) { const asset = getWalkingAsset(kind); scene.load.image(asset.texture, asset.url); }
 }
 export function prepareAssetFrames(scene: Phaser.Scene): void {
+  for (const kind of UNIT_KINDS) {
+    const asset = getWalkingAsset(kind), texture = scene.textures.get(asset.texture);
+    for (let index = 0; index < asset.frameCount; index++) {
+      const name = walkFrameName(kind, index);
+      if (!texture.has(name)) texture.add(name, 0, index * asset.frameWidth, 0, asset.frameWidth, asset.frameHeight);
+    }
+  }
   for (const [name, frame] of Object.entries(suppliedAtlas.frames)) {
     const key = frame.sheet === 'core-tower-upgrades' ? TOWER_TEXTURE : frame.sheet === 'specialist-towers' ? SPECIALIST_TEXTURE : ENEMY_TEXTURE;
     if (!scene.textures.exists(key)) throw new Error(`Missing supplied asset texture: ${key}`);
@@ -16,13 +26,13 @@ export function prepareAssetFrames(scene: Phaser.Scene): void {
     if (!texture.has(name)) texture.add(name, 0, frame.x, frame.y, frame.width, frame.height);
   }
 }
-interface TowerView { image: Phaser.GameObjects.Image; born: number; upgrade: number; level: number; fired: number; fireSequence: number; state: string; }
-interface EnemyView { image: Phaser.GameObjects.Image; enemy: Enemy; lastX: number; hp: number; hit: number; hitSequence: number; state: string; }
+interface TowerView { image: Phaser.GameObjects.Image; born: number; upgrade: number; level: number; fired: number; fireSequence: number; state: string; padId: number; movedAt: number; moveX: number; moveY: number; }
+interface EnemyView { image: Phaser.GameObjects.Image; enemy: Enemy; lastX: number; hp: number; hit: number; hitSequence: number; state: string; walkFrame: number; walkPhase: number; lastPoseTick: number; }
 interface Particle { x: number; y: number; vx: number; vy: number; born: number; life: number; color: number; size: number; }
 interface Ghost { image: Phaser.GameObjects.Image; born: number; scale: number; x: number; y: number; }
 const enemyHeights: Record<EnemyKind, number> = { grunt: 36, runner: 34, brute: 48, boss: 70 };
 
-/** Procedural poses preserve the supplied illustrations and their grounded sprite anchors. */
+/** Combat uses real limb poses from the walking atlases; tower and hit effects remain separate. */
 export class AssetViews {
   private readonly towers = new Map<number, TowerView>();
   private readonly enemies = new Map<number, EnemyView>();
@@ -33,6 +43,8 @@ export class AssetViews {
   private lastShot = 0;
   private lastTime = -1;
   private clock = 0;
+  private presentationTime = 0;
+  private poseTick = 0;
   private reduced = false;
   private deaths = 0;
   constructor(private readonly scene: Phaser.Scene) {
@@ -53,9 +65,9 @@ export class AssetViews {
     this.towers.clear(); this.enemies.clear(); this.ghosts = []; this.particles = []; this.lastShot = 0; this.deaths = 0;
   }
   reset(): void { this.clear(); this.lastTime = -1; }
-  sync(model: GameModel, time: number, reduced = false): void {
+  sync(model: GameModel, time: number, reduced = false, presentationTime = time): void {
     if (model.time < this.lastTime) this.clear();
-    this.lastTime = model.time; this.clock = time; this.reduced = reduced;
+    this.lastTime = model.time; this.clock = time; this.reduced = reduced; this.presentationTime = presentationTime; this.poseTick = animationTick(presentationTime);
     const fx = this.effects.clear(); this.shadows.clear();
     if (reduced) { this.particles = []; for (const ghost of this.ghosts) ghost.image.destroy(); this.ghosts = []; }
     const towerIds = new Set(model.towers.map(t => t.id)), enemyIds = new Set(model.enemies.map(e => e.id));
@@ -86,42 +98,49 @@ export class AssetViews {
       const pad = model.pads[tower.padId], key = `${tower.kind}-${tower.level}`, frame = suppliedAtlas.frames[key];
       let view = this.towers.get(tower.id);
       if (!view) {
-        view = { image: this.scene.add.image(pad.x, pad.y + 16, getTowerTexture(tower.kind), key).setOrigin(.5, 1), born: time, upgrade: -10, level: tower.level, fired: -10, fireSequence: 0, state: 'building' };
+        view = { image: this.scene.add.image(pad.x, pad.y + 16, getTowerTexture(tower.kind), key).setOrigin(.5, 1), born: time, upgrade: -10, level: tower.level, fired: -10, fireSequence: 0, state: 'building', padId: tower.padId, movedAt: -10, moveX: pad.x, moveY: pad.y + 16 };
         this.towers.set(tower.id, view); this.burst(pad.x, pad.y + 4, 0xe8cd8a, 15, time);
       }
+      if (view.padId !== tower.padId) { view.moveX = view.image.x; view.moveY = view.image.y; view.movedAt = time; view.padId = tower.padId; }
       if (view.level !== tower.level) { view.level = tower.level; view.upgrade = time; this.burst(pad.x, pad.y - 40, 0xffe6a5, 22, time); }
       const image = view.image;
       if (image.frame.name !== key) image.setFrame(key);
       const base = Math.min(([84, 100, 116][tower.level - 1] ?? 116) / frame.height, 95 / frame.width);
       const buildAge = time - view.born, upgradeAge = time - view.upgrade, fireAge = time - view.fired;
       const recoil = towerRecoil(tower.kind, fireAge, reduced);
-      const build = reduced ? 1 : Math.min(1, buildAge / .34);
+      const build = reduced ? 1 : 1 - (1 - Math.min(1, buildAge / .34)) ** 3;
       const lift = !reduced && upgradeAge < .5 ? Math.sin(upgradeAge * Math.PI / .5) * 3 : 0;
       image.setScale(base * recoil.scaleX * (.85 + .15 * build), base * recoil.scaleY * (.35 + .65 * build));
-      image.setPosition(pad.x + recoil.offsetX, pad.y + 16 + recoil.offsetY - lift).setRotation(recoil.rotation).setAlpha(reduced ? 1 : .5 + .5 * build);
+      const move = reduced ? 1 : Math.min(1, (time - view.movedAt) / .32), eased = move * move * (3 - 2 * move);
+      const anchorX = view.moveX + (pad.x - view.moveX) * eased, anchorY = view.moveY + (pad.y + 16 - view.moveY) * eased - Math.sin(move * Math.PI) * 12;
+      image.setPosition(anchorX + recoil.offsetX, anchorY + recoil.offsetY - lift).setRotation(recoil.rotation).setAlpha(reduced ? 1 : .5 + .5 * build);
       image.setDepth(6 + (pad.y + 16) / 1000).setName(`asset-tower-${tower.id}-${key}`);
-      view.state = buildAge < .34 ? 'building' : upgradeAge < .5 ? 'upgrading' : fireAge < .36 ? 'firing' : 'idle';
-      this.shadows.fillStyle(0x04101b, .25).fillEllipse(pad.x + 2, pad.y + 14, Math.min(66, image.displayWidth * .8), 22);
+      view.state = move < 1 ? 'moving' : buildAge < .34 ? 'building' : upgradeAge < .5 ? 'upgrading' : fireAge < .36 ? 'firing' : 'idle';
+      this.shadows.fillStyle(0x04101b, .25).fillEllipse(anchorX + 2, anchorY - 2, Math.min(66, image.displayWidth * .8), 22);
       const color = TOWER_DEFS[tower.kind].color;
       if (recoil.flash > 0) { fx.fillStyle(color, recoil.flash * .65).fillCircle(pad.x, pad.y - 53, tower.kind === 'cannon' ? 13 * recoil.flash : 8 * recoil.flash); }
-      if (!reduced && (tower.kind === 'frost' || tower.kind === 'arcane' || tower.kind === 'tesla' || tower.kind === 'venom')) this.magic(fx, tower.kind, pad.x, pad.y - image.displayHeight + 18, time, tower.id);
+      if (!reduced && (tower.kind === 'frost' || tower.kind === 'arcane' || tower.kind === 'tesla' || tower.kind === 'venom')) this.magic(fx, tower.kind, anchorX, anchorY - image.displayHeight + 2, time, tower.id);
       if (!reduced && upgradeAge < .6) { fx.lineStyle(2, 0xffdf9d, 1 - upgradeAge / .6).strokeEllipse(pad.x, pad.y + 9, 40 + upgradeAge * 110, 18 + upgradeAge * 50); }
     }
     for (const enemy of model.enemies) {
-      const key = `enemy-${enemy.kind}`, frame = suppliedAtlas.frames[key];
+      const asset = getWalkingAsset(enemy.kind);
       let view = this.enemies.get(enemy.id);
-      if (!view) { view = { image: this.scene.add.image(enemy.x, enemy.y + 6, ENEMY_TEXTURE, key).setOrigin(.5, 1), enemy, lastX: enemy.x, hp: enemy.hp, hit: -10, hitSequence: 0, state: 'walking' }; this.enemies.set(enemy.id, view); }
+      const walk = !view || reduced || view.lastPoseTick !== this.poseTick ? sampleWalkCycle(enemy.kind, enemy.distance, enemy.id, reduced) : { frame: view.walkFrame, phase: view.walkPhase };
+      const frameName = walkFrameName(enemy.kind, walk.frame);
+      if (!view) {
+        view = { image: this.scene.add.image(enemy.x, enemy.y + 6, asset.texture, frameName).setOrigin(asset.origin.x, asset.origin.y), enemy, lastX: enemy.x, hp: enemy.hp, hit: -10, hitSequence: 0, state: 'walking', walkFrame: walk.frame, walkPhase: walk.phase, lastPoseTick: this.poseTick };
+        this.enemies.set(enemy.id, view);
+      }
       if (enemy.hp < view.hp) { view.hit = time; view.hitSequence++; this.burst(enemy.x, enemy.y - 16, 0xf6d798, 4, time); }
       const dx = enemy.x - view.lastX;
       if (Math.abs(dx) > .03) view.image.setFlipX(dx < 0);
-      const slow = enemy.slowUntil > model.time, pose = walkPose(enemy.kind, time, enemy.id, true, slow, reduced);
-      const base = enemyHeights[enemy.kind] / frame.height;
-      view.image.setScale(base * pose.scaleX, base * pose.scaleY).setRotation(pose.rotation);
-      view.image.setPosition(enemy.x + pose.offsetX, enemy.y + 6 + pose.offsetY).setDepth(6 + (enemy.y + 6) / 1000).setName(`asset-enemy-${enemy.id}-${enemy.kind}`);
-      // Alpha feedback works in both Phaser Canvas and WebGL renderers.
-      view.image.setAlpha(time - view.hit < .12 ? .58 : 1);
+      const slow = enemy.slowUntil > model.time, base = enemyHeights[enemy.kind] / asset.bodyHeight;
+      // Feet, knees, arms, and equipment move inside each frame. Keep the whole sprite stable.
+      view.image.setFrame(frameName).setScale(base).setRotation(0);
+      view.image.setPosition(enemy.x, enemy.y + 6).setDepth(6 + (enemy.y + 6) / 1000).setName(`asset-enemy-${enemy.id}-${enemy.kind}`);
+      view.image.setAlpha(time - view.hit < .12 ? .58 + .42 * Math.max(0,(time - view.hit) / .12) : 1);
       view.state = time - view.hit < .18 ? 'hit' : slow ? 'slowed' : 'walking';
-      view.hp = enemy.hp; view.enemy = enemy; view.lastX = enemy.x;
+      view.hp = enemy.hp; view.enemy = enemy; view.lastX = enemy.x; view.walkFrame = walk.frame; view.walkPhase = walk.phase; view.lastPoseTick = this.poseTick;
       this.shadows.fillStyle(0x04101b, .28).fillEllipse(enemy.x + 1, enemy.y + 5, enemyHeights[enemy.kind] * .65, enemyHeights[enemy.kind] * .17);
       if ((enemy.poisonUntil ?? 0) > model.time) { fx.fillStyle(0xa7dc72,.24).fillCircle(enemy.x,enemy.y-16,10); }
       if (slow) { fx.lineStyle(1.5, 0x9fe9ff, .75).strokeEllipse(enemy.x, enemy.y + 4, enemyHeights[enemy.kind] * .75, enemyHeights[enemy.kind] * .23); }
@@ -149,9 +168,9 @@ export class AssetViews {
   }
   getSnapshot() {
     const pose = (image: Phaser.GameObjects.Image) => ({ x: image.x, y: image.y, scaleX: image.scaleX, scaleY: image.scaleY, rotation: image.rotation, alpha: image.alpha });
-    return { time: this.clock, reduced: this.reduced, deaths: this.deaths, particles: this.particles.length, ghosts: this.ghosts.length,
+    return { fps: ANIMATION_FPS, poseTick: this.poseTick, presentationTime: this.presentationTime, time: this.clock, reduced: this.reduced, deaths: this.deaths, particles: this.particles.length, ghosts: this.ghosts.length,
       towers: [...this.towers].map(([id, v]) => ({ id, state: v.state, fireSequence: v.fireSequence, level: v.level, ...pose(v.image) })),
-      enemies: [...this.enemies].map(([id, v]) => ({ id, state: v.state, hitSequence: v.hitSequence, ...pose(v.image) })) };
+      enemies: [...this.enemies].map(([id, v]) => ({ id, state: v.state, hitSequence: v.hitSequence, kind: v.enemy.kind, walkFrame: v.walkFrame, walkPhase: v.walkPhase, textureKey: v.image.texture.key, frameName: v.image.frame.name, ...pose(v.image) })) };
   }
   destroy(): void { this.clear(); this.shadows.destroy(); this.effects.destroy(); }
 }

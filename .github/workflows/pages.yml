@@ -51,6 +51,8 @@ jobs:
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:browser
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:view
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:animation
+          GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:walking
+          GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:strategy
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:campaign
           for browser_engine in chromium firefox webkit; do
             BROWSER="$browser_engine" PLATFORM_BASE=http://127.0.0.1:4173/my-first-game/ npm run test:platforms

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ENEMY_DEFS, GameModel, LEVELS, PATH_LENGTH, TOWER_DEFS, WAVES, positionAt, type Enemy, type EnemyKind, type TowerKind } from './model';
+import { ENEMY_DEFS, GameModel, LEVELS, PATH_LENGTH, TOWER_DEFS, WAVES, positionAt, type Enemy, type EnemyKind, type TowerKind, type TowerTargetMode } from './model';
 
 function enemy(id: number, kind: EnemyKind, distance = 210, hp = ENEMY_DEFS[kind].hp): Enemy {
   return { id, kind, ...positionAt(distance), hp, maxHp: hp, distance, speed: ENEMY_DEFS[kind].speed, slowUntil: 0 };
@@ -427,6 +427,101 @@ describe('regional campaign balance', () => {
       expect(game.status, `${game.level.name}: wave ${game.wave}, lives ${game.lives}, kills ${game.kills}`).toBe('won');
       expect(game.wave).toBe(game.waves.length);
       expect(game.lives).toBeGreaterThan(0);
+    }
+  });
+});
+
+
+describe('tower strategy controls', () => {
+  it('selects first, last, strongest remaining health, and fastest actual movement', () => {
+    const expected: Record<TowerTargetMode, number> = { first: 100, last: 103, strongest: 101, fastest: 102 };
+    for (const mode of ['first', 'last', 'strongest', 'fastest'] as const) {
+      const game = new GameModel(); game.build(0, 'archer');
+      const tower = game.towers[0];
+      expect(tower.targeting).toBe('first');
+      expect(game.setTargeting(tower.id, mode)).toBe(true);
+      game.startWave();
+      game.enemies = [enemy(100, 'grunt', 270), enemy(101, 'brute', 230), enemy(102, 'runner', 250), enemy(103, 'grunt', 210)];
+      const health = new Map(game.enemies.map(item => [item.id, item.hp]));
+      game.update(.001);
+      const hit = game.enemies.filter(item => health.has(item.id) && item.hp < health.get(item.id)!);
+      expect(hit.map(item => item.id), mode).toEqual([expected[mode]]);
+      expect(game.shots).toHaveLength(1);
+    }
+    const slowed = new GameModel(); slowed.build(0, 'archer');
+    slowed.setTargeting(slowed.towers[0].id, 'fastest'); slowed.startWave();
+    slowed.enemies = [enemy(100, 'runner', 250), enemy(101, 'grunt', 230)];
+    slowed.enemies[0].slowUntil = 100;
+    slowed.update(.001);
+    expect(slowed.enemies.find(item => item.id === 100)?.hp).toBe(37);
+    expect(slowed.enemies.find(item => item.id === 101)?.hp).toBe(52 - 16);
+  });
+
+  it('resolves equal targeting priorities by enemy id and rejects invalid or terminal changes', () => {
+    for (const mode of ['first', 'last', 'strongest', 'fastest'] as const) {
+      const game = new GameModel(); game.build(0, 'archer');
+      game.setTargeting(game.towers[0].id, mode); game.startWave();
+      game.enemies = [enemy(101, 'grunt', 220, 100), enemy(100, 'grunt', 220, 100)];
+      for (const unit of game.enemies) unit.speed = 0;
+      game.update(.001);
+      expect(game.enemies.find(item => item.id === 100)?.hp, mode).toBe(84);
+      expect(game.enemies.find(item => item.id === 101)?.hp, mode).toBe(100);
+    }
+    const game = new GameModel(); game.build(0, 'archer');
+    const tower = game.towers[0];
+    expect(game.setTargeting(999, 'last')).toBe(false);
+    expect(game.setTargeting(tower.id, 'flying' as TowerTargetMode)).toBe(false);
+    expect(tower.targeting).toBe('first');
+    for (const status of ['won', 'lost'] as const) {
+      game.status = status;
+      expect(game.setTargeting(tower.id, 'last')).toBe(false);
+      expect(tower.targeting).toBe('first');
+    }
+  });
+
+  it('relocates an upgraded tower for a non-refundable fee without resetting its combat state', () => {
+    const game = new GameModel(); game.gold = 1000; game.build(0, 'archer');
+    const tower = game.towers[0]; game.upgrade(tower.id); game.setTargeting(tower.id, 'strongest');
+    tower.cooldown = .45;
+    const before = { ...tower }, gold = game.gold, fee = game.moveCost(tower);
+    expect(fee).toBe(14);
+    expect(game.moveTower(tower.id, 1)).toBe(true);
+    expect(tower).toEqual({ ...before, padId: 1 });
+    expect(game.gold).toBe(gold - fee);
+    expect(game.build(0, 'cannon')).toBe(true);
+    const beforeSale = game.gold;
+    expect(game.sell(tower.id)).toBe(true);
+    expect(game.gold).toBe(beforeSale + Math.floor(before.spent * .7));
+  });
+
+  it('rejects impossible relocation without spending gold and clears strategy state on reset', () => {
+    const game = new GameModel(); game.gold = 1000; game.build(0, 'venom'); game.build(1, 'archer');
+    const tower = game.towers[0];
+    for (const [id, padId] of [[999, 2], [tower.id, 0], [tower.id, 1], [tower.id, -1], [tower.id, 99], [tower.id, 1.5]]) {
+      const before = game.snapshot();
+      expect(game.moveTower(id, padId)).toBe(false); expect(game.snapshot()).toEqual(before);
+    }
+    game.gold = game.moveCost(tower) - 1;
+    const poor = game.snapshot(); expect(game.moveTower(tower.id, 2)).toBe(false); expect(game.snapshot()).toEqual(poor);
+    game.gold = 1000;
+    for (const status of ['won', 'lost'] as const) {
+      game.status = status; const before = game.snapshot();
+      expect(game.moveTower(tower.id, 2)).toBe(false); expect(game.snapshot()).toEqual(before);
+    }
+    game.reset(); game.build(0, 'archer');
+    expect(game.towers[0].targeting).toBe('first'); expect(game.towers[0].padId).toBe(0);
+  });
+
+  it('advances movement and cooldowns at triple speed, with safe fallback for unsupported values', () => {
+    const game = new GameModel(); game.startWave(); game.meteor(0, 0); game.speed = 3;
+    game.update(.1);
+    expect(game.time).toBeCloseTo(.3);
+    expect(game.enemies[0].distance).toBeCloseTo(48 * .3);
+    expect(game.meteorCooldown).toBeCloseTo(24.7);
+    game.paused = true; const before = game.snapshot(); game.update(10); expect(game.snapshot()).toEqual(before);
+    for (const invalid of [0, -1, 2.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      const fallback = new GameModel(); fallback.speed = invalid; fallback.update(.1);
+      expect(fallback.time).toBeCloseTo(.1);
     }
   });
 });

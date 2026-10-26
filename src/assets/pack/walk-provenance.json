@@ -1,0 +1,284 @@
+{
+  "version": 1,
+  "method": "Eight distinct whole-cycle imagegen poses per supplied enemy seed; fixed-scale anchor normalization.",
+  "layout": "8 horizontal frames, 192 x 192 pixels, ground anchor (96,184)",
+  "sourceAtlas": "enemy-roster.webp",
+  "generationTool": "image_gen.imagegen",
+  "generationRequest": "One eight-frame 4x2 sheet per approved seed; fixed right-facing three-quarter camera, consistent palette/costume/equipment; articulated contact/down/passing/up leg and arm poses; transparent canvas without labels.",
+  "normalizationScript": "scripts/normalize-walk-cycles.py",
+  "units": {
+    "grunt": {
+      "sourceSeed": "enemy-grunt",
+      "sourceSeedSha256": "e3efeedb1049790c86403186bc5f71e416d812a29e63e93bd061dacd1f252cbc",
+      "generatedSha256": "954c07631fed74c298920a7b23a9f7e54c1119631cee9bd958c81fab42e61efb",
+      "outputSha256": "e8458f439c21460f8e9c0c977320bc455da91363c31337940e87062abe524492",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "sourceBoxes": [
+        [
+          45,
+          115,
+          408,
+          462
+        ],
+        [
+          451,
+          119,
+          761,
+          462
+        ],
+        [
+          802,
+          119,
+          1156,
+          462
+        ],
+        [
+          1198,
+          110,
+          1535,
+          461
+        ],
+        [
+          41,
+          597,
+          409,
+          939
+        ],
+        [
+          430,
+          599,
+          759,
+          940
+        ],
+        [
+          818,
+          592,
+          1153,
+          939
+        ],
+        [
+          1190,
+          592,
+          1535,
+          940
+        ]
+      ],
+      "sharedScale": 0.4055299539170507,
+      "bodyHeight": 141.9355,
+      "mirroredFramesToMatchFacing": [],
+      "footBaselineSourceRows": [
+        460,
+        938
+      ]
+    },
+    "runner": {
+      "sourceSeed": "enemy-runner",
+      "sourceSeedSha256": "889632e6854af30d4c82dea10d353927b7cb0deecaa4710c0a5966544299c975",
+      "generatedSha256": "d1adfd14679e4c473396038fde2d0824f3230fdcccd101c88529c359206a6419",
+      "outputSha256": "2f36b325015696501deb01f7f270ab81df7e4444fcf584779083765bc96feb62",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "sourceBoxes": [
+        [
+          22,
+          87,
+          370,
+          477
+        ],
+        [
+          396,
+          87,
+          743,
+          479
+        ],
+        [
+          775,
+          87,
+          1106,
+          479
+        ],
+        [
+          1133,
+          85,
+          1490,
+          453
+        ],
+        [
+          23,
+          566,
+          378,
+          941
+        ],
+        [
+          392,
+          567,
+          758,
+          941
+        ],
+        [
+          777,
+          566,
+          1108,
+          941
+        ],
+        [
+          1152,
+          565,
+          1494,
+          934
+        ]
+      ],
+      "sharedScale": 0.34782608695652173,
+      "bodyHeight": 136.3478,
+      "mirroredFramesToMatchFacing": [],
+      "footBaselineSourceRows": [
+        477,
+        939
+      ]
+    },
+    "brute": {
+      "sourceSeed": "enemy-brute",
+      "sourceSeedSha256": "5345460ca0f718be8fdb0be8064b9b0a8d09ce5136482b90417836695b714cf1",
+      "generatedSha256": "a10dce8151f56a7cb91952cf011f6c0fb6071c796dcc5bbb72730e5d4d45533e",
+      "outputSha256": "4fa1fa7a8c6ad6493c040fd943533aee37bba0cae60405f1c4bbec7cd598ea4a",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "sourceBoxes": [
+        [
+          20,
+          74,
+          402,
+          470
+        ],
+        [
+          406,
+          73,
+          789,
+          470
+        ],
+        [
+          798,
+          75,
+          1181,
+          467
+        ],
+        [
+          1174,
+          72,
+          1534,
+          467
+        ],
+        [
+          49,
+          561,
+          415,
+          953
+        ],
+        [
+          418,
+          563,
+          806,
+          953
+        ],
+        [
+          812,
+          562,
+          1184,
+          944
+        ],
+        [
+          1173,
+          562,
+          1536,
+          947
+        ]
+      ],
+      "sharedScale": 0.3826086956521739,
+      "bodyHeight": 151.513,
+      "mirroredFramesToMatchFacing": [],
+      "footBaselineSourceRows": [
+        468,
+        951
+      ]
+    },
+    "boss": {
+      "sourceSeed": "enemy-boss",
+      "sourceSeedSha256": "32839967ab1b027d9340196eefa27f47e2d64bfe4d8ab8138e52cc4fd13fd0c9",
+      "generatedSha256": "ed803231881a45c6dc1e460d3ac9fa1cf616d66e9562bc73381598d4ea4cb421",
+      "outputSha256": "b0ea4a0a1d220ae9b885b1eca1855c5d969c30135ed2698957ad728a458d10de",
+      "sourceSize": [
+        1536,
+        1024
+      ],
+      "sourceBoxes": [
+        [
+          10,
+          74,
+          414,
+          467
+        ],
+        [
+          421,
+          70,
+          796,
+          455
+        ],
+        [
+          805,
+          70,
+          1171,
+          467
+        ],
+        [
+          1175,
+          53,
+          1525,
+          459
+        ],
+        [
+          14,
+          549,
+          402,
+          936
+        ],
+        [
+          408,
+          545,
+          760,
+          936
+        ],
+        [
+          771,
+          542,
+          1145,
+          940
+        ],
+        [
+          1159,
+          536,
+          1520,
+          935
+        ]
+      ],
+      "sharedScale": 0.3826086956521739,
+      "bodyHeight": 157.6348,
+      "mirroredFramesToMatchFacing": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "footBaselineSourceRows": [
+        465,
+        938
+      ]
+    }
+  }
+}

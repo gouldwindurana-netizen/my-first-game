@@ -35,7 +35,7 @@ async function boot(page) {
   await page.goto(base);
   await page.waitForSelector('#battlefield[data-ready="true"]');
   await page.waitForFunction(() => {
-    const state = window.__MOSSGUARD__, canvas = document.querySelector('canvas');
+    const state = window.__MOSSGUARD__, canvas = document.querySelector('#battlefield canvas');
     return state?.view && canvas?.width >= 1100 && state.view.worldWidth === 1100 && state.view.worldHeight === 680;
   });
   await page.evaluate(() => document.fonts.ready);
@@ -43,11 +43,11 @@ async function boot(page) {
 }
 async function layout(page, label, minimumMapWidth = null) {
   await page.waitForFunction(() => {
-    const box = document.querySelector('canvas').getBoundingClientRect(), field = document.querySelector('#battlefield').getBoundingClientRect();
+    const box = document.querySelector('#battlefield canvas').getBoundingClientRect(), field = document.querySelector('#battlefield').getBoundingClientRect();
     return box.width > 100 && Math.abs(box.width / box.height - field.width / field.height) < .02;
   });
   const metrics = await page.evaluate(() => {
-    const canvas = document.querySelector('canvas'), map = canvas.getBoundingClientRect(), main = document.querySelector('main').getBoundingClientRect();
+    const canvas = document.querySelector('#battlefield canvas'), map = canvas.getBoundingClientRect(), main = document.querySelector('main').getBoundingClientRect();
     return {
       pageHeight: document.documentElement.scrollHeight, dock: document.querySelector('.tower-dock').getBoundingClientRect().toJSON(), viewport: innerWidth, viewportHeight: innerHeight, page: document.documentElement.scrollWidth, main: main.width, map: map.width,
       wave: document.querySelector('#start-wave').getBoundingClientRect().toJSON(),
@@ -73,9 +73,9 @@ async function layout(page, label, minimumMapWidth = null) {
   return metrics;
 }
 async function worldPoint(page, worldX, worldY) {
-  await page.locator('canvas').scrollIntoViewIfNeeded();
-  const box = await page.locator('canvas').boundingBox();
-  const geometry = await page.locator('canvas').evaluate(canvas => ({ width: canvas.width, height: canvas.height, view: window.__MOSSGUARD__.view }));
+  await page.locator('#battlefield canvas').scrollIntoViewIfNeeded();
+  const box = await page.locator('#battlefield canvas').boundingBox();
+  const geometry = await page.locator('#battlefield canvas').evaluate(canvas => ({ width: canvas.width, height: canvas.height, view: window.__MOSSGUARD__.view }));
   const { view } = geometry;
   const u = (worldX - view.scrollX) * view.renderScale * view.zoom / geometry.width;
   const v = (worldY - view.scrollY) * view.renderScale * view.zoom / geometry.height;
@@ -108,8 +108,8 @@ async function zoomTo(page, target) {
   await page.waitForFunction(target => document.querySelector('#zoom-level').textContent === `${Math.round(target * 100)}%`, target);
 }
 async function drag(page, dx, dy) {
-  await page.locator('canvas').scrollIntoViewIfNeeded();
-  const box = await page.locator('canvas').boundingBox();
+  await page.locator('#battlefield canvas').scrollIntoViewIfNeeded();
+  const box = await page.locator('#battlefield canvas').boundingBox();
   assert(box);
   const from = { x: box.x + box.width * .62, y: box.y + box.height * .55 };
   await page.mouse.move(from.x, from.y);
@@ -194,7 +194,7 @@ try {
     await shot(desktop, 'desktop-1366-zoom200');
 
     await desktop.setViewportSize({ width: 1920, height: 1080 });
-    await desktop.waitForFunction(() => document.querySelector('canvas').width >= 2200 && window.__MOSSGUARD__.view.renderScale === 2);
+    await desktop.waitForFunction(() => document.querySelector('#battlefield canvas').width >= 2200 && window.__MOSSGUARD__.view.renderScale === 2);
     metrics = await layout(desktop, '1920×1080 desktop', 1450);
     assert.equal((await state(desktop)).gold, frozen.gold);
     assert.deepEqual((await state(desktop)).towers, frozen.towers, 'Resize to a larger render backing preserves tower state');
@@ -204,7 +204,7 @@ try {
     assert.equal((await state(desktop)).towers.length, 3);
     await shot(desktop, 'desktop-1920-fit');
     await desktop.setViewportSize({ width: 1366, height: 768 });
-    await desktop.waitForFunction(() => document.querySelector('canvas').width === 1100 && window.__MOSSGUARD__.view.renderScale === 1);
+    await desktop.waitForFunction(() => document.querySelector('#battlefield canvas').width === 1100 && window.__MOSSGUARD__.view.renderScale === 1);
     assert.deepEqual((await state(desktop)).towers, frozen.towers, 'Resize back to the base backing preserves tower state');
     assert.equal((await state(desktop)).gold, frozen.gold);
     checks.push('Render backing 1×→2×→1× and reset-to-fit preserve game state');

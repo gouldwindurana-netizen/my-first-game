@@ -1,0 +1,34 @@
+{
+  "frameWidth": 192,
+  "frameHeight": 192,
+  "frameCount": 24,
+  "origin": {
+    "x": 0.5,
+    "y": 0.9583333333333334
+  },
+  "sourceKeyframeCount": 8,
+  "targetFps": 24,
+  "interpolation": "bidirectional dense optical flow, premultiplied alpha, two in-betweens per key-pose pair",
+  "units": {
+    "grunt": {
+      "file": "walk24-grunt.webp",
+      "texture": "walk24-grunt",
+      "bodyHeight": 141.9355
+    },
+    "runner": {
+      "file": "walk24-runner.webp",
+      "texture": "walk24-runner",
+      "bodyHeight": 136.3478
+    },
+    "brute": {
+      "file": "walk24-brute.webp",
+      "texture": "walk24-brute",
+      "bodyHeight": 151.513
+    },
+    "boss": {
+      "file": "walk24-boss.webp",
+      "texture": "walk24-boss",
+      "bodyHeight": 157.6348
+    }
+  }
+}

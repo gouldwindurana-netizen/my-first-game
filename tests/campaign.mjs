@@ -68,7 +68,7 @@ async function build(page, kind, padId = 0, touch = false) {
   return after;
 }
 async function clickWorldPad(page, pad) {
-  const canvas = page.locator('canvas');
+  const canvas = page.locator('#battlefield canvas');
   const box = await canvas.boundingBox();
   const geometry = await canvas.evaluate(element => ({ width: element.width, height: element.height, view: window.__MOSSGUARD__.view }));
   const { view } = geometry;
