@@ -12,7 +12,7 @@
 .branch-options button small { color: #e0c280; font-size: 11px; }
 .branch-options button:disabled { opacity: .55; cursor: default; }
 .branch-options button:hover:not(:disabled) { border-color: #e7cd8d; background: #234655; }
-.effect-summary, .trap-charges { font-size: 11px; line-height: 1.65; color: #bbd8d6; }
+.effect-summary, .trap-charges { grid-column: 1 / -1; font-size: 11px; line-height: 1.65; color: #bbd8d6; }
 .trap-charges { color: #e6c286; }
 .tower-actions { flex-wrap: wrap; }
 .tower-actions button { min-height: 44px; height: auto; line-height: 1.5; padding: 8px; font-size: 11px; }
@@ -37,3 +37,27 @@
 .tower-detail .detail-description { min-height: 0; }
 @media(max-width:740px) { .tower-dock .tower-info b { font-size: 17px; }.campaign-tools { gap: 8px; }.campaign-tools button { width: 100%; } }
 @media(max-height:520px) { .tower-dock .tower-info b { font-size: 16px; }.branch-options button { padding: 8px; } }
+
+.upgrade-gate { grid-column: 1 / -1; padding: 9px; border-left: 2px solid #b39862; color: #d1c295; background: #17313b; font-size: 11px; line-height: 1.6; }
+.difficulty-hint { padding: 12px; border: 1px solid #4a6b76; background: #102c3d; color: #bfced1; font-size: 12px; line-height: 1.6; border-radius: 4px; }
+#pause-menu, #settings-menu { margin-top: 10px; min-height: 44px; }
+#settings-menu { width: 100%; }
+.stealth-advisory { margin: 10px 0; padding: 9px 10px; border-left: 2px solid #91b8d1; background: #132f42; color: #bdd3df; font-size: 11px; line-height: 1.55; }
+.stealth-advisory.imminent { border-color: #e9c179; color: #efdab0; background: #3a3222; }
+.tier-unlock { grid-column: 1 / -1; display: grid; gap: 4px; padding: 9px; border: 1px solid #466977; border-radius: 3px; font-size: 11px; line-height: 1.6; color: #afced7; }
+.tier-unlock b { color: #e2d1a4; }
+.detection-plan { margin-top: 18px; border-top: 1px solid #4b6b78; padding-top: 16px; }
+.detection-plan h3 { margin: 0; font-size: 18px; color: #e7d5a8; }
+.detection-options { display: grid; gap: 8px; }
+.detection-options button { display: grid; gap: 5px; width: 100%; min-height: 44px; padding: 11px; text-align: left; background: #123044; border: 1px solid #547a8a; border-radius: 4px; }
+.detection-options button strong { color: #e7d5a8; font-size: 12px; }
+.detection-options button span, .detection-options button small { color: #b6d1db; font-size: 11px; line-height: 1.5; }
+.detection-options button:hover { background: #204454; border-color: #d3bc80; }
+@media (max-width: 740px) and (min-height: 601px) {
+  .tower-detail { grid-template-columns: 64px minmax(0, 1fr); column-gap: 12px; }
+  .tower-detail .tower-portrait { display: flex; grid-column: 1; grid-row: 2 / 4; width: 64px; height: 90px; }
+  .tower-detail .tower-portrait svg { width: 76px; height: 84px; }
+  .tower-detail .detail-role { grid-column: 2; grid-row: 2; }
+  .tower-detail .detail-description { grid-column: 2; grid-row: 3; }
+  .tower-detail .stat-list { grid-column: 1 / -1; grid-row: auto; }
+}

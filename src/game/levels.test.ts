@@ -67,6 +67,41 @@ describe('twelve-stage scripted campaign', () => {
     }
   });
 
+  it('adds separated road-side choices while preserving the original named sites', () => {
+    const counts: Record<string, number> = { eldervale: 11, frostbound: 9, ember: 10, mirewood: 7, crystal: 8 };
+    const originalCounts: Record<string, number> = { eldervale: 8, frostbound: 6, ember: 7, mirewood: 5, crystal: 6 };
+    for (const level of LEVELS) {
+      expect(level.pads).toHaveLength(counts[level.mapKey]);
+      expect(level.pads.map(pad => pad.id)).toEqual(level.pads.map((_, index) => index));
+      for (let index = 0; index < level.pads.length; index++) {
+        const pad = level.pads[index];
+        // A full foundation footprint stays in view and does not overlap another tower.
+        expect(pad.x).toBeGreaterThanOrEqual(33);
+        expect(pad.x).toBeLessThanOrEqual(level.world.width - 33);
+        expect(pad.y).toBeGreaterThanOrEqual(20);
+        expect(pad.y).toBeLessThanOrEqual(level.world.height - 20);
+        for (const other of level.pads.slice(index + 1)) expect(Math.hypot(pad.x - other.x, pad.y - other.y)).toBeGreaterThanOrEqual(75);
+        if (index < originalCounts[level.mapKey]) continue;
+        const roadDistance = Math.min(...level.path.slice(1).map((point, segment) => distanceToSegment(pad, level.path[segment], point)));
+        expect(roadDistance).toBeGreaterThanOrEqual(35);
+        expect(roadDistance).toBeLessThanOrEqual(255);
+      }
+    }
+    expect(LEVELS[0].pads.slice(0, 8).map(pad => pad.name)).toEqual(['West watch','Bridge overlook','River bend','Lower crossing','Grove overlook','Rift bend','Citadel approach','East watch']);
+  });
+
+  it('provides a gentle first patrol without replacing the original tactical opening scripts', () => {
+    for (const level of LEVELS) {
+      expect(level.openingWave).not.toBe(level.waves[0]);
+      expect(level.openingWave.enemies).toHaveLength(4);
+      expect(level.openingWave.enemies.every(entry => entry.kind === 'grunt' && !entry.miniBoss)).toBe(true);
+      expect(level.openingWave.enemies[0].delay).toBe(0);
+      for (let index = 1; index < level.openingWave.enemies.length; index++) expect(level.openingWave.enemies[index].delay - level.openingWave.enemies[index - 1].delay).toBeCloseTo(2.4);
+      expect(level.waves[0].enemies.length).toBeGreaterThan(level.openingWave.enemies.length);
+    }
+    expect(LEVELS.find(level => level.id === 'sanctum')!.waves[0].enemies.some(entry => entry.kind === 'darkknight')).toBe(true);
+  });
+
   it('places tree blockers on map margins without putting a trunk on a road or foundation', () => {
     for (const level of LEVELS) {
       if (level.mapKey === 'crystal') expect(level.trees).toEqual([]);
@@ -90,6 +125,7 @@ describe('twelve-stage scripted campaign', () => {
         expect(LEVELS[index].pads).not.toBe(LEVELS[next].pads);
         expect(LEVELS[index].trees).not.toBe(LEVELS[next].trees);
         expect(LEVELS[index].waves).not.toBe(LEVELS[next].waves);
+        expect(LEVELS[index].openingWave).not.toBe(LEVELS[next].openingWave);
       }
     }
   });

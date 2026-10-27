@@ -1,12 +1,12 @@
 import type { Point, WaveDef } from './model';
-import type { EnemyKind } from './catalog';
+import { ENEMY_DEFS, type EnemyKind } from './catalog';
 import { MAP_GEOMETRY } from './map-geometry';
 
 export interface Foundation extends Point { id: number; name: string; }
 export interface TreeBlocker extends Point { radius: number; }
 export interface LevelDef {
   id: string; name: string; mapKey: string; subtitle: string; description: string;
-  path: Point[]; pads: Foundation[]; waves: WaveDef[]; startingGold: number; enemyMultiplier: number;
+  path: Point[]; pads: Foundation[]; waves: WaveDef[]; openingWave: WaveDef; startingGold: number; enemyMultiplier: number;
   camera: Point;
   biome: string;
   trees: TreeBlocker[];
@@ -31,6 +31,9 @@ const ELDER_PADS = [
   { id: 2, name: 'River bend', x: 422, y: 294 }, { id: 3, name: 'Lower crossing', x: 529, y: 428 },
   { id: 4, name: 'Grove overlook', x: 571, y: 237 }, { id: 5, name: 'Rift bend', x: 738, y: 250 },
   { id: 6, name: 'Citadel approach', x: 813, y: 372 }, { id: 7, name: 'East watch', x: 961, y: 271 },
+  { id: 8, name: 'Portal verge', x: 196, y: 174 },
+  { id: 9, name: 'Lower garden', x: 649, y: 407 },
+  { id: 10, name: 'Citadel ridge', x: 820, y: 110 },
 ];
 
 const FROSTBOUND_PATH: Point[] = [
@@ -48,6 +51,9 @@ const FROSTBOUND_PADS: Foundation[] = [
   { id: 3, name: 'Frostbank', x: 410, y: 470 },
   { id: 4, name: 'Citadel Rise', x: 754, y: 306 },
   { id: 5, name: 'Snowbend', x: 971, y: 388 },
+  { id: 6, name: 'Portal bank', x: 195, y: 232 },
+  { id: 7, name: 'North bridgehead', x: 623, y: 223 },
+  { id: 8, name: 'Lower snowbank', x: 298, y: 438 },
 ];
 const EMBER_PATH: Point[] = [
   { x: 91, y: 185 }, { x: 143, y: 221 }, { x: 222, y: 236 }, { x: 278, y: 268 },
@@ -64,6 +70,9 @@ const EMBER_PADS: Foundation[] = [
   { id: 4, name: 'Obsidian Rise', x: 774, y: 293 },
   { id: 5, name: 'Magma Bend', x: 738, y: 436 },
   { id: 6, name: 'Ember Gate', x: 897, y: 395 },
+  { id: 7, name: 'Portal rampart', x: 250, y: 175 },
+  { id: 8, name: 'Gate courtyard', x: 905, y: 176 },
+  { id: 9, name: 'South bastion', x: 855, y: 514 },
 ];
 const MIREWOOD_PATH: Point[] = [
   { x: 80, y: 317 }, { x: 145, y: 344 }, { x: 207, y: 334 }, { x: 271, y: 306 },
@@ -78,6 +87,8 @@ const MIREWOOD_PADS: Foundation[] = [
   { id: 2, name: 'Canopy Watch', x: 567, y: 153 },
   { id: 3, name: 'Bog Island', x: 540, y: 483 },
   { id: 4, name: 'Lantern Isle', x: 724, y: 380 },
+  { id: 5, name: 'High court', x: 873, y: 194 },
+  { id: 6, name: 'Gate garden', x: 919, y: 498 },
 ];
 const CRYSTAL_PATH: Point[] = [
   { x: 80, y: 253 }, { x: 150, y: 283 }, { x: 224, y: 304 }, { x: 286, y: 306 },
@@ -93,6 +104,8 @@ const CRYSTAL_PADS: Foundation[] = [
   { id: 3, name: 'Amethyst Rise', x: 818, y: 192 },
   { id: 4, name: 'Echo Shelf', x: 773, y: 316 },
   { id: 5, name: 'Gemstone Bank', x: 850, y: 419 },
+  { id: 6, name: 'Portal ledge', x: 240, y: 218 },
+  { id: 7, name: 'Gate court', x: 1020, y: 213 },
 ];
 
 interface ScriptedGroup {
@@ -124,12 +137,12 @@ const SCRIPTS: Record<string, WaveDef[]> = {
     scripted('Mossroad patrol', 'Training: build an Arrow tower beside the first bend, then send the scouts.', [group('grunt', 6, 1.65)]),
     scripted('Quick feet', 'Runners move faster. Use Fastest targeting or slow them with Ice.', [group('grunt', 5, 1.3), group('runner', 5, 1.25)]),
     scripted('Iron at the gate', 'Heavy goblins bring armor. Mix physical fire with elemental damage.', [group('brute', 2, 2), group('grunt', 7, 1.2)]),
-    scripted('The shield line', 'Shieldbearers shelter a fast rear guard. Build overlapping coverage.', [group('shieldbearer', 2, 1.7), group('runner', 6, 1), group('scout', 3, 1.2)]),
+    scripted('The shield line', 'Hidden Veil scouts follow the shields. Lantern Sentries or an Aurora Lens reveal them for nearby towers.', [group('shieldbearer', 2, 1.7), group('runner', 6, 1), group('scout', 3, 1.2)]),
     scripted('Ogre lieutenant', 'Mini-boss: an empowered Ogre leads the column. Try troops, traps, and tower upgrades.', [group('ogre', 1, 1, true), group('grunt', 8, .95), group('runner', 6, .85)]),
     scripted('The Hollow King', 'Final boss: save Starfall for the king and keep his escorts under control.', [group('brute', 2, 1.4), group('boss', 1, 2.5), group('grunt', 8, 1), group('runner', 6, .9)]),
   ],
   windward: [
-    scripted('High-road scouts', 'The plateau receives its first scouting party.', [group('grunt', 8, 1.3), group('scout', 4, 1.1)]),
+    scripted('High-road patrol', 'A visible patrol gives defenders time to prepare their detection upgrades.', [group('grunt', 8, 1.3), group('runner', 4, 1.1)]),
     scripted('Wings on the wind', 'Bats fly over melee troops and ground traps. Cover the sky with ranged towers.', [group('bat', 8, 1.15), group('runner', 5, 1)]),
     scripted('The narrow pass', 'Shieldbearers and raiders arrive together.', [group('shieldbearer', 3, 1.5), group('raider', 8, .9)]),
     scripted('Ogre of the heights', 'Mini-boss: one powerful Ogre advances beneath a cloud of bats.', [group('ogre', 1, 1, true), group('bat', 9, .85), group('grunt', 8, .7)]),
@@ -149,7 +162,7 @@ const SCRIPTS: Record<string, WaveDef[]> = {
     scripted('The drowned crown', 'Final boss: the Hollow King crosses the haunted swamp.', [group('troll', 2, 1.5), group('boss', 1, 2), group('skeleton', 14, .7), group('shaman', 2, 1.3)]),
   ],
   frostbound: [
-    scripted('Whiteout scouts', 'Runners and scouts test the frozen approach.', [group('runner', 10, .9), group('scout', 5, 1)]),
+    scripted('Whiteout patrol', 'Visible runners test the frozen approach before hidden scouts arrive later.', [group('runner', 10, .9), group('raider', 5, 1)]),
     scripted('Cracking ice', 'Frost Wights resist cold. Fire and other elements provide a different answer.', [group('frostwight', 5, 1.3), group('grunt', 10, .8)]),
     scripted('Frozen armor', 'Heavy guards and shieldbearers shelter the next wave.', [group('brute', 4, 1.1), group('shieldbearer', 4, 1.3), group('runner', 8, .7)]),
     scripted('The ice marshal', 'Mini-boss: an Iron Sentinel advances through the pass.', [group('ironsentinel', 1, 1, true), group('frostwight', 6, 1), group('bat', 9, .75)]),
@@ -169,7 +182,7 @@ const SCRIPTS: Record<string, WaveDef[]> = {
     scripted('The Bone Dragon wakes', 'Final boss: the Bone Dragon flies above melee defenders. Keep anti-air coverage ready.', [group('bat', 6, .7), group('bonedragon', 1, 2.5), group('stormconduit', 5, 1), group('runner', 12, .65)]),
   ],
   crystal: [
-    scripted('Echoes below', 'Scouts and skeletons reach the crystal road.', [group('scout', 9, .9), group('skeleton', 12, .7)]),
+    scripted('Echoes below', 'Visible runners and skeletons reach the crystal road.', [group('runner', 9, .9), group('skeleton', 12, .7)]),
     scripted('Stone awakens', 'Stone Golems carry heavy armor. Elemental towers and armor shred help.', [group('stonegolem', 4, 1.6), group('raider', 10, .8)]),
     scripted('Rift fragments', 'Voidlings split when defeated. Leave coverage for the smaller survivors.', [group('voidling', 7, 1.2), group('runner', 10, .7)]),
     scripted('Prism runners', 'Fast and flying enemies cross the same firing lanes.', [group('runner', 16, .55), group('bat', 12, .65)]),
@@ -193,7 +206,7 @@ const SCRIPTS: Record<string, WaveDef[]> = {
     scripted('The Hell Warden', 'Final boss: the Hell Warden claims the wastes. Fire-resistant targets need other elements.', [group('ironsentinel', 3, 1.2), group('hellwarden', 1, 2.5), group('darkknight', 5, 1.2), group('raider', 14, .6)]),
   ],
   chasm: [
-    scripted('Descent into darkness', 'Scouts and Wraiths enter the dark road.', [group('scout', 10, .8), group('shadowwraith', 5, 1.3)]),
+    scripted('Descent into darkness', 'Raiders and Dark Knights enter first. Prepare detection before the Wraiths arrive.', [group('raider', 10, .8), group('darkknight', 5, 1.3)]),
     scripted('The first rift', 'Voidlings arrive in groups; each defeat can create more foes.', [group('voidling', 10, 1), group('runner', 12, .6)]),
     scripted('Bone procession', 'Necromancers shelter behind shields and skeletons.', [group('shieldbearer', 5, 1.1), group('necromancer', 3, 1.3), group('skeleton', 18, .5)]),
     scripted('Iron in the dark', 'Juggernauts advance through slows and stuns.', [group('juggernaut', 4, 1.6), group('darkknight', 4, 1.2), group('raider', 12, .65)]),
@@ -205,7 +218,7 @@ const SCRIPTS: Record<string, WaveDef[]> = {
     scripted('Wings over the abyss', 'Final boss: the Bone Dragon rises above an army of the dead.', [group('skeleton', 8, .55), group('bonedragon', 1, 2.5), group('necromancer', 3, 1.4), group('shadowwraith', 7, 1)]),
   ],
   sanctum: [
-    scripted('The sealed entrance', 'Dark Knights march toward the ancient shrine.', [group('darkknight', 6, 1.3), group('scout', 10, .75)]),
+    scripted('The sealed entrance', 'Dark Knights and visible raiders march toward the ancient shrine.', [group('darkknight', 6, 1.3), group('raider', 10, .75)]),
     scripted('Sentinels of stone', 'Armored constructs fill the crossing.', [group('stonegolem', 5, 1.5), group('ironsentinel', 4, 1.4)]),
     scripted('The lost congregation', 'Shamans and summoners shelter behind a skeleton column.', [group('skeleton', 18, .5), group('shaman', 3, 1.2), group('necromancer', 3, 1.4)]),
     scripted('Prismatic defense', 'Storm and frost defenses arrive together.', [group('stormconduit', 7, .95), group('frostwight', 7, .95), group('bat', 12, .55)]),
@@ -217,7 +230,7 @@ const SCRIPTS: Record<string, WaveDef[]> = {
     scripted('Crown of the sanctum', 'Final boss: the Hollow King enters the old kingdom’s sacred heart.', [group('darkknight', 4, 1.1), group('boss', 1, 2.5), group('ironsentinel', 4, 1.3), group('shadowwraith', 7, .95)]),
   ],
   voidrift: [
-    scripted('Rift scouts', 'Voidlings arrive before the gate can close.', [group('voidling', 10, 1), group('scout', 12, .65)]),
+    scripted('Rift scouts', 'Voidlings and visible runners arrive before the gate can close.', [group('voidling', 10, 1), group('runner', 12, .65)]),
     scripted('A sky without stars', 'Bats and Wraiths test reveal and anti-air coverage.', [group('bat', 18, .5), group('shadowwraith', 8, 1.05)]),
     scripted('The rift choir', 'Conduits and necromancers support a deep column.', [group('stormconduit', 6, 1), group('necromancer', 4, 1.4), group('skeleton', 18, .45)]),
     scripted('Unyielding forms', 'Juggernauts and golems demand sustained damage.', [group('juggernaut', 5, 1.6), group('stonegolem', 5, 1.5)]),
@@ -229,7 +242,7 @@ const SCRIPTS: Record<string, WaveDef[]> = {
     scripted('Warden of the rift', 'Final boss: the Hell Warden leads the void host through the breach.', [group('voidling', 5, .85), group('hellwarden', 1, 2.5), group('darkknight', 6, 1.1), group('bat', 16, .5)]),
   ],
   moonlit: [
-    scripted('The outer wall', 'The final citadel receives a fast probing attack.', [group('runner', 18, .55), group('scout', 14, .6)]),
+    scripted('The outer wall', 'The final citadel receives a visible probing attack before the Wraiths arrive.', [group('runner', 18, .55), group('raider', 14, .6)]),
     scripted('Moonless wings', 'Flying enemies distract towers from the Wraiths below.', [group('bat', 18, .5), group('shadowwraith', 9, 1)]),
     scripted('The iron siege', 'Sentinels and Juggernauts assault the wall.', [group('ironsentinel', 6, 1.3), group('juggernaut', 4, 1.5)]),
     scripted('The pale procession', 'Necromancers replenish the skeleton ranks.', [group('necromancer', 4, 1.3), group('skeleton', 24, .4), group('shaman', 3, 1.1)]),
@@ -241,7 +254,7 @@ const SCRIPTS: Record<string, WaveDef[]> = {
     scripted('The crown returns', 'Final boss: the Hollow King reaches the last citadel with his surviving host.', [group('darkknight', 5, 1), group('boss', 1, 2.5), group('warlord', 2, 1.7), group('voidling', 10, .85)]),
   ],
   reckoning: [
-    scripted('One last dawn', 'Every route has led here. Prepare the kingdom’s final defense.', [group('raider', 16, .7), group('scout', 14, .65)]),
+    scripted('One last dawn', 'Every route has led here. A visible vanguard gives time to prepare detection.', [group('raider', 16, .7), group('runner', 14, .65)]),
     scripted('A sky of bones', 'Flying attackers arrive above the skeleton ranks.', [group('bat', 20, .5), group('skeleton', 20, .45)]),
     scripted('Iron reckoning', 'Sentinels and golems advance with regeneration support.', [group('ironsentinel', 6, 1.3), group('stonegolem', 5, 1.5), group('troll', 4, 1.2)]),
     scripted('The broken covenant', 'Healers and necromancers protect a growing army.', [group('shieldbearer', 6, 1), group('shaman', 4, 1.1), group('necromancer', 4, 1.3), group('skeleton', 16, .45)]),
@@ -294,12 +307,19 @@ export const LEVELS: LevelDef[] = STAGES.map(stage => {
   const sourceWorld = MAP_GEOMETRY[stage.mapKey];
   const world = { width: sourceWorld.width, height: sourceWorld.height };
   const route = MAP_ROUTES[stage.mapKey];
+  const script = SCRIPTS[stage.id];
+  const hiddenAt = script.findIndex(wave => wave.enemies.some(entry => ENEMY_DEFS[entry.kind].stealth));
+  const detectionHint = 'Detection needs no gems: upgrade an existing Arrow to Lantern Sentries for 55g or Ice to Aurora Lens for 65g; a new Magic spire detects immediately for 160g.';
+  const waves = script.map((wave, index) => ({ ...wave, description: wave.description + (index === hiddenAt - 1 ? ` Next wave brings hidden enemies. ${detectionHint}` : index === hiddenAt ? ` ${detectionHint}` : ''), enemies: wave.enemies.map(entry => ({ ...entry })) }));
   const fit = <T extends Point>(point: T): T => ({ ...point, y: point.y * world.height / 680 });
   // The source traces ended beyond the image to hide leaks. The fitted camera now
   // shows the whole panel, so leaks finish at its exact edge instead of in a border.
   const path = route.path.map(point => fit({ x: Math.min(world.width, Math.max(0, point.x)), y: Math.min(680, Math.max(0, point.y)) }));
   return {
-    ...stage, world, path, pads: route.pads.map(fit), waves: SCRIPTS[stage.id],
+    ...stage, world, path, pads: route.pads.map(fit), waves,
+    // Easy and Normal begin with a small, readable patrol that one well-placed
+    // base Arrow tower can handle. Hard and Hell keep their original opening.
+    openingWave: scripted('First watch', 'A small goblin patrol. One Arrow tower with clear road coverage is enough; save gold for the following waves.', [group('grunt', 4, 2.4)]),
     camera: { x: world.width / 2, y: world.height / 2 },
     trees: MAP_TREES[stage.mapKey].map(tree => ({ ...fit(tree), radius: tree.radius * Math.sqrt(world.height / 680) })),
   };

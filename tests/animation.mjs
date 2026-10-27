@@ -1,3 +1,4 @@
+import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
 /** Real construction/combat input; diagnostics expose poses without changing the model. */
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -13,18 +14,14 @@ try {
   await mkdir('artifacts/animation', { recursive: true });
   await page.goto(process.env.GAME_URL || 'http://127.0.0.1:4173/my-first-game/');
   await page.waitForSelector('[data-ready="true"]');
+  await enterBattle(page);
   await page.locator('[data-tower="archer"]').click();
   await page.locator('[data-foundation="0"]').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations?.towers[0]?.state === 'building');
   await page.screenshot({ path: 'artifacts/animation/build.png' });
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0]?.state === 'idle');
   const initial = (await anim()).towers[0];
-  await page.locator('#upgrade').click();
-  await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0]?.state === 'upgrading');
-  assert.equal((await anim()).towers[0].level, 2);
-  await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0]?.state === 'idle');
-  assert((await anim()).towers[0].scaleY > initial.scaleY, 'Upgrade settles onto the larger supplied level-II art');
-  checks.push('construction rise and upgrade burst settle correctly');
+  assert.equal(await page.locator('#upgrade').isDisabled(), true, 'A fresh tower cannot upgrade before a wave clear');
   await page.locator('#start-wave').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.length > 0);
   const first = (await anim()).enemies[0];
@@ -42,6 +39,21 @@ try {
   await wait(120);
   await page.screenshot({ path: 'artifacts/animation/combat-b.png' });
   checks.push('live walking frames, firing recoil, hit response, and defeat feedback');
+  await clearNextWave(page);
+  await selectTower(page, (await state()).towers[0].id);
+  await page.locator('#upgrade').click();
+  await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0]?.state === 'upgrading');
+  assert.equal((await anim()).towers[0].level, 2);
+  await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0]?.state === 'idle');
+  const upgraded=(await anim()).towers[0];
+  assert.equal(upgraded.textureKey,'role-led-towers');
+  assert.equal(upgraded.frameName,'archer-2','The earned upgrade changes the rendered frame to the lantern-equipped Arrow tier');
+  assert.notEqual(upgraded.frameName,initial.frameName,'The upgrade changes actual artwork rather than only scaling the base tower');
+  assert(upgraded.displayWidth>0&&upgraded.displayHeight>0,'The settled upgraded tower retains a visible render footprint');
+  checks.push('construction rise and upgrade burst settle correctly');
+  await page.locator('#start-wave').click();
+  await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.length > 0);
+
   await page.locator('#pause').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.paused);
   const frozen = await anim();

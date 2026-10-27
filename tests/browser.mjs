@@ -1,3 +1,4 @@
+import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
 /** Run `npm run dev -- --port 5173` first, then `npm run test:browser`.
  * Uses real UI input and the read-only snapshot. Set GAME_URL or CHROMIUM_PATH if needed.
  */
@@ -18,6 +19,7 @@ function watch(page, label) {
 async function boot(page) {
   await page.goto(base);
   await page.waitForSelector('#battlefield[data-ready="true"]');
+  await enterBattle(page);
   await page.waitForFunction(() => { const canvas = document.querySelector('#battlefield canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
   await page.evaluate(() => document.fonts.ready);
   await page.waitForFunction(() => document.querySelector('#battlefield canvas').getBoundingClientRect().height > 100);
@@ -78,7 +80,7 @@ try {
   await desktop.waitForFunction(() => window.__MOSSGUARD__.towers.length === 2);
   assert.equal((await state(desktop)).gold, 120);
   await point(desktop, 234, 241);
-  assert.equal(await desktop.locator('#upgrade').isDisabled(), false, 'Affordable tier-II upgrades remain available');
+  assert.equal(await desktop.locator('#upgrade').isDisabled(), true, 'Initial upgrade is gated despite having enough gold');
   checks.push('Tower placement and gold spending');
 
   await desktop.locator('[data-tower="frost"]').click();
@@ -143,6 +145,8 @@ try {
   assert.equal((await state(desktop)).paused, false, 'Escape restores active combat from focused settings checkbox');
   checks.push('Settings pause/resume, reduced motion, and synchronized sound preferences');
 
+  if((await state(desktop)).status==='building')await desktop.locator('#start-wave').click();
+  await desktop.waitForFunction(()=>window.__MOSSGUARD__.status==='wave'&&window.__MOSSGUARD__.enemies.length>0);
   await desktop.locator('#meteor').click();
   assert.equal(await desktop.locator('#meteor').evaluate(element => element.classList.contains('armed')), true);
   const target = (await state(desktop)).enemies[0];
@@ -152,6 +156,7 @@ try {
   assert.equal(await desktop.locator('#meteor').evaluate(element => element.classList.contains('armed')), false);
   checks.push('Targeted meteor and cooldown');
 
+  await clearNextWave(desktop);
   await point(desktop, 234, 241);
   await desktop.waitForFunction(() => window.__MOSSGUARD__.gold >= 56);
   await desktop.locator('#upgrade').click();
@@ -185,6 +190,7 @@ try {
   const teslaBuilt = await state(tesla);
   assert.equal(teslaBuilt.towers.filter(tower => tower.kind === 'tesla').length, 1);
   assert.equal(teslaBuilt.gold, 120);
+  await clearNextWave(tesla, { starfall: false });
   await tesla.locator('#start-wave').click();
   await tesla.waitForFunction(() => window.__MOSSGUARD__.enemies.some(enemy => enemy.hp < enemy.maxHp && enemy.hp % 1 !== 0), undefined, { timeout: 20000 });
   const chainState = await state(tesla);

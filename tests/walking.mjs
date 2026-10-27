@@ -1,3 +1,4 @@
+import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
 /** Real walking-art QA: atlas pixels, shared preview, and live unit texture frames. */
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -20,6 +21,7 @@ function watch(page, label) {
 async function boot(page, inline = null) {
   if (inline === null) await page.goto(base); else await page.setContent(inline, { waitUntil: 'load' });
   await page.waitForSelector('#battlefield[data-ready="true"]');
+  await enterBattle(page);
   await page.waitForFunction(() => window.__MOSSGUARD__?.view && window.__MOSSGUARD__?.animations);
   await page.evaluate(() => document.fonts.ready);
   assert.equal((await state(page)).animations.fps, 24, 'The walking presentation rate is 24 fps');
@@ -166,9 +168,9 @@ try {
   await page.locator('#unit-preview-close').click();
   await page.locator('#guide-done').click();
 
-  // Windward naturally spawns goblins and scouts. The scout uses the runner
-  // visual family; no wave/model mutation is needed to exercise both atlases.
-  await page.locator('#levels-open').click(); await page.locator('[data-stage="windward"]').click();
+  // Windward's Hard opening includes goblins and visible runners. Both families
+  // exercise the atlases without requiring a hidden enemy in an opening wave.
+  await page.locator('#levels-open').click(); await page.locator('#difficulty-select').selectOption('hard'); await page.locator('[data-stage="windward"]').click();
   await namedBuild(page, 'frost', 1); await page.locator('#start-wave').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.some(enemy => enemy.kind === 'grunt'));
   const first = (await state(page)).animations.enemies.find(enemy => enemy.kind === 'grunt');
@@ -180,8 +182,8 @@ try {
   assert.equal(after.textureKey, 'walk24-grunt'); assert.equal(after.rotation, 0);
   assert.equal(after.scaleX, before.scaleX); assert.equal(after.scaleY, before.scaleY);
   await page.locator('#speed').click();
-  await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.some(enemy => enemy.kind === 'scout'), undefined, { timeout: 15000 });
-  const runner = (await state(page)).animations.enemies.find(enemy => enemy.kind === 'scout');
+  await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.some(enemy => ['runner', 'scout'].includes(enemy.kind)), undefined, { timeout: 15000 });
+  const runner = (await state(page)).animations.enemies.find(enemy => ['runner', 'scout'].includes(enemy.kind));
   assert.equal(runner.textureKey, 'walk24-runner'); assert.equal(runner.rotation, 0);
   await page.waitForFunction(id => { const enemy = window.__MOSSGUARD__.animations.enemies.find(enemy => enemy.id === id); return enemy && enemy.walkFrame !== 0; }, runner.id);
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.some(enemy => enemy.state === 'slowed'), undefined, { timeout: 20000 });
@@ -193,7 +195,7 @@ try {
   });
   assert(cap.ticks <= Math.ceil(cap.elapsed / 1000 * 24) + 3, 'Doubling game speed does not double pose presentation FPS');
   assert(Math.abs(cap.game - cap.presentation * 2) < .04, `Simulation advances at 2× while presentation uses its own 24-fps clock: ${JSON.stringify(cap)}`);
-  checks.push('Live goblins and scouts use shared interpolated frames at 24 fps with fixed transforms; frost slowing and 2× remain correct');
+  checks.push('Live goblins and runners use shared interpolated frames at 24 fps with fixed transforms; frost slowing and 2× remain correct');
   await page.screenshot({ path: 'artifacts/walking/live-a.png' }); await page.waitForTimeout(120); await page.screenshot({ path: 'artifacts/walking/live-b.png' });
   await page.locator('#pause').click(); await page.waitForFunction(() => window.__MOSSGUARD__.paused);
   const frozen = (await state(page)).animations; await page.waitForTimeout(250);

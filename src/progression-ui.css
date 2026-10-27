@@ -23,3 +23,76 @@
 #meta-feedback { min-height: 20px; color: #d9c48d; font-size: 12px; line-height: 1.6; }
 #progression-close { min-width: 44px; min-height: 44px; font-size: 27px; }
 @media(max-width:600px) { .meta-grid { grid-template-columns: minmax(0,1fr); }.meta-tabs { grid-template-columns: repeat(2,minmax(0,1fr)); }.meta-wallet { font-size: 13px; }.meta-card { padding: 12px; } }
+
+/* Paths form a tree: every visible connector reflects a real unlock dependency. */
+.skill-branch-nav { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 5px; margin: 14px 0; }
+.skill-branch-nav button { min-width: 0; min-height: 44px; display: grid; align-content: center; gap: 3px; padding: 7px 5px; background: #102a3a; border: 1px solid #375969; border-radius: 4px; color: #b9cbd1; font-size: 11px; }
+.skill-branch-nav button small { color: #8ea9ad; font-size: 9px; }
+.skill-branch-nav button[aria-pressed="true"] { color: #f0d69a; border-color: #cfb170; background: #2a4547; }
+.skill-path-heading h3 { margin: 18px 0 4px; color: #e9d9b3; font: 29px/1.1 var(--serif); }
+.skill-path-heading p { margin: 0 0 16px; color: #a8c0c8; font-size: 12px; line-height: 1.6; }
+.skill-tree-layout { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 18px; align-items: start; }
+.skill-tree-stage { position: relative; min-width: 0; height: 560px; overflow: hidden; border-radius: 10px; border: 1px solid #385a61; background: radial-gradient(ellipse at 50% 40%,#1c3b4477,transparent 65%),linear-gradient(#0b202e,#081a26); }
+.skill-tree-stage::before { content: ''; position: absolute; width: 1px; left: 50%; top: 0; height: 100%; background: linear-gradient(transparent,#8b9a7340,transparent); }
+.skill-tree-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.skill-tree-edges path { fill: none; stroke: #415865; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.skill-tree-edges path.learned { stroke: #d3bb7d; stroke-width: 2.5; }
+.skill-tree-node { position: absolute; transform: translate(-50%,-50%); width: 108px; min-height: 82px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; padding: 7px; color: #9bafb8; border: 1px solid #435b66; border-radius: 12px; background: #10232f; box-shadow: 0 0 0 4px #0c202bc9; text-align: center; }
+.skill-tree-node strong { font-size: 10px; line-height: 1.25; font-weight: 500; overflow-wrap: anywhere; }
+.skill-tree-node small { color: #aabfc3; font-size: 10px; }
+.skill-tree-node .skill-node-rune { color: #718893; font-size: 19px; line-height: 1; }
+.skill-tree-node.available { border-color: #d7be7d; color: #eeddb3; background: #2d4343; }
+.skill-tree-node.available .skill-node-rune { color: #ecd18a; }
+.skill-tree-node.ready { border-color: #759f9e; color: #ccdedc; }
+.skill-tree-node.learned { border-color: #8eb887; color: #d8e5c0; background: #213e3a; }
+.skill-tree-node.learned .skill-node-rune { color: #add291; }
+.skill-tree-node.maxed { border-color: #e4c56e; color: #fff0bd; background: #45452c; }
+.skill-tree-node.maxed .skill-node-rune { color: #ffe59b; }
+.skill-tree-node.selected { outline: 2px solid #d5edf0; outline-offset: 3px; }
+.skill-tree-node:hover { border-color: #dfd1a5; }
+.skill-tree-node:focus-visible { outline: 3px solid #e1f7ff; outline-offset: 3px; }
+.skill-tree-detail { position: sticky; top: 0; padding: 17px; border: 1px solid #6b7e6f; border-radius: 6px; background: linear-gradient(#153442,#0b2533); }
+.skill-tree-detail > small { color: #c1b783; font-size: 10px; letter-spacing: .7px; }
+.skill-tree-detail h3 { margin: 10px 0; color: #e8d8ad; font: 29px/1.1 var(--serif); }
+.skill-tree-detail p { font-size: 12px; line-height: 1.65; color: #b0c8d0; }
+.skill-tree-detail .skill-detail-rank { color: #efd495; }
+.skill-prerequisites { display: grid; gap: 8px; padding: 13px 0; border-top: 1px solid #3e5b67; font-size: 11px; color: #92a8b4; line-height: 1.5; }
+.skill-prerequisites b { color: #d6d3b7; font-weight: 500; }
+.skill-prerequisites .learned { color: #bcd8a2; }
+.skill-tree-detail button { width: 100%; min-height: 44px; padding: 10px; color: #f0dfad; background: #294b50; border: 1px solid #c1ab70; border-radius: 4px; font-size: 12px; line-height: 1.5; }
+.skill-tree-detail button:disabled { opacity: .55; color: #b3c2c7; border-color: #59717a; cursor: default; }
+.skill-tree-detail .skill-unlock-hint { color: #b5aa91; font-size: 11px; margin-bottom: 0; }
+.skill-tree-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 13px 0; font-size: 11px; color: #a6bcc5; }
+.skill-tree-overview { padding-top: 10px; }
+.skill-tree-core { position: relative; width: min(100%,350px); margin: 12px auto 35px; padding: 18px 18px 22px; border: 1px solid #7f9674; border-radius: 12px; text-align: center; background: radial-gradient(ellipse,#3c5144,#112d3a); }
+.skill-tree-core > span { color: #ebd38d; font-size: 32px; }
+.skill-tree-core h3 { margin: 5px 0 7px; color: #eadbb3; font: 29px/1.1 var(--serif); }
+.skill-tree-core p { color: #b0c5c8; font-size: 12px; line-height: 1.5; margin: 0; }
+.skill-tree-core::after { content: ''; position: absolute; left: 50%; bottom: -24px; width: 1px; height: 24px; background: #9baf83; }
+.skill-tree-roots { position: relative; display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 28px 12px; padding: 14px 0; }
+.skill-tree-roots::before { content: ''; position: absolute; left: 10%; right: 10%; top: 0; height: 1px; background: #647d6e; }
+.skill-tree-roots button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 136px; padding: 12px 6px; border: 1px solid #486873; background: linear-gradient(#183a47,#0c2533); border-radius: 7px; color: #d4d7c5; }
+.skill-tree-roots button::before { content: ''; position: absolute; left: 50%; top: -15px; height: 15px; width: 1px; background: #647d6e; }
+.skill-tree-roots button.learned { border-color: #98b780; }
+.skill-tree-roots button:hover { border-color: #ebce86; background: #234848; }
+.skill-tree-roots .tree-root-rune { font-size: 28px; line-height: 1; color: #d0ba7e; }
+.skill-tree-roots strong { font-size: 12px; font-weight: 500; }
+.skill-tree-roots small, .skill-tree-roots button > span:last-child { color: #a1bac0; font-size: 10px; }
+@media(max-width:760px) { .skill-tree-layout { grid-template-columns: minmax(0,1fr); }.skill-tree-detail { position: static; }.skill-tree-roots { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 25px 12px; }.skill-tree-roots::before { left: 25%;right: 25%; }.skill-branch-nav { grid-template-columns: repeat(4,minmax(0,1fr)); }.skill-tree-node { width: 88px; }.skill-tree-node strong { font-size: 10px; } }
+@media(max-width:370px) { .skill-tree-node { width: 74px; padding: 6px 4px; }.skill-tree-node strong { font-size: 9px; }.skill-branch-nav { grid-template-columns: repeat(3,minmax(0,1fr)); }.skill-tree-roots { gap: 24px 8px; } }
+.skill-overview-back { min-height: 44px; padding: 8px 11px; color: #e1d4ac; background: #173747; border: 1px solid #718b82; border-radius: 4px; font-size: 11px; }
+.skill-branch-view .progression-modal > .eyebrow, .skill-branch-view .progression-modal > .meta-note { display: none; }
+.skill-branch-view .progression-modal > h2 { font-size: 32px; margin-top: 0; margin-bottom: 12px; }
+.skill-tree-node strong { font-size: 11px; }
+@media(max-width:760px) {
+  .skill-branch-view .progression-modal > h2 { font-size: 25px; padding-right: 32px; margin-bottom: 10px; }
+  .skill-branch-view .meta-wallet { font-size: 12px; padding: 10px; }
+  .skill-branch-view .meta-tabs { grid-template-columns: repeat(4,minmax(0,1fr)); margin: 10px 0; gap: 4px; }
+  .skill-branch-view .meta-tabs button { font-size: 10px; padding: 6px 3px; }
+  .skill-branch-view .skill-branch-nav, .skill-branch-view .skill-toolbar > span, .skill-branch-view .skill-path-heading p, .skill-branch-view .skill-path-heading h3 { display: none; }
+  .skill-branch-view .skill-toolbar { align-items: end; flex-wrap: nowrap; margin-bottom: 12px; }
+  .skill-branch-view .skill-toolbar label { flex: 1; min-width: 0; font-size: 10px; }
+  .skill-branch-view .skill-toolbar select { width: 100%; min-width: 0; }
+  .skill-overview-back { flex: 0 0 auto; padding-inline: 9px; }
+  .skill-tree-node strong { font-size: 10px; }
+}

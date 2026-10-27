@@ -47,6 +47,38 @@ describe('campaign meta progression', () => {
     expect(skillCost('missing', 0)).toBe(0); expect(skillCost('damage-1', NaN)).toBe(0);
   });
 
+  it('opens sibling paths and requires both joins and all mastery parents', () => {
+    const { meta } = funded();
+    expect(meta.buySkill('damage-1')).toBe(true);
+    expect(meta.canBuySkill('damage-2')).toBe(true);
+    expect(meta.canBuySkill('damage-3')).toBe(true);
+    expect(meta.buySkill('damage-2')).toBe(true);
+    expect(meta.buySkill('damage-4')).toBe(true);
+    expect(meta.buySkill('damage-7')).toBe(true);
+    expect(meta.canBuySkill('damage-5')).toBe(false); // A genuine join needs the other side too.
+    expect(meta.canBuySkill('damage-10')).toBe(false);
+    expect(meta.buySkill('damage-3')).toBe(true);
+    expect(meta.buySkill('damage-5')).toBe(true);
+    expect(meta.buySkill('damage-8')).toBe(true);
+    expect(meta.canBuySkill('damage-10')).toBe(false);
+    expect(meta.buySkill('damage-6')).toBe(true);
+    expect(meta.buySkill('damage-9')).toBe(true);
+    expect(meta.buySkill('damage-10')).toBe(true);
+  });
+
+  it('retains legitimate linear-tree saves and loads new fork choices without demanding unrelated siblings', () => {
+    const storage = new MemoryStorage();
+    const oldRanks = Object.fromEntries(Array.from({ length: 10 }, (_, index) => [`damage-${index + 1}`, index === 9 ? 5 : 3]));
+    storage.setItem(PROGRESSION_KEY, JSON.stringify({ version: 2, xp: 777, gems: 44, skillRanks: oldRanks }));
+    const legacy = new Progression(storage);
+    expect(legacy.state.skillRanks).toEqual(oldRanks); expect(legacy.xp).toBe(777); expect(legacy.gems).toBe(44);
+    storage.setItem(PROGRESSION_KEY, JSON.stringify({ version: 2, xp: 100, skillRanks: { 'damage-1': 1, 'damage-2': 1, 'damage-4': 1, 'damage-7': 2, 'damage-5': 1 } }));
+    const fork = new Progression(storage);
+    expect(fork.state.skillRanks).toEqual({ 'damage-1': 1, 'damage-2': 1, 'damage-4': 1, 'damage-7': 2 });
+    expect(fork.canBuySkill('damage-3')).toBe(true);
+    expect(fork.canBuySkill('damage-5')).toBe(false);
+  });
+
   it('requires mastery for capstones, charges once, and applies permanent combat bonuses', () => {
     const { meta } = funded();
     expect(meta.buyCapstone('arsenal')).toBe(false);

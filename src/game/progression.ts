@@ -18,7 +18,9 @@ export interface CombatBonuses {
 export interface SkillBranch { id: SkillBranchId; name: string; description: string; perRank: number; }
 export interface SkillNode {
   id: string; branch: SkillBranchId; name: string; description: string;
-  tier: number; maxRank: number; cost: number; prerequisite: string | null;
+  tier: number; maxRank: number; cost: number;
+  /** All parents need one learned rank. The singular alias preserves older consumers. */
+  prerequisites: string[]; prerequisite: string | null;
 }
 export const SKILL_BRANCHES: SkillBranch[] = [
   { id: 'damage', name: 'Damage', description: 'Increase every tower’s direct damage.', perRank: .009 },
@@ -44,11 +46,13 @@ const NODE_NAMES: Record<SkillBranchId, string[]> = {
   fortify: ['Stout Shields', 'Field Rations', 'Stone Foundations', 'Medic Training', 'Veteran Armor', 'Defensive Drills', 'Hold the Line', 'Citadel Oath', 'Unyielding Guard', 'Lasting Bastion'],
   grandmastery: ['First Command', 'Combined Arms', 'Tactical Study', 'Disciplined Lines', 'Shared Purpose', 'Seasoned Counsel', 'Royal Strategy', 'Unified Defense', 'Legendary Command', 'Mossguard Mastery'],
 };
+const SKILL_PARENTS: number[][] = [[], [1], [1], [2], [2, 3], [3], [4], [5], [6], [7, 8, 9]];
 export const SKILL_NODES: SkillNode[] = SKILL_BRANCHES.flatMap(branch => NODE_NAMES[branch.id].map((name, index) => ({
   id: `${branch.id}-${index + 1}`, branch: branch.id, name,
   description: `${branch.description} Each rank grants +${Number((branch.perRank * 100).toFixed(2))}%.`,
   tier: index + 1, maxRank: index === 9 ? 5 : 3, cost: 14 + index * 7,
-  prerequisite: index === 0 ? null : `${branch.id}-${index}`,
+  prerequisites: SKILL_PARENTS[index].map(parent => `${branch.id}-${parent}`),
+  prerequisite: SKILL_PARENTS[index].length ? `${branch.id}-${SKILL_PARENTS[index][0]}` : null,
 })));
 const nodeById = new Map(SKILL_NODES.map(node => [node.id, node]));
 export interface Capstone {
@@ -162,7 +166,7 @@ export class Progression {
   getSkillCost(id: string): number { return skillCost(id, this.value.skillRanks[id] || 0); }
   canBuySkill(id: string): boolean {
     const node = nodeById.get(id), cost = this.getSkillCost(id);
-    return !!node && cost > 0 && this.value.xp >= cost && (!node.prerequisite || (this.value.skillRanks[node.prerequisite] || 0) >= 1);
+    return !!node && cost > 0 && this.value.xp >= cost && node.prerequisites.every(parent => (this.value.skillRanks[parent] || 0) >= 1);
   }
   buySkill(id: string): boolean {
     if (!this.canBuySkill(id)) return false;
@@ -247,7 +251,7 @@ export class Progression {
       next.lifetimeXP = Math.max(next.xp, integer(saved.lifetimeXP)); next.lifetimeGems = Math.max(next.gems, integer(saved.lifetimeGems));
       if (plain(saved.skillRanks)) for (const node of SKILL_NODES) {
         const rank = integer(saved.skillRanks[node.id], node.maxRank);
-        if (rank > 0 && (!node.prerequisite || (next.skillRanks[node.prerequisite] || 0) > 0)) next.skillRanks[node.id] = rank;
+        if (rank > 0 && node.prerequisites.every(parent => (next.skillRanks[parent] || 0) > 0)) next.skillRanks[node.id] = rank;
       }
       if (plain(saved.shopRanks)) for (const item of SHOP_ITEMS) { const rank = integer(saved.shopRanks[item.id], item.maxRank); if (rank) next.shopRanks[item.id] = rank; }
       this.value = next;

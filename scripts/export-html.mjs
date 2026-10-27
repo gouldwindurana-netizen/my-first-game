@@ -51,6 +51,8 @@ try {
     'THIRD_PARTY_NOTICES.md',
     'docs/ASSET_INTEGRATION.md',
     'src/assets/pack/provenance.json',
+    'src/assets/towers/LICENSE.txt',
+    'src/assets/towers/provenance.json',
     'LICENSES/phaser-MIT.txt',
     'LICENSES/cormorant-garamond-OFL.txt',
     'LICENSES/dm-sans-OFL.txt',

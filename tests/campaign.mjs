@@ -1,3 +1,4 @@
+import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
 /** Campaign QA uses real menu/build/combat input and the read-only game snapshot. */
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -22,6 +23,7 @@ async function boot(page, inlineHtml = null) {
   if (inlineHtml === null) await page.goto(base);
   else await page.setContent(inlineHtml, { waitUntil: 'load' });
   await page.waitForSelector('#battlefield[data-ready="true"]');
+  await enterBattle(page);
   await page.waitForFunction(() => window.__MOSSGUARD__?.pads?.length > 0 && window.__MOSSGUARD__?.view);
   await page.evaluate(() => document.fonts.ready);
   assert.equal(await page.locator('[data-tower]').count(), 17);
@@ -114,7 +116,7 @@ try {
     assert(level.path.length >= 4 && level.pads.length >= 5, 'Each map exposes a playable route and foundations');
     assert(level.pads.every(pad => typeof pad.name === 'string' && pad.name.trim() && !/\d/.test(pad.name)), 'Map foundations use descriptive names');
     assert.equal(new Set(level.pads.map(pad => pad.name)).size, level.pads.length);
-    assert((await desktop.locator('h1').innerText()).includes(level.levelName), 'Mission heading follows the selected map');
+    assert((await desktop.locator('.mission-heading h1').innerText()).includes(level.levelName), 'Mission heading follows the selected map');
     await choose(desktop, 'archer');
     await assertNamedSites(desktop);
     await desktop.keyboard.press('Escape');

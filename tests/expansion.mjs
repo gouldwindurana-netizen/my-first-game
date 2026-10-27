@@ -1,3 +1,4 @@
+import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
 /** Expansion acceptance checks use real controls and read-only diagnostics. */
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -17,6 +18,7 @@ function monitor(page,label){
 }
 async function boot(page){
  await page.goto(base);await page.waitForSelector('#battlefield[data-ready="true"]');
+  await enterBattle(page);
  await page.waitForFunction(()=>window.__MOSSGUARD__?.view&&window.__MOSSGUARD__?.pads?.length>0);
  await page.evaluate(()=>document.fonts.ready);
 }
@@ -116,20 +118,23 @@ try{
  await desktop.locator('#wave-preview-done').click();assert.equal((await state(desktop)).paused,false);
  checks.push('Next-wave preview shows enemy types and counts and restores the prior pause state');
 
- const arrow=await namedBuild(desktop,'archer',0),gold=(await state(desktop)).gold;
+ const arrow=await namedBuild(desktop,'archer',0);
+ assert.equal(await desktop.locator('#upgrade').isDisabled(),true,'Gold alone cannot bypass training at the start');
+ await clearNextWave(desktop,{starfall:false});await selectTower(desktop,arrow.id);const gold=(await state(desktop)).gold;
  await desktop.locator('#upgrade').click();await desktop.waitForFunction(id=>window.__MOSSGUARD__.towers.find(t=>t.id===id)?.level===2,arrow.id);
- assert.equal((await state(desktop)).gold,gold-55,'Arrow tier II costs the requested 55 gold');
- assert.equal(await desktop.locator('[data-branch]').count(),4,'Tier II exposes all four specialization descriptions');
+ assert.equal((await state(desktop)).gold,gold-55,'Arrow tier II retains its requested 55-gold price');
+ assert.equal(await desktop.locator('[data-branch]').count(),4);
+ assert(await desktop.locator('[data-branch="A"]').isDisabled(),'The first clear does not immediately unlock specialization');
+ await namedBuild(desktop,'cannon',2);await namedBuild(desktop,'frost',4);
+ await clearNextWave(desktop);await clearNextWave(desktop);await selectTower(desktop,arrow.id);
  assert(await desktop.locator('[data-branch="D"]').isDisabled(),'Hell specialization is locked in Normal');
- await desktop.locator('[data-branch="A"]').click();
- await desktop.waitForFunction(id=>window.__MOSSGUARD__.towers.find(t=>t.id===id)?.branch==='A',arrow.id);
- assert.equal((await state(desktop)).towers.find(t=>t.id===arrow.id).level,3);
- await screenshot(desktop,'arrow-branch');
- checks.push('Arrow exact tier-II cost and permanent branch choice work; Hell branch remains locked in Normal');
+ await desktop.locator('[data-branch="A"]').click();await desktop.waitForFunction(id=>window.__MOSSGUARD__.towers.find(t=>t.id===id)?.branch==='A',arrow.id);
+ assert.equal((await state(desktop)).towers.find(t=>t.id===arrow.id).level,3);await screenshot(desktop,'arrow-branch');
+ checks.push('Arrow upgrades require real clears and still reach a specialization during the first level');
 
  await openMeta(desktop);
- const skills=[];assert.equal(await desktop.locator('#skill-branch option').count(),10);
- for(const branch of await desktop.locator('#skill-branch option').evaluateAll(elements=>elements.map(option=>option.value))){
+ const skills=[];assert.equal(await desktop.locator('#skill-branch option').count(),11);
+ for(const branch of await desktop.locator('#skill-branch option').evaluateAll(elements=>elements.map(option=>option.value).filter(value=>value!=='overview'))){
   await desktop.locator('#skill-branch').selectOption(branch);
   const ids=await desktop.locator('[data-skill-node]').evaluateAll(elements=>elements.map(element=>element.dataset.skillNode));
   assert.equal(ids.length,10);skills.push(...ids);
@@ -153,10 +158,10 @@ try{
   localStorage.setItem('mossguard-progression-v2',JSON.stringify({version:2,xp:10000,gems:1000,skillRanks,capstones:[],shopRanks:{},stages:{},claimedRuns:[]}));
  });
  await boot(funded);await openMeta(funded);await funded.locator('#skill-branch').selectOption('haste');
- const beforeSkill=await stored(funded);await funded.locator('[data-skill-node="haste-1"]').click();
+ const beforeSkill=await stored(funded);await funded.locator('[data-skill-node="haste-1"]').click();await funded.locator('[data-skill-buy]').click();
  let save=await stored(funded);assert.equal(save.skillRanks['haste-1'],1);assert.equal(save.xp,beforeSkill.xp-14);
  assert.equal((await state(funded)).paused,true,'Learning a skill keeps the open journal paused');
- assert.equal(await funded.locator('[data-skill-node="haste-1"]').evaluate(button=>document.activeElement===button),true,'Purchasing retains keyboard focus');
+ assert.equal(await funded.locator('[data-skill-buy]').evaluate(button=>document.activeElement===button),true,'Purchasing retains keyboard focus');
  await funded.locator('[data-meta-tab="skills"]').focus();await funded.keyboard.press('ArrowRight');
  assert.equal(await funded.locator('[data-meta-tab="capstones"]').getAttribute('aria-selected'),'true','Arrow keys switch progression tabs');
  await funded.keyboard.press('End');assert.equal(await funded.locator('[data-meta-tab="bestiary"]').getAttribute('aria-selected'),'true');
@@ -170,20 +175,19 @@ try{
  assert.equal(save.shopRanks['unlock-void'],1);assert.equal(save.gems,beforeShop.gems-45);
  assert(await funded.locator('[data-shop-item="unlock-void"]').isDisabled(),'A permanent unlock cannot be charged twice');
  assert.equal((await state(funded)).paused,true);await screenshot(funded,'saved-shop');await closeMeta(funded);
- await funded.reload();await funded.waitForSelector('#battlefield[data-ready="true"]');
+ await funded.reload();await funded.waitForSelector('#battlefield[data-ready="true"]');await enterBattle(funded);
  assert((await state(funded)).unlockedTowers.includes('void'),'The purchased tower remains unlocked after reload');
  save=await stored(funded);assert(save.capstones.includes('arsenal'));assert.equal(save.skillRanks['haste-1'],1);
  const built=await namedBuild(funded,'void',0);assert.equal(built.kind,'void');
  checks.push('XP ranks, capstones, and gem purchases charge once, stay paused, save, reload, and unlock a buildable premium tower');
- await setDifficulty(funded,'hell');await chooseStage(funded,11);
- const hellArrow=await namedBuild(funded,'archer',0);await funded.locator('#upgrade').click();
- await funded.waitForFunction(id=>window.__MOSSGUARD__.towers.find(t=>t.id===id)?.level===2,hellArrow.id);
- assert.equal(await funded.locator('[data-branch="D"]').isDisabled(),false,'An affordable Hell specialization is available in Hell');
- await funded.locator('[data-branch="D"]').click();await funded.waitForFunction(id=>window.__MOSSGUARD__.towers.find(t=>t.id===id)?.branch==='D',hellArrow.id);
- checks.push('Hell difficulty permits the actual D specialization when its gold cost is affordable');
+ await setDifficulty(funded,'hell');await chooseStage(funded,0);
+ const hellArrow=await namedBuild(funded,'archer',0);
+ assert.equal(await funded.locator('#upgrade').isDisabled(),true,'Hell also requires wave-earned tower training');
+ const hellState=await state(funded);assert.equal(hellState.difficulty,'hell');assert(hellState.catalog.towers.every(tower=>tower.branches.D),'Every tower family retains its Hell specialization');
+ checks.push('Hell remains a distinct difficulty with specialization content and the same anti-rush upgrade rules');
  await funded.close();
 
- const troops=await browser.newPage({viewport:{width:1440,height:900}});monitor(troops,'troops-and-traps');await boot(troops);
+ const troops=await browser.newPage({viewport:{width:1440,height:900}});monitor(troops,'troops-and-traps');await boot(troops);await setDifficulty(troops,'hard');
  const barracks=await namedBuild(troops,'barracks',0);
  await troops.waitForFunction(()=>window.__MOSSGUARD__.troops.length===2);
  const marching=(await state(troops)).troops[0];

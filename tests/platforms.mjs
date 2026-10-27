@@ -1,3 +1,4 @@
+import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
 /**
  * Build first: npm run build
  * Serve the project prefix: BASE_PATH=/my-first-game/ node scripts/serve.mjs
@@ -48,6 +49,7 @@ async function boot(page, url, inlineHtml = null) {
   if (inlineHtml !== null) await page.setContent(inlineHtml, { waitUntil: 'load' });
   else await page.goto(url);
   await page.waitForSelector('#battlefield[data-ready="true"]');
+  await enterBattle(page);
   await page.waitForFunction(() => { const canvas = document.querySelector('#battlefield canvas'); const view = window.__MOSSGUARD__?.view; return canvas && canvas.width >= 1100 && view?.worldWidth === 1100 && view?.worldHeight === 680; });
   await page.evaluate(() => document.fonts.ready);
   assert.equal((await state(page)).gold, 300, 'A new session starts with 300 gold');
@@ -206,6 +208,7 @@ try {
     checks.push('Standalone offline inline HTML: twelve embedded WAV effects decode and sound enables without network access');
     await build(filePage, 'tesla', 0);
     assert.equal((await state(filePage)).gold, 120);
+    await clearNextWave(filePage, { starfall: false });
     await filePage.locator('#battlefield').focus();
     await filePage.keyboard.press('Space');
     await filePage.waitForFunction(() => window.__MOSSGUARD__.status === 'wave');

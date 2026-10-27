@@ -1,4 +1,4 @@
-import { Progression, SKILL_BRANCHES, SKILL_NODES, CAPSTONES, SHOP_ITEMS } from './game/progression';
+import { Progression, SKILL_BRANCHES, SKILL_NODES, CAPSTONES, SHOP_ITEMS, type SkillBranchId } from './game/progression';
 import { ENEMY_KINDS, ENEMY_DEFS } from './game/catalog';
 import './progression-ui.css';
 
@@ -9,7 +9,8 @@ interface Callbacks { onOpen:()=>void; onClose:()=>void; onChange:()=>void; }
 export class ProgressionUI {
   readonly element: HTMLDivElement;
   private tab: Tab = 'skills';
-  private branch = SKILL_BRANCHES[0].id;
+  private branch: SkillBranchId | 'overview' = 'overview';
+  private selectedNode: string | null = null;
   private returnFocus: HTMLElement | null = null;
   constructor(private progression: Progression, private callbacks: Callbacks) {
     this.element = document.createElement('div');
@@ -57,28 +58,66 @@ export class ProgressionUI {
   refresh(){if(this.isOpen)this.render();}
   private result(ok:boolean,message:string){
     const active=document.activeElement as HTMLElement|null;
-    const focusKey=active&&['skillNode','capstone','shopItem'].find(key=>active.dataset[key]);
+    const focusKey=active&&['skillNode','skillBuy','capstone','shopItem'].find(key=>active.dataset[key]);
     const focusValue=focusKey?active?.dataset[focusKey]:null;
     this.callbacks.onChange();this.render();
     this.element.querySelector('#meta-feedback')!.textContent=ok?message:'Requirements are not met, or you need more currency.';
     const selector=focusKey&&focusValue?`[data-${focusKey.replace(/[A-Z]/g,letter=>'-'+letter.toLowerCase())}="${focusValue}"]`:null;
     const restored=selector?this.element.querySelector<HTMLButtonElement>(selector):null;
-    if(restored&&!restored.disabled)restored.focus();else this.element.querySelector<HTMLButtonElement>(`[data-meta-tab="${this.tab}"]`)?.focus();
+    if(restored&&!restored.disabled)restored.focus();else if(this.tab==='skills'&&this.selectedNode)this.element.querySelector<HTMLButtonElement>(`[data-skill-node="${this.selectedNode}"]`)?.focus();else this.element.querySelector<HTMLButtonElement>(`[data-meta-tab="${this.tab}"]`)?.focus();
+  }
+  private renderSkills(content:HTMLElement){
+    const state=this.progression.state,branch=SKILL_BRANCHES.find(item=>item.id===this.branch);
+    const nodes=branch?SKILL_NODES.filter(node=>node.branch===branch.id):[];
+    if(branch&&!nodes.some(node=>node.id===this.selectedNode))this.selectedNode=nodes[0].id;
+    const selected=nodes.find(node=>node.id===this.selectedNode);
+    const positions=[{x:50,y:48},{x:25,y:164},{x:75,y:164},{x:100/6,y:280},{x:50,y:280},{x:500/6,y:280},{x:100/6,y:396},{x:50,y:396},{x:500/6,y:396},{x:50,y:512}];
+    const status=(id:string)=>{
+      const node=SKILL_NODES.find(item=>item.id===id)!,rank=state.skillRanks[id]||0;
+      return rank>=node.maxRank?'maxed':rank>0?'learned':node.prerequisites.some(parent=>!state.skillRanks[parent])?'locked':this.progression.canBuySkill(id)?'available':'ready';
+    };
+    const branchControls=SKILL_BRANCHES.map(item=>`<button data-skill-branch="${item.id}" aria-pressed="${this.branch===item.id}"><span>${item.name}</span><small>${this.progression.branchRanks(item.id)} / 32 ranks</small></button>`).join('');
+    content.innerHTML=`<div class="skill-toolbar"><label>View skill paths<select id="skill-branch"><option value="overview" ${this.branch==='overview'?'selected':''}>Whole tree</option>${SKILL_BRANCHES.map(item=>`<option value="${item.id}" ${item.id===this.branch?'selected':''}>${item.name} · ${this.progression.branchRanks(item.id)} ranks</option>`).join('')}</select></label><span>100 connected nodes · 10 branches</span>${branch?'<button id="skill-tree-overview" class="skill-overview-back">Whole tree</button>':''}</div>
+      <nav class="skill-branch-nav" aria-label="Skill branches">${branchControls}</nav>
+      ${branch?`<div class="skill-path-heading"><h3>${branch.name}</h3><p>${branch.description} Learn one rank in each connected parent to open the next paths.</p></div><div class="skill-tree-layout"><div class="skill-tree-stage" role="group" aria-label="${branch.name} skill paths"><svg class="skill-tree-edges" viewBox="0 0 100 560" preserveAspectRatio="none" aria-hidden="true">${nodes.flatMap((node,index)=>node.prerequisites.map(parent=>{
+        const from=positions[nodes.findIndex(item=>item.id===parent)],to=positions[index],learned=!!state.skillRanks[parent];
+        return `<path data-skill-from="${parent}" data-skill-to="${node.id}" class="${learned?'learned':''}" d="M ${from.x} ${from.y} C ${from.x} ${(from.y+to.y)/2}, ${to.x} ${(from.y+to.y)/2}, ${to.x} ${to.y}"/>`;
+      })).join('')}</svg>${nodes.map((node,index)=>{
+        const rank=state.skillRanks[node.id]||0,point=positions[index],nodeStatus=status(node.id),cost=this.progression.getSkillCost(node.id);
+        return `<button class="skill-tree-node ${nodeStatus} ${selected?.id===node.id?'selected':''}" data-skill-node="${node.id}" data-skill-state="${nodeStatus}" style="left:${point.x}%;top:${point.y}px" aria-pressed="${selected?.id===node.id}" aria-controls="skill-node-detail" aria-label="${node.name}, rank ${rank} of ${node.maxRank}, ${nodeStatus}${rank<node.maxRank?`, next rank ${cost} XP`:''}"><span class="skill-node-rune" aria-hidden="true">${rank>=node.maxRank?'✦':rank>0?'◆':'◇'}</span><strong>${node.name}</strong><small>${rank} / ${node.maxRank}</small></button>`;
+      }).join('')}</div><aside id="skill-node-detail" class="skill-tree-detail" aria-label="Selected skill" aria-live="polite">${selected?`<small>${status(selected.id)==='locked'?'LOCKED PATH':status(selected.id)==='maxed'?'MASTERED PATH':'SELECTED SKILL'}</small><h3>${selected.name}</h3><p>${selected.description}</p><p class="skill-detail-rank">Rank ${state.skillRanks[selected.id]||0} / ${selected.maxRank}</p><div class="skill-prerequisites"><b>Connected parents</b>${selected.prerequisites.length?selected.prerequisites.map(parent=>`<span class="${state.skillRanks[parent]?'learned':''}">${state.skillRanks[parent]?'✓':'○'} ${SKILL_NODES.find(node=>node.id===parent)!.name} · 1 rank</span>`).join(''):'<span>Root skill · no parent required</span>'}</div><button data-skill-buy="${selected.id}" ${this.progression.canBuySkill(selected.id)?'':'disabled'}>${(state.skillRanks[selected.id]||0)>=selected.maxRank?'Fully mastered':`Learn rank ${(state.skillRanks[selected.id]||0)+1} · ${this.progression.getSkillCost(selected.id)} XP`}</button>${!this.progression.canBuySkill(selected.id)&&(state.skillRanks[selected.id]||0)<selected.maxRank?`<p class="skill-unlock-hint">${selected.prerequisites.some(parent=>!state.skillRanks[parent])?'Learn the marked parent skills to connect this path.':'Earn more XP from stage defenses to learn this rank.'}</p>`:''}`:''}</aside></div><div class="skill-tree-legend"><span>◇ Locked</span><span>◇ Available</span><span>◆ Learned</span><span>✦ Mastered</span></div>`:`<div class="skill-tree-overview"><div class="skill-tree-core"><span aria-hidden="true">✦</span><h3>Warden’s Legacy</h3><p>Choose a branch. Follow its connected paths from root skills to mastery.</p></div><div class="skill-tree-roots">${SKILL_BRANCHES.map(item=>`<button data-tree-root="${item.id}" data-skill-branch="${item.id}" class="${this.progression.branchRanks(item.id)?'learned':''}"><span class="tree-root-rune" aria-hidden="true">${this.progression.branchRanks(item.id)?'◆':'◇'}</span><strong>${item.name}</strong><small>${this.progression.branchRanks(item.id)} / 32 ranks</small><span>Explore paths</span></button>`).join('')}</div></div><p class="meta-note">Paths fork into choices and reconnect at mastery. Each node keeps its three ranks, with five ranks at the final mastery node.</p>`}
+      <button id="reset-skills" class="meta-secondary" ${this.progression.totalRanks||state.capstones.length?'':'disabled'}>Reset skills and capstones · recover 80% of spent XP</button>`;
+    if(!branch)content.querySelector('.skill-branch-nav')?.remove();
+    const setBranch=(id:string,focusSelector:string)=>{this.branch=id as SkillBranchId|'overview';this.selectedNode=null;this.render();this.element.querySelector<HTMLElement>(focusSelector)?.focus();};
+    content.querySelector<HTMLSelectElement>('#skill-branch')!.addEventListener('change',event=>setBranch((event.target as HTMLSelectElement).value,'#skill-branch'));
+    content.querySelector('#skill-tree-overview')?.addEventListener('click',()=>setBranch('overview','#skill-branch'));
+    content.querySelectorAll<HTMLButtonElement>('[data-skill-branch]').forEach(button=>button.addEventListener('click',()=>setBranch(button.dataset.skillBranch!,button.dataset.treeRoot?`[data-skill-node="${button.dataset.skillBranch}-1"]`:`[data-skill-branch="${button.dataset.skillBranch}"]`)));
+    const select=(id:string)=>{this.selectedNode=id;this.render();this.element.querySelector<HTMLButtonElement>(`[data-skill-node="${id}"]`)?.focus();};
+    content.querySelectorAll<HTMLButtonElement>('[data-skill-node]').forEach(button=>button.addEventListener('click',()=>select(button.dataset.skillNode!)));
+    content.querySelector<HTMLButtonElement>('[data-skill-buy]')?.addEventListener('click',event=>this.result(this.progression.buySkill((event.currentTarget as HTMLButtonElement).dataset.skillBuy!),'Skill rank learned. Its connected paths are now available.'));
+    content.querySelector('.skill-tree-stage')?.addEventListener('keydown',event=>{
+      const key=(event as KeyboardEvent).key,current=nodes.findIndex(node=>node.id===(document.activeElement as HTMLElement)?.dataset.skillNode);
+      if(current<0||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End'].includes(key))return;
+      event.preventDefault();let next=current;
+      if(key==='Home')next=0;else if(key==='End')next=nodes.length-1;else{
+        const point=positions[current],horizontal=key==='ArrowLeft'||key==='ArrowRight',direction=key==='ArrowLeft'||key==='ArrowUp'?-1:1;
+        const choices=positions.map((p,index)=>({index,along:horizontal?(p.x-point.x)*direction:(p.y-point.y)*direction,across:horizontal?Math.abs(p.y-point.y):Math.abs(p.x-point.x)})).filter(value=>value.index!==current&&value.along>0&&(!horizontal||value.across<1)).sort((a,b)=>horizontal?a.along-b.along:a.along+a.across*2-(b.along+b.across*2));
+        if(choices.length)next=choices[0].index;
+      }
+      select(nodes[next].id);
+    });
+    content.querySelector('#reset-skills')!.addEventListener('click',()=>{const refund=this.progression.resetSkills();this.result(true,`Skills reset. ${refund} XP returned.`);});
   }
   private render(){
     const state=this.progression.state;
+    const branchView=this.tab==='skills'&&this.branch!=='overview';
+    this.element.classList.toggle('skill-branch-view',branchView);
+    this.element.querySelector('#progression-title')!.textContent=branchView?`${SKILL_BRANCHES.find(item=>item.id===this.branch)?.name||'Skill'} paths`:'Grow beyond the battlefield';
     this.element.querySelector('#meta-wallet')!.textContent=`${state.xp.toLocaleString()} XP · ${state.gems.toLocaleString()} gems · ${this.progression.totalRanks} skill ranks`;
     this.element.querySelectorAll<HTMLButtonElement>('[data-meta-tab]').forEach(button=>{button.setAttribute('aria-selected',String(button.dataset.metaTab===this.tab));button.tabIndex=button.dataset.metaTab===this.tab?0:-1;});
     const content=this.element.querySelector<HTMLElement>('#meta-content')!;
     if(this.tab==='skills'){
-      content.innerHTML=`<div class="skill-toolbar"><label>Skill branch<select id="skill-branch">${SKILL_BRANCHES.map(branch=>`<option value="${branch.id}" ${branch.id===this.branch?'selected':''}>${branch.name} · ${this.progression.branchRanks(branch.id)} ranks</option>`).join('')}</select></label><span>100 nodes · 10 branches · 3–5 ranks per node</span></div><p class="meta-note">${SKILL_BRANCHES.find(branch=>branch.id===this.branch)?.description||''} Each node needs the previous node's first rank.</p>
-        <div class="meta-grid">${SKILL_NODES.filter(node=>node.branch===this.branch).map(node=>{
-          const rank=state.skillRanks[node.id]||0,cost=this.progression.getSkillCost(node.id);
-          return `<article class="meta-card ${rank?'owned':''}"><small>NODE ${node.tier} · RANK ${rank}/${node.maxRank}</small><h3>${node.name}</h3><p>${node.description}</p><button data-skill-node="${node.id}" ${this.progression.canBuySkill(node.id)?'':'disabled'}>${rank>=node.maxRank?'Mastered':`Learn · ${cost} XP`}</button></article>`;
-        }).join('')}</div><button id="reset-skills" class="meta-secondary" ${this.progression.totalRanks||state.capstones.length?'':'disabled'}>Reset skills and capstones · recover 80% of spent XP</button>`;
-      content.querySelector<HTMLSelectElement>('#skill-branch')!.addEventListener('change',event=>{this.branch=(event.target as HTMLSelectElement).value as typeof this.branch;this.render();});
-      content.querySelectorAll<HTMLButtonElement>('[data-skill-node]').forEach(button=>button.addEventListener('click',()=>this.result(this.progression.buySkill(button.dataset.skillNode!),'Skill rank learned. Saved for your next defense.')));
-      content.querySelector('#reset-skills')!.addEventListener('click',()=>{const refund=this.progression.resetSkills();this.result(true,`Skills reset. ${refund} XP returned.`);});
+      this.renderSkills(content);
     }else if(this.tab==='capstones'){
       content.innerHTML=`<p class="meta-note">Seven permanent battle upgrades. Spend XP after developing the required branches.</p><div class="meta-grid">${CAPSTONES.map(item=>{
         const owned=state.capstones.includes(item.id),requirements=Object.entries(item.requires).map(([branch,ranks])=>`${SKILL_BRANCHES.find(b=>b.id===branch)?.name||branch}: ${ranks} ranks`).join(' · ');
@@ -92,7 +131,7 @@ export class ProgressionUI {
       }).join('')}</div>`;
       content.querySelectorAll<HTMLButtonElement>('[data-shop-item]').forEach(button=>button.addEventListener('click',()=>this.result(this.progression.shopPurchase(button.dataset.shopItem!),'Purchase saved. Available in your next fresh defense.')));
     }else{
-      content.innerHTML=`<p class="meta-note">24 enemy types. Physical damage meets armor; elemental damage meets matching resistance. Negative resistance means a weakness. Truesight reveals stealth and ghosts; elemental towers can strike ghosts.</p><div class="meta-grid bestiary-grid">${ENEMY_KINDS.map(kind=>{
+      content.innerHTML=`<p class="meta-note">24 enemy types. Physical damage meets armor; elemental damage meets matching resistance. Negative resistance means a weakness. Arrow II lanterns and Ice II lenses reveal hidden foes to allies; base Magic and Prism detect immediately. Truesight is an optional premium ghost hunter. Elemental towers can strike visible ghosts.</p><div class="meta-grid bestiary-grid">${ENEMY_KINDS.map(kind=>{
         const enemy=ENEMY_DEFS[kind],flags=[enemy.flying?'Flying':'Ground',enemy.stealth?'Stealth':'',enemy.ghost?'Ghost':'',enemy.ccImmune?'Control immune':'',enemy.dodge?'Dodge':'',enemy.splitInto?'Splits on defeat':'',enemy.teleportInterval?'Teleports':'',enemy.heal?'Heals allies':'',enemy.summon?'Summons troops':''].filter(Boolean);
         return `<article class="meta-card" data-enemy-guide="${kind}"><small>${flags.join(' · ')}</small><h3>${enemy.name}</h3><p>${enemy.ability?`${enemy.ability}<br>`:''}${enemy.hp} health · ${enemy.speed} speed · ${Math.round(enemy.armor*100)}% armor · leaks ${enemy.leak} lives</p><p>${Object.entries(enemy.resistances).map(([type,resist])=>`${type} ${Math.round(resist!*100)}%`).join(' · ')||'No elemental resistance'}</p></article>`;
       }).join('')}</div>`;

@@ -175,20 +175,71 @@ export class GroveScene extends Phaser.Scene {
    g.fillStyle(0x10202b,.95);g.fillRoundedRect(e.x-width/2,y,width,5,2);
    g.fillStyle((e.poisonUntil??0)>m.time?0xb6df7e:e.slowUntil>m.time?0x9be8fb:0xe3c384);g.fillRoundedRect(e.x-width/2,y,width*Math.max(0,e.hp/e.maxHp),5,2);
   }
-  for(const shot of m.shots) {
-   if(shot.kind==='arcane'||shot.kind==='tesla'||shot.kind==='prism'||shot.kind==='void'||shot.kind==='truesight'||shot.kind==='nexus'||shot.kind==='chrono'){
-    const points=Array.from({length:7},(_,i)=>{const t=i/6,jitter=i===0||i===6?0:Math.sin(shot.id*13+i*7)*8;return{x:Phaser.Math.Linear(shot.from.x,shot.to.x,t)+jitter,y:Phaser.Math.Linear(shot.from.y-16,shot.to.y-8,t)-jitter};});
-    const alpha=shot.life/shot.maxLife;
-    const lightning=TOWER_DEFS[shot.kind].color;
-    g.lineStyle(7,lightning,alpha*.28);g.strokePoints(points,false);g.lineStyle(2,lightning,alpha);g.strokePoints(points,false);g.fillStyle(lightning,alpha*.45);
-    if(shot.kind==='tesla'){g.lineStyle(2,lightning,alpha*.3);g.strokeCircle(shot.from.x,shot.from.y+22,(1-alpha)*120);}g.fillCircle(shot.to.x,shot.to.y-8,8);
-    continue;
+  // Role-specific projectiles leave the measured weapon outlet of the dedicated sprite.
+  for(const shot of m.shots){
+   const from=this.assetViews.getShotOrigin(shot.from),to={x:shot.to.x,y:shot.to.y-8};
+   const p=Phaser.Math.Clamp(1-shot.life/shot.maxLife,0,1),alpha=1-p,c=TOWER_DEFS[shot.kind].color;
+   const dx=to.x-from.x,dy=to.y-from.y,length=Math.max(1,Math.hypot(dx,dy)),ux=dx/length,uy=dy/length;
+   if(shot.kind==='tesla'){
+    const points=Array.from({length:7},(_,i)=>{const t=i/6,j=i===0||i===6?0:Math.sin(shot.id*13+i*7)*7;return{x:Phaser.Math.Linear(from.x,to.x,t)+j,y:Phaser.Math.Linear(from.y,to.y,t)-j};});
+    g.lineStyle(6,0x75bff1,alpha*.25).strokePoints(points,false);g.lineStyle(1.8,0xe0f6ff,alpha).strokePoints(points,false);g.fillStyle(0xb9eaff,alpha*.6).fillCircle(to.x,to.y,5);continue;
    }
-   const p=1-shot.life/shot.maxLife;
-   const x=Phaser.Math.Linear(shot.from.x,shot.to.x,p),y=Phaser.Math.Linear(shot.from.y-24,shot.to.y,p)-Math.sin(p*Math.PI)*(shot.kind==='mortar'?125:shot.kind==='cannon'?55:15);
-   const c=TOWER_DEFS[shot.kind].color;
-   g.lineStyle(shot.kind==='cannon'||shot.kind==='mortar'?4:2,c,.8);g.lineBetween(x,y,x-(shot.to.x-shot.from.x)*.05,y-(shot.to.y-shot.from.y)*.05);g.fillStyle(c);g.fillCircle(x,y,shot.kind==='cannon'||shot.kind==='mortar'?4:2.5);
-   if(p>.75){g.lineStyle(2,c,(1-p)*3);g.strokeCircle(shot.to.x,shot.to.y,shot.kind==='mortar'?(p-.75)*300:shot.kind==='cannon'?(p-.75)*150:12*p);}
+   if(shot.kind==='prism'){
+    for(const[offset,color]of[[-2,0xf2d18e],[0,0xf7fff0],[2,0x9adbec]] as const)g.lineStyle(offset===0?2:1,color,alpha*(offset===0?.95:.55)).lineBetween(from.x-uy*offset,from.y+ux*offset,to.x-uy*offset,to.y+ux*offset);
+    g.lineStyle(1,0xf6ffe4,alpha).lineBetween(to.x-8,to.y,to.x+8,to.y).lineBetween(to.x,to.y-8,to.x,to.y+8);continue;
+   }
+   if(shot.kind==='truesight'){
+    g.lineStyle(3,0xddebc2,alpha*.2).lineBetween(from.x,from.y,to.x,to.y);g.lineStyle(1.3,0xf1f5d3,alpha).lineBetween(from.x,from.y,to.x,to.y);
+    g.lineStyle(1.2,0xe7efc3,alpha).strokeEllipse(to.x,to.y,18,9);g.fillStyle(0xf5f9dc,alpha).fillCircle(to.x,to.y,2.5);continue;
+   }
+   if(shot.kind==='void'){
+    const radius=5+alpha*25;g.fillStyle(0x100f2b,alpha*.55).fillCircle(to.x,to.y,radius*.7);g.lineStyle(2,0xbd9cde,alpha*.7).strokeEllipse(to.x,to.y,radius,radius*1.25);
+    for(let i=0;i<4;i++){const a=shot.id+i*Math.PI/2;g.lineStyle(1.2,0xc0a2e4,alpha*.7).lineBetween(to.x+Math.cos(a)*radius,to.y+Math.sin(a)*radius,to.x+Math.cos(a)*radius*.4,to.y+Math.sin(a)*radius*.4);}continue;
+   }
+   if(shot.kind==='chrono'){
+    g.lineStyle(1,0xbbbfae,alpha*.35).lineBetween(from.x,from.y,to.x,to.y);
+    const r=10+p*18;g.lineStyle(1.5,0xe7d7a5,alpha).strokeCircle(to.x,to.y,r).lineBetween(to.x,to.y,to.x+Math.cos(p*5)*r*.6,to.y+Math.sin(p*5)*r*.6);
+    for(let i=0;i<8;i++){const a=i*Math.PI/4;g.lineStyle(1,0xb7dfd6,alpha*.7).lineBetween(to.x+Math.cos(a)*(r-3),to.y+Math.sin(a)*(r-3),to.x+Math.cos(a)*r,to.y+Math.sin(a)*r);}continue;
+   }
+   if(shot.kind==='trap'){
+    g.lineStyle(2,0xe5c994,alpha).strokeEllipse(to.x,to.y,15+p*26,7+p*13);
+    for(let i=0;i<4;i++){const x=to.x-15+i*10;g.fillStyle(0xdde5de,alpha).fillTriangle(x-3,to.y+4,x,to.y-10*alpha,x+3,to.y+4);}continue;
+   }
+   if(shot.kind==='barracks'){
+    g.lineStyle(2,0xf2e3bc,alpha).lineBetween(to.x-8,to.y-8,to.x+8,to.y+5).lineBetween(to.x+8,to.y-8,to.x-8,to.y+5);continue;
+   }
+   if(shot.kind==='sonic'){
+    const x=Phaser.Math.Linear(from.x,to.x,p),y=Phaser.Math.Linear(from.y,to.y,p);
+    for(let i=0;i<3;i++)g.lineStyle(1.6,0xd8bce2,(1-i*.23)*.75).strokeEllipse(x-ux*i*9,y-uy*i*9,10+i*3,7+i*2);continue;
+   }
+   const arc=shot.kind==='mortar'?145:shot.kind==='cannon'?32:shot.kind==='venom'?32:shot.kind==='earth'?48:shot.kind==='arcane'?15:10;
+   const x=Phaser.Math.Linear(from.x,to.x,p),y=Phaser.Math.Linear(from.y,to.y,p)-Math.sin(p*Math.PI)*arc;
+   if(shot.kind==='archer'){
+    g.lineStyle(1.8,0xc1ae7c,.95).lineBetween(x-ux*11,y-uy*11,x+ux*6,y+uy*6);g.fillStyle(0xe9e4c9,.95).fillTriangle(x+ux*9,y+uy*9,x+ux*3-uy*3,y+uy*3+ux*3,x+ux*3+uy*3,y+uy*3-ux*3);
+    g.lineStyle(1.3,0xd5dccb,.8).lineBetween(x-ux*9,y-uy*9,x-ux*13-uy*3,y-uy*13+ux*3);continue;
+   }
+   if(shot.kind==='cannon'||shot.kind==='mortar'){
+    g.lineStyle(4,0xa6a08d,.28).lineBetween(x-ux*12,y-uy*12+3,x,y);g.fillStyle(0x253d48).fillCircle(x,y,shot.kind==='mortar'?5:4);g.fillStyle(0xb5b7a1).fillCircle(x-1.3,y-1.4,1.4);
+    if(shot.kind==='mortar')g.lineStyle(1.5,0xffd998,.95).lineBetween(x+2,y-4,x+4,y-9);
+    if(p>.72){const impact=(p-.72)/.28,r=impact*(shot.kind==='mortar'?70:33);g.lineStyle(2,0xdbc99e,(1-impact)*.8).strokeEllipse(to.x,to.y,r,r*.65);g.fillStyle(0xe5b06a,(1-impact)*.3).fillCircle(to.x,to.y,12+impact*12);}continue;
+   }
+   if(shot.kind==='earth'){
+    const pts=[{x:x-6,y:y-2},{x:x-3,y:y-7},{x:x+4,y:y-6},{x:x+7,y:y+1},{x:x+2,y:y+6},{x:x-5,y:y+4}];g.fillStyle(0x8d9376).fillPoints(pts,true);g.lineStyle(1,0xd4d3a8,.8).lineBetween(x-3,y-4,x+3,y-1);if(p>.7)g.lineStyle(2,0xa9ba88,(1-p)*2).strokeEllipse(to.x,to.y,(p-.7)*130,(p-.7)*65);continue;
+   }
+   if(shot.kind==='frost'){
+    g.fillStyle(0xd8f9ff,.95).fillTriangle(x-4,y+4,x,y-7,x+4,y+4);g.lineStyle(1,0x83c9e8,.65).lineBetween(x,y+4,x,y-4);g.fillStyle(0xbfeaf3,.35).fillCircle(x-ux*8,y-uy*8,2);continue;
+   }
+   if(shot.kind==='venom'){
+    g.fillStyle(0xaed476,.95).fillEllipse(x,y,8,10);g.fillStyle(0xdbedaf,.65).fillCircle(x-1,y-2,1.8);g.fillStyle(0x82b95b,.5).fillCircle(x-ux*9,y-uy*9,2.5);if(p>.7)g.lineStyle(1.5,0xa5d47b,(1-p)*2).strokeEllipse(to.x,to.y,9+(p-.7)*55,5+(p-.7)*23);continue;
+   }
+   if(shot.kind==='solar'){
+    g.fillStyle(0xf28e42,.6).fillTriangle(x-uy*5,y+ux*5,x-ux*19,y-uy*19-3,x+uy*5,y-ux*5);g.fillStyle(0xffdc8d,.95).fillCircle(x,y,5);g.fillStyle(0xfff1b9,.8).fillCircle(x+1,y-1,2.5);if(p>.74)g.lineStyle(2,0xffbb6b,(1-p)*3).strokeCircle(to.x,to.y,(p-.74)*140);continue;
+   }
+   if(shot.kind==='nexus'){
+    for(let i=0;i<3;i++){const a=p*8+i*Math.PI*2/3;g.fillStyle([0xc5a2e6,0xa0d6e8,0xe6d18f][i],.8).fillCircle(x+Math.cos(a)*8,y+Math.sin(a)*5,2);}g.fillStyle(0xf0e9ef,.95).fillCircle(x,y,4.5);if(p>.7)g.lineStyle(1.5,0xe4ccf2,(1-p)*2).strokeCircle(to.x,to.y,(p-.7)*90);continue;
+   }
+   // Mage attacks are deliberate runic orbs; lightning belongs exclusively to the coil.
+   g.fillStyle(c,.16).fillCircle(x,y,10);g.fillStyle(0xc5a0e9,.9).fillCircle(x,y,4.5);g.fillStyle(0xf0d9ff,.95).fillCircle(x-1,y-1,1.7);g.lineStyle(1,0xcbb0ea,.6).strokeEllipse(x,y,7,4);
   }
   if(this.bridge.meteorArmed&&this.hover) {
    g.fillStyle(0xe7a965,.12);g.fillCircle(this.hover.x,this.hover.y,120);g.lineStyle(2,0xf3c480,.8);g.strokeCircle(this.hover.x,this.hover.y,120);g.lineBetween(this.hover.x-12,this.hover.y,this.hover.x+12,this.hover.y);g.lineBetween(this.hover.x,this.hover.y-12,this.hover.x,this.hover.y+12);

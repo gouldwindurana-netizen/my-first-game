@@ -8,14 +8,19 @@ Download [`samples/mossguard.html`](samples/mossguard.html) using GitHub's **Dow
 
 The managed cloud browser blocks direct `file://` navigation. The same inline sample is tested in an offline browser document with HTTP blocked. This verifies embedded resources and gameplay without bypassing that browser policy.
 
+## Main menu and campaign navigation
+
+The game opens on a dedicated title screen. **Play campaign** opens stage and difficulty selection; **Continue campaign** finds the next unsecured stage, and **Resume defense** returns to the battle already running in this session. Skills, settings, and the field guide are available before starting. The Home button, pause screen, settings, and Mossguard crest return to the main menu. Menus pause the defense and preserve towers, enemies, and gold. Active battles are still session-only; saved campaign progress persists across reloads.
+
 ## Combat
 
 - Target First, Strongest, Fastest, or Last. Trees block direct fire; mortars and ground/sonic effects offer alternatives.
 - Physical damage meets armor. Elemental damage meets resistance and weakness.
+- Hidden enemies have ordinary gold counters: Arrow II **Lantern Sentries** costs a 55g upgrade; Ice II **Aurora Lens** costs 65g. Both reveal targets to nearby allies. Magic spires detect immediately for 160g. The scout report previews threats, prices, and training requirements; premium Truesight is optional.
 - Slows, burn, poison, stun, roots, knockback, curse, and armor shred affect combat. Some enemies resist control, dodge, split, heal, summon, regenerate, teleport, fly, or hide.
 - Barracks soldiers physically move to a rally point, block and fight ground enemies, return when idle, and respawn after defeat.
 - Finite-use traps snap to the road. Rearm them with gold; they do not consume tower foundations.
-- Upgrade to tier II, then choose a permanent A/B/C specialization. Hell difficulty also permits D.
+- Earn upgrades through wave clears: tier II needs the first cleared wave and a clear since construction; a specialization needs three cleared waves and a clear since tier II. An early tower can reach maximum tier within the first level, but cannot max out immediately. A/B/C branches are available normally; D requires Hell.
 - Use the **?** scout report to see next-wave types and counts. Automatic waves are optional in settings.
 
 [Full combat, tower, enemy, and progression rules](docs/GAMEPLAY.md) document actual prices and effects.
@@ -37,7 +42,7 @@ The managed cloud browser blocks direct `file://` navigation. The same inline sa
 | Moonlit Citadel | 10 | Forest river ruins |
 | Final Reckoning | 12 | Forest river ruins |
 
-All 110 waves use scripted groups and spacing; each stage has mini-bosses and ends in a boss. Easy, Normal, Hard, and Hell change enemy health/speed, gold income, and keep lives. Stage or difficulty changes start a fresh defense and are unavailable during an active wave.
+Each stage has timed groups, mini-bosses, and a final boss. Easy and Normal (Medium) start every stage with a small patrol that one base Arrow tower can defeat from a good early site. Hard and Hell use stronger visible openings and reward skill investment, mixed damage, and strategic coverage. Hidden groups arrive after the first clear so ordinary detection can be trained first. Easy, Normal, Hard, and Hell change enemy health/speed, gold income, and keep lives. Stage or difficulty changes start a fresh defense and are unavailable during an active wave.
 
 Victory earns 1–3 stars by lives remaining: three at 90%, two at 50%, one for any other win. Stage records are saved separately by difficulty.
 
@@ -45,7 +50,7 @@ Victory earns 1–3 stars by lives remaining: three at 90%, two at 50%, one for 
 
 Open **Legacy & shop** on desktop, **Battlefields → Skill tree & shop**, or the matching settings button.
 
-- Spend earned XP on 100 nodes across ten branches, with three to five ranks per node.
+- Spend earned XP on a connected 100-node tree across ten branches, with three to five ranks per node. Each branch has real forks and joins; connecting lines show requirements, and selecting a node explains its ranks and XP cost.
 - Seven capstones provide later XP sinks.
 - Earn gems from first clears and improved stars. Unlock Void, Solar, Chrono, Truesight, and Nexus, or buy permanent supply/keep/XP upgrades.
 - First three-star clears across Normal award 438 gems; the five premium families together cost 280. Replays award smaller XP rewards without repeated clear gem farming.
@@ -55,11 +60,11 @@ Progress, stars, XP, gems, ranks, and purchases save in localStorage. Old campai
 
 ## Display and existing artwork
 
-Every map preserves its original aspect ratio and fits completely at 100%. Zoom from 100% to 250%, drag to pan, and press **0** to fit again. Fullscreen and resizing preserve battle state. The field, dock, and wave action stay within desktop, laptop, tablet, and phone viewports; portrait inspection uses a dismissible drawer. Tower sites have names and no numeric labels.
+Every map preserves its original aspect ratio and fits completely at 100%. Zoom from 100% to 250%, drag to pan, and press **0** to fit again. Fullscreen and resizing preserve battle state. The field, dock, and wave action stay within desktop, laptop, tablet, and phone viewports; portrait inspection uses a dismissible drawer. Maps have 7–11 named foundations, adding 32 build opportunities across the twelve stages. Placement is permanent: towers and traps cannot relocate; sell and rebuild to change a layout. Sites have no numeric labels.
 
-The 12 stages reuse five existing high-resolution environment illustrations with different wave scripts and economies. All 17 towers and 24 enemies currently reuse the supplied tower art and four walking families, distinguished by badges, colors, and role/status indicators. Unique new animations are reserved for the next pass. The existing 24-fps interpolated walking and seamless scenery loops remain intact. Pause and reduced-motion settings are respected.
+The 12 stages reuse five existing high-resolution environment illustrations with different wave scripts and economies. All 17 tower families have distinct original isometric artwork across three tiers, shared by battlefield sprites and portraits. Their weapons and silhouettes show their roles; Sonic’s Echo Observatory replaces its overlapping support specialization with detection and pushback. Enemies retain the four supplied walking families, badges, and status indicators. The existing 24-fps interpolated walking and seamless scenery loops remain intact. Pause and reduced-motion settings are respected.
 
-[Asset integration](docs/ASSET_INTEGRATION.md) records original source crops, generated map restorations, walking provenance, and current art limitations. [Expansion roadmap](docs/EXPANSION_ROADMAP.md) separates remaining ideas from implemented systems.
+[Tower artwork](docs/TOWER_ART.md) documents the 51 new frames and reproducible generator. [Asset integration](docs/ASSET_INTEGRATION.md) records original source crops, generated map restorations, walking provenance, and current art limitations. [Expansion roadmap](docs/EXPANSION_ROADMAP.md) separates remaining ideas from implemented systems.
 
 ## Run and test
 
@@ -76,6 +81,7 @@ node scripts/serve.mjs --port 4173 --base /my-first-game/
 In another terminal:
 
 ```sh
+GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:menu
 GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:expansion
 GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:view
 GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:fit

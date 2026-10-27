@@ -1,3 +1,4 @@
+import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
 /**
  * Run against a built server or Vite: VIEW_BASE=http://localhost:5173 npm run test:view
  * Checks CSS readability, physical render resolution, zoom/pan input, and fullscreen.
@@ -34,6 +35,7 @@ function watch(page, label) {
 async function boot(page) {
   await page.goto(base);
   await page.waitForSelector('#battlefield[data-ready="true"]');
+  await enterBattle(page);
   await page.waitForFunction(() => {
     const state = window.__MOSSGUARD__, canvas = document.querySelector('#battlefield canvas');
     return state?.view && canvas?.width >= 1100 && state.view.worldWidth === 1100 && state.view.worldHeight === 680;
@@ -162,8 +164,10 @@ try {
     await clickBuild(desktop, 'archer', 0);
     const fontSizes = await desktop.locator('.stat-list > div').evaluateAll(elements => elements.map(element => parseFloat(getComputedStyle(element).fontSize)));
     assert(fontSizes.length >= 3 && fontSizes.every(size => size >= 12), 'Tower stats are at least 12px');
-    assert.equal(await desktop.locator('[data-tower] .tower-art svg[data-asset]').count(), 17, 'Dock reuses supplied frame artwork for all seventeen tower families');
-    checks.push('1366 desktop: base pointer placement, large stats, and supplied tower artwork');
+    assert.equal(await desktop.locator('[data-tower] .tower-art svg[data-asset]').count(), 17, 'Dock displays role-specific artwork for all seventeen tower families');
+    const disciplines=await desktop.locator('[data-tower] .tower-art svg[data-asset]').evaluateAll(elements=>elements.map(element=>element.dataset.discipline));
+    assert.equal(new Set(disciplines).size,17,'Each tower family uses its own art discipline rather than a recolored alias');
+    checks.push('1366 desktop: base pointer placement, large stats, and seventeen distinct tower art disciplines');
 
     await zoomTo(desktop, 1.5);
     await choose(desktop, 'archer');
@@ -211,9 +215,9 @@ try {
     assert.deepEqual((await state(desktop)).towers, frozen.towers, 'Resize back to the base backing preserves tower state');
     assert.equal((await state(desktop)).gold, frozen.gold);
     checks.push('Render backing 1×→2×→1× and reset-to-fit preserve game state');
-    assert([...assets].some(url => /core-tower-upgrades[^/]*\.webp/.test(url)), 'Supplied tower atlas loads successfully');
+    assert([...assets].some(url => /role-towers[^/]*\.svg/.test(url)), 'Role-specific tower atlas loads successfully');
     assert([...assets].some(url => /enemy-roster[^/]*\.webp/.test(url)), 'Supplied enemy atlas loads successfully');
-    checks.push('Supplied tower/enemy atlas images load without asset errors');
+    checks.push('Role-specific tower art and supplied enemy atlas load without asset errors');
   } catch (error) {
     await shot(desktop, 'desktop-failure').catch(() => {});
     throw error;
@@ -227,14 +231,15 @@ try {
     const metrics = await layout(retina, 'DPR2 desktop', 970);
     assert(metrics.backingWidth >= 2200 && metrics.backingHeight > 800, 'DPR2 uses a high-resolution render backing');
     await clickBuild(retina, 'archer', 0);
+    assert.equal(await retina.locator('#upgrade').isDisabled(), true, 'Initial upgrade respects the wave-clear gate');
+    await clearNextWave(retina);
+    await selectTower(retina, (await state(retina)).towers[0].id);
     await retina.locator('#upgrade').click();
     await retina.waitForFunction(() => window.__MOSSGUARD__.towers[0].level === 2);
-    assert.equal(await retina.locator('#context svg[data-asset="archer-2"]').count(), 1, 'Level II uses the supplied upgrade artwork');
-    await retina.locator('[data-branch="A"]').click();
-    await retina.waitForFunction(() => window.__MOSSGUARD__.towers[0].level === 3 && window.__MOSSGUARD__.towers[0].branch === 'A');
-    assert.equal(await retina.locator('#context svg[data-asset="archer-3"]').count(), 1, 'Level III uses the supplied upgrade artwork');
+    assert.equal(await retina.locator('#context svg[data-asset="archer-2"]').count(), 1, 'Level II uses its distinct Lantern Sentries upgrade artwork');
+    assert.equal(await retina.locator('[data-branch="A"]').isDisabled(), true, 'Specializations remain gated until further clears');
     await shot(retina, 'desktop-dpr2-upgraded');
-    checks.push('DPR2 pointer placement and three supplied tower tiers');
+    checks.push('DPR2 pointer placement and wave-earned Lantern Sentries artwork');
 
     await retina.locator('#fullscreen').click();
     await retina.waitForFunction(() => document.fullscreenElement || /Fullscreen is unavailable/.test(document.querySelector('#toast').textContent), undefined, { timeout: 5000 });
@@ -265,7 +270,7 @@ try {
       checks.push('Fullscreen settings/guide are visible and reachable, restore pause/focus, and include the result backdrop');
       await retina.locator('#fullscreen').click();
       await retina.waitForFunction(() => !document.fullscreenElement);
-      assert.equal((await state(retina)).towers[0].level, 3, 'Fullscreen round trip preserves game state');
+      assert.equal((await state(retina)).towers[0].level, 2, 'Fullscreen round trip preserves game state');
       checks.push('Actual user-click fullscreen entry/exit');
     } else {
       skips.push('Fullscreen API rejected by browser policy; supported unavailable toast verified, no bypass attempted.');
@@ -288,6 +293,17 @@ try {
     await mobile.waitForFunction(() => window.__MOSSGUARD__.towers[0]?.kind === 'arcane');
     assert.equal((await state(mobile)).gold, 140);
     if (await mobile.locator('#close-inspection').isVisible()) await mobile.locator('#close-inspection').tap();
+    await mobile.locator('[data-tower="frost"]').tap();await mobile.locator('[data-foundation="2"]').tap();
+    await mobile.waitForFunction(()=>window.__MOSSGUARD__.towers.some(tower=>tower.kind==='frost'));
+    assert.equal(await mobile.locator('.tower-detail .tower-portrait').isVisible(),true,'The phone inspection shows the new tower artwork');
+    const portrait=await mobile.locator('.tower-detail .tower-portrait').boundingBox(),description=await mobile.locator('.tower-detail .detail-description').boundingBox(),stats=await mobile.locator('.tower-detail .stat-list').boundingBox();
+    assert(portrait&&portrait.width>=64&&portrait.height>=84,'The phone tower portrait has a readable footprint');
+    assert(description&&description.width>=200&&stats&&stats.width>=250,'The phone description has room beside the portrait and statistics span the panel');
+    const detectionNotice=await mobile.locator('.tier-unlock').boundingBox();
+    assert(detectionNotice&&detectionNotice.width>=250&&detectionNotice.height<180,'The ordinary detection upgrade reads across the phone panel instead of wrapping into a narrow strip');
+    assert.match(await mobile.locator('.tier-unlock').innerText(),/Aurora Lens.*65 gold/s);
+    await shot(mobile,'phone-detection-upgrade');
+    if(await mobile.locator('#close-inspection').isVisible())await mobile.locator('#close-inspection').tap();
     await mobile.locator('#zoom-in').tap();
     await mobile.waitForFunction(() => window.__MOSSGUARD__.view.zoom === 1.25);
     await mobile.locator('#zoom-out').tap();

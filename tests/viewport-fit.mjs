@@ -1,3 +1,4 @@
+import { enterBattle } from './play-helpers.mjs';
 /** Verify that battle controls remain reachable without page scrolling, including native fullscreen. */
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
@@ -32,7 +33,7 @@ try{
   const label=`${width}×${height}`,page=await browser.newPage({viewport:{width,height}});
   page.on('pageerror',e=>errors.push(`${label}: ${e.message}`));
   try{
-   await page.goto(base);await page.waitForSelector('#battlefield[data-ready="true"]');await page.evaluate(()=>document.fonts.ready);await metrics(page,label);
+   await page.goto(base);await page.waitForSelector('#battlefield[data-ready="true"]');await enterBattle(page);await page.evaluate(()=>document.fonts.ready);await metrics(page,label);
    await page.locator('[data-tower="archer"]').click();
    const site=page.locator('[data-foundation="0"]');await site.scrollIntoViewIfNeeded();
    const box=await site.boundingBox();assert(box&&box.height>=44&&box.width>=44,`${label}: named foundation has 44px target`);await site.click();

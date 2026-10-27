@@ -30,6 +30,8 @@ export interface TowerBranchDef {
 }
 export interface TowerDef {
   name: string; description: string; cost: number; tier2Cost: number;
+  /** A named tier can add a mechanic before the final specialization. */
+  tier2Name?: string; tier2Description?: string; tier2Effects?: TowerEffects;
   damage: number; range: number; interval: number; color: number; damageType: DamageType;
   role: string; premiumCost?: number; effects: TowerEffects;
   branches: Record<TowerBranchKey,TowerBranchDef>;
@@ -38,7 +40,7 @@ const branch=(name:string,cost:number,description:string,effects:TowerEffects,st
 
 export const TOWER_DEFS: Record<TowerKind,TowerDef> = {
   archer: {
-    name:'Arrow tower', description:'Fast physical arrows against ground and flying foes.', cost:80,tier2Cost:55,damage:16,range:175,interval:.65,color:0xd8ba75,damageType:'physical',role:'PRECISION',effects:{},
+    name:'Arrow tower', description:'Fast physical arrows against ground and flying foes. Tier II lanterns reveal hidden enemies for nearby allies.', cost:80,tier2Cost:55,tier2Name:'Lantern Sentries',tier2Description:'Reveals hidden enemies within firing range for this tower and nearby allies. Unlocked after this tower defends one wave.',tier2Effects:{reveal:true},damage:16,range:175,interval:.65,color:0xd8ba75,damageType:'physical',role:'PRECISION & SCOUTING',effects:{},
     branches:{
       A:branch('Longbow Citadel',150,'Fires at three separate targets.',{targets:3},{damage:30,range:205,interval:.85}),
       B:branch('Rapid Archer',145,'Rapid arrows pierce one additional foe.',{pierce:2},{damage:17,range:185,interval:.27}),
@@ -65,7 +67,7 @@ export const TOWER_DEFS: Record<TowerKind,TowerDef> = {
     },
   },
   frost: {
-    name:'Ice shrine',description:'Instant ice pulses damage and slow enemies around the impact.',cost:90,tier2Cost:65,damage:9,range:160,interval:.9,color:0x88d9de,damageType:'ice',role:'SLOW & FREEZE',effects:{splash:45,slow:.45,slowDuration:1.5},
+    name:'Ice shrine',description:'Instant ice pulses damage and slow enemies around the impact. Tier II aurora lenses reveal hidden enemies.',cost:90,tier2Cost:65,tier2Name:'Aurora Lens',tier2Description:'An aurora lens reveals hidden enemies within firing range for nearby allies while ice pulses slow them.',tier2Effects:{reveal:true},damage:9,range:160,interval:.9,color:0x88d9de,damageType:'ice',role:'SLOW & FREEZE',effects:{splash:45,slow:.45,slowDuration:1.5},
     branches:{
       A:branch('Crystal Glacier',165,'A freezing pulse roots enemies briefly and slows their return.',{splash:90,root:.7,slow:.55,slowDuration:2.2},{damage:23,range:175,interval:1.4}),
       B:branch('Cryo Sniper',170,'Long-range bolts deliver a deep single-target freeze.',{splash:0,root:1.25,slow:.65,slowDuration:2.5},{damage:52,range:325,interval:1.9}),
@@ -132,7 +134,7 @@ export const TOWER_DEFS: Record<TowerKind,TowerDef> = {
     branches:{
       A:branch('Acoustic Annihilator',265,'Huge sound waves push enemies back along the road.',{splash:115,knockback:48},{damage:51,range:195,interval:1.8}),
       B:branch('Frequency Tower',255,'Sound waves disable enemy abilities for three seconds.',{splash:75,disableAbilities:3},{damage:57,range:195,interval:1.6}),
-      C:branch('Resonance Engine',260,'Nearby towers gain 15% damage and 20% firing haste.',{splash:65,auraDamage:.15,auraHaste:.2},{damage:38,range:185,interval:1.5}),
+      C:branch('Echo Observatory',260,'Far-reaching sonar reveals hidden foes through tree cover and pushes them back.',{splash:80,reveal:true,knockback:18},{damage:38,range:265,interval:1.5}),
       D:branch('Dissonance Core',400,'Hell specialization: wide sonic pushback, ability suppression, and amplification.',{splash:125,knockback:50,disableAbilities:3,auraDamage:.15,auraHaste:.15},{damage:72,range:215,interval:1.7}),
     },
   },
@@ -173,7 +175,7 @@ export const TOWER_DEFS: Record<TowerKind,TowerDef> = {
     },
   },
   truesight: {
-    name:'Truesight watch',description:'Reveals hidden enemies and deals bonus damage to ghosts.',cost:130,tier2Cost:100,damage:23,range:200,interval:.9,color:0xd6eaa4,damageType:'holy',role:'PREMIUM REVEAL',premiumCost:40,effects:{reveal:true,executeGhosts:1.75},
+    name:'Truesight watch',description:'An optional ghost hunter with revealing holy shots and bonus damage against ghosts. Ordinary towers can also gain detection.',cost:130,tier2Cost:100,damage:23,range:200,interval:.9,color:0xd6eaa4,damageType:'holy',role:'PREMIUM GHOST HUNTER',premiumCost:40,effects:{reveal:true,executeGhosts:1.75},
     branches:{
       A:branch('Piercing Sight',215,'A revealing beam pierces two enemies.',{reveal:true,pierce:2,executeGhosts:2},{damage:48,range:250,interval:1.05}),
       B:branch('Wraith Hunter',225,'Rapid holy shots are devastating against ghosts.',{reveal:true,executeGhosts:3.5},{damage:33,range:230,interval:.4}),

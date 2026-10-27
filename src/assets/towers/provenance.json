@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "title": "Mossguard role-led tower artwork",
+  "kind": "original-procedural-svg",
+  "license": "CC0-1.0",
+  "licenseFile": "LICENSE.txt",
+  "origin": "Original drawing code written for this project; no downloaded or third-party images, meshes, textures, or generative-image outputs are embedded.",
+  "generator": {
+    "path": "scripts/generate-tower-art.mjs",
+    "sha256": "5a059f241e56d70f7f6ef97752a37fdf05a82d31db566a9d4614e867d4c002df",
+    "command": "node scripts/generate-tower-art.mjs"
+  },
+  "families": [
+    "archer",
+    "cannon",
+    "mortar",
+    "frost",
+    "earth",
+    "arcane",
+    "tesla",
+    "venom",
+    "prism",
+    "trap",
+    "sonic",
+    "barracks",
+    "void",
+    "solar",
+    "chrono",
+    "truesight",
+    "nexus"
+  ],
+  "tiers": [
+    1,
+    2,
+    3
+  ],
+  "frameCount": 51,
+  "atlas": {
+    "width": 2304,
+    "height": 1536,
+    "format": "SVG",
+    "runtime": "Rasterized once by the browser image loader; frame images reused by Phaser and DOM portraits."
+  },
+  "preserved": "Existing maps, enemy atlases, walking cycles, and audio are unchanged by this generator.",
+  "outputs": [
+    {
+      "file": "role-towers.svg",
+      "sha256": "57abdb455e502f8764c2eccec4018cba9759d8296e70127fc9c64aabc4f124de"
+    },
+    {
+      "file": "role-towers.json",
+      "sha256": "4ade75e7a628f7a0b46185a2ba339a1ccecfeb5da035b65b688f5be9037c2199"
+    },
+    {
+      "file": "tower-contact-sheet.svg",
+      "sha256": "120af2f3cbf4dce4e4ea75229ddae2c1322be46c892c3909b6e2e75b14bcb05e"
+    }
+  ]
+}

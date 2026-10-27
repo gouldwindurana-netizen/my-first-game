@@ -1,3 +1,4 @@
+import { enterBattle } from './play-helpers.mjs';
 /** Map proportions, real camera input, and interpolated scenery through read-only diagnostics. */
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -71,6 +72,7 @@ try {
   monitor(page);
   await page.goto(base);
   await page.waitForSelector('#battlefield[data-ready="true"]');
+  await enterBattle(page);
   await page.waitForFunction(() => window.__MOSSGUARD__?.animations?.environment?.items?.length > 0);
   await page.evaluate(() => document.fonts.ready);
   const counts = new Map();
@@ -149,6 +151,7 @@ try {
   await offlineContext.route(/^https?:/, route => route.abort());
   await offline.setContent(await readFile('samples/mossguard.html', 'utf8'), { waitUntil: 'load' });
   await offline.waitForFunction(() => window.__MOSSGUARD__?.animations?.environment?.items?.length > 0);
+  await enterBattle(offline);
   const offlineMap = await chooseMap(offline, 2);
   assertCamera(offlineMap, maps[2]);
   const offlinePixels = await canvasFingerprint(offline);

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { TOWER_DEFS, ENEMY_DEFS, type GameModel, type Enemy, type TowerKind } from '../game/model';
-import { suppliedAtlas, TOWER_ATLAS_URL, ENEMY_ATLAS_URL, TOWER_TEXTURE, ENEMY_TEXTURE, SPECIALIST_TEXTURE, SPECIALIST_ATLAS_URL, getTowerTexture, getTowerFrameKey, getTowerVisualKind } from '../asset-art';
+import { suppliedAtlas, TOWER_ATLAS_URL, ENEMY_ATLAS_URL, TOWER_TEXTURE, ENEMY_TEXTURE, getTowerTexture, getTowerFrameKey, getTowerRecoilKind } from '../asset-art';
 import { towerRecoil } from './animation-pose';
 import { sampleWalkCycle, ANIMATION_FPS, animationTick } from './walk-cycle';
 import { UNIT_KINDS, getWalkingAsset, walkFrameName, type VisualUnitKind } from '../walking-assets';
@@ -8,7 +8,6 @@ import { UNIT_KINDS, getWalkingAsset, walkFrameName, type VisualUnitKind } from 
 export function preloadAssetSheets(scene: Phaser.Scene): void {
   scene.load.image(TOWER_TEXTURE, TOWER_ATLAS_URL);
   scene.load.image(ENEMY_TEXTURE, ENEMY_ATLAS_URL);
-  scene.load.image(SPECIALIST_TEXTURE, SPECIALIST_ATLAS_URL);
   for (const kind of UNIT_KINDS) { const asset = getWalkingAsset(kind); scene.load.image(asset.texture, asset.url); }
 }
 export function prepareAssetFrames(scene: Phaser.Scene): void {
@@ -20,13 +19,13 @@ export function prepareAssetFrames(scene: Phaser.Scene): void {
     }
   }
   for (const [name, frame] of Object.entries(suppliedAtlas.frames)) {
-    const key = frame.sheet === 'core-tower-upgrades' ? TOWER_TEXTURE : frame.sheet === 'specialist-towers' ? SPECIALIST_TEXTURE : ENEMY_TEXTURE;
+    const key = frame.sheet === 'enemy-roster' ? ENEMY_TEXTURE : TOWER_TEXTURE;
     if (!scene.textures.exists(key)) throw new Error(`Missing supplied asset texture: ${key}`);
     const texture = scene.textures.get(key);
     if (!texture.has(name)) texture.add(name, 0, frame.x, frame.y, frame.width, frame.height);
   }
 }
-interface TowerView { image: Phaser.GameObjects.Image; badge:Phaser.GameObjects.Text; born: number; upgrade: number; level: number; fired: number; fireSequence: number; state: string; padId: number; movedAt: number; moveX: number; moveY: number; }
+interface TowerView { image: Phaser.GameObjects.Image; badge:Phaser.GameObjects.Text; born: number; upgrade: number; level: number; fired: number; fireSequence: number; state: string; }
 interface EnemyView { image: Phaser.GameObjects.Image; badge:Phaser.GameObjects.Text; visualKind:VisualUnitKind; enemy: Enemy; lastX: number; hp: number; hit: number; hitSequence: number; state: string; walkFrame: number; walkPhase: number; lastPoseTick: number; }
 interface TroopView { image:Phaser.GameObjects.Image; x:number;y:number;distance:number;state:string;lastPoseTick:number;walkFrame:number; }
 interface Particle { x: number; y: number; vx: number; vy: number; born: number; life: number; color: number; size: number; }
@@ -40,6 +39,7 @@ export class AssetViews {
   private readonly towers = new Map<number, TowerView>();
   private readonly enemies = new Map<number, EnemyView>();
   private readonly troops = new Map<number,TroopView>();
+  private readonly weaponOutlets = new Map<string,{x:number;y:number}>();
   private readonly shadows: Phaser.GameObjects.Graphics;
   private readonly effects: Phaser.GameObjects.Graphics;
   private particles: Particle[] = [];
@@ -67,13 +67,14 @@ export class AssetViews {
     for (const view of this.enemies.values()) {view.image.destroy();view.badge.destroy();}
     for (const view of this.troops.values()) view.image.destroy();
     for (const view of this.ghosts) view.image.destroy();
-    this.towers.clear(); this.enemies.clear(); this.troops.clear(); this.ghosts = []; this.particles = []; this.lastShot = 0; this.deaths = 0;
+    this.towers.clear(); this.enemies.clear(); this.troops.clear(); this.weaponOutlets.clear(); this.ghosts = []; this.particles = []; this.lastShot = 0; this.deaths = 0;
   }
   reset(): void { this.clear(); this.lastTime = -1; }
   sync(model: GameModel, time: number, reduced = false, presentationTime = time): void {
     if (model.time < this.lastTime) this.clear();
     this.lastTime = model.time; this.clock = time; this.reduced = reduced; this.presentationTime = presentationTime; this.poseTick = animationTick(presentationTime);
     const fx = this.effects.clear(); this.shadows.clear();
+    this.weaponOutlets.clear();
     if (reduced) { this.particles = []; for (const ghost of this.ghosts) ghost.image.destroy(); this.ghosts = []; }
     const towerIds = new Set(model.towers.map(t => t.id)), enemyIds = new Set(model.enemies.map(e => e.id));
     for (const [id, view] of this.towers) if (!towerIds.has(id)) { view.image.destroy(); view.badge.destroy(); this.towers.delete(id); }
@@ -104,32 +105,32 @@ export class AssetViews {
       let view = this.towers.get(tower.id);
       if (!view) {
         const badge=this.scene.add.text(pad.x,pad.y+22,'',{fontFamily:'DM Sans',fontSize:'9px',fontStyle:'bold',color:'#e8dec1',backgroundColor:'#071923',padding:{x:4,y:2}}).setOrigin(.5).setDepth(9);
-        view = { image: this.scene.add.image(pad.x, pad.y + 16, getTowerTexture(tower.kind), key).setOrigin(.5, 1), badge, born: time, upgrade: -10, level: tower.level, fired: -10, fireSequence: 0, state: 'building', padId: tower.padId, movedAt: -10, moveX: pad.x, moveY: pad.y + 16 };
+        view = { image: this.scene.add.image(pad.x, pad.y + 16, getTowerTexture(tower.kind), key).setOrigin(frame.originX, frame.originY), badge, born: time, upgrade: -10, level: tower.level, fired: -10, fireSequence: 0, state: 'building' };
         this.towers.set(tower.id, view); this.burst(pad.x, pad.y + 4, 0xe8cd8a, 15, time);
       }
-      if (view.padId !== tower.padId) { view.moveX = view.image.x; view.moveY = view.image.y; view.movedAt = time; view.padId = tower.padId; }
       if (view.level !== tower.level) { view.level = tower.level; view.upgrade = time; this.burst(pad.x, pad.y - 40, 0xffe6a5, 22, time); }
       const image = view.image;
       if (image.frame.name !== key) image.setFrame(key);
-      const base = Math.min(([84, 100, 116][tower.level - 1] ?? 116) / frame.height, 95 / frame.width)*(tower.kind==='trap'?.42:1);
+      const base = Math.min(([84, 100, 116][tower.level - 1] ?? 116) / frame.height, (tower.kind==='trap'?82:105) / frame.width);
       const buildAge = time - view.born, upgradeAge = time - view.upgrade, fireAge = time - view.fired;
-      const recoil = towerRecoil(getTowerVisualKind(tower.kind), fireAge, reduced);
+      const recoil = towerRecoil(getTowerRecoilKind(tower.kind), fireAge, reduced);
       const build = reduced ? 1 : 1 - (1 - Math.min(1, buildAge / .34)) ** 3;
       const lift = !reduced && upgradeAge < .5 ? Math.sin(upgradeAge * Math.PI / .5) * 3 : 0;
-      image.setScale(base * recoil.scaleX * (.85 + .15 * build), base * recoil.scaleY * (.35 + .65 * build));
-      const move = reduced ? 1 : Math.min(1, (time - view.movedAt) / .32), eased = move * move * (3 - 2 * move);
-      const anchorX = view.moveX + (pad.x - view.moveX) * eased, anchorY = view.moveY + (pad.y + 16 - view.moveY) * eased - Math.sin(move * Math.PI) * 12;
+      image.setOrigin(frame.originX,frame.originY).setScale(base * recoil.scaleX * (.85 + .15 * build), base * recoil.scaleY * (.35 + .65 * build));
+      const anchorX = pad.x, anchorY = pad.y + 16;
       image.setPosition(anchorX + recoil.offsetX, anchorY + recoil.offsetY - lift).setRotation(recoil.rotation).setAlpha(reduced ? 1 : .5 + .5 * build);
       image.setDepth(6 + (pad.y + 16) / 1000).setName(`asset-tower-${tower.id}-${key}`);
       view.badge.setText(`${towerMarks[tower.kind]??'TW'}${tower.branch?` · ${tower.branch}`:''}${tower.kind==='trap'?` ${'•'.repeat(Math.max(0,tower.uses??0))}`:''}`).setPosition(anchorX,anchorY+9);
       const badgeColor=`#${TOWER_DEFS[tower.kind].color.toString(16).padStart(6,'0')}`;if(view.badge.style.color!==badgeColor)view.badge.setColor(badgeColor);
       if((tower.disabledUntil??0)>model.time){image.setAlpha(.45);view.badge.setText(`${towerMarks[tower.kind]} ×`);}
       if((tower.shieldCharges??0)>0)fx.lineStyle(1.5,0xe9eeff,.6).strokeEllipse(anchorX,anchorY-22,64,74);
-      view.state = move < 1 ? 'moving' : buildAge < .34 ? 'building' : upgradeAge < .5 ? 'upgrading' : fireAge < .36 ? 'firing' : 'idle';
+      view.state = buildAge < .34 ? 'building' : upgradeAge < .5 ? 'upgrading' : fireAge < .36 ? 'firing' : 'idle';
       this.shadows.fillStyle(0x04101b, .25).fillEllipse(anchorX + 2, anchorY - 2, Math.min(66, image.displayWidth * .8), 22);
-      const color = TOWER_DEFS[tower.kind].color;
-      if (recoil.flash > 0) { fx.fillStyle(color, recoil.flash * .65).fillCircle(pad.x, pad.y - 53, tower.kind === 'cannon' ? 13 * recoil.flash : 8 * recoil.flash); }
-      if (!reduced && (tower.kind === 'frost' || tower.kind === 'arcane' || tower.kind === 'tesla' || tower.kind === 'venom')) this.magic(fx, tower.kind, anchorX, anchorY - image.displayHeight + 2, time, tower.id);
+      const muzzleX=anchorX+((frame.muzzleX??.5)-frame.originX)*frame.width*base;
+      const muzzleY=anchorY+((frame.muzzleY??.25)-frame.originY)*frame.height*base;
+      this.weaponOutlets.set(`${pad.x.toFixed(1)}:${(pad.y-22).toFixed(1)}`,{x:muzzleX,y:muzzleY});
+      if(recoil.flash>0)this.weaponFlash(fx,tower.kind,muzzleX,muzzleY,recoil.flash);
+      if(!reduced)this.magic(fx,tower.kind,muzzleX,muzzleY,time,tower.id);
       if (!reduced && upgradeAge < .6) { fx.lineStyle(2, 0xffdf9d, 1 - upgradeAge / .6).strokeEllipse(pad.x, pad.y + 9, 40 + upgradeAge * 110, 18 + upgradeAge * 50); }
     }
     for (const enemy of model.enemies) {
@@ -147,7 +148,7 @@ export class AssetViews {
       const dx = enemy.x - view.lastX;
       if (Math.abs(dx) > .03) view.image.setFlipX(dx < 0);
       const slow = enemy.slowUntil > model.time, height=enemyHeights[visualKind]*(enemy.miniBoss?1.18:1),base = height / asset.bodyHeight;
-      const flying=definition.flying===true,lift=flying?17:0,hidden=(definition.stealth||definition.ghost)&&!((enemy.revealedUntil??0)>model.time);
+      const flying=definition.flying===true,lift=flying?17:0,hidden=(definition.stealth||definition.ghost)&&!((enemy.revealedUntil??0)>model.time)&&enemy.distance<model.pathLength*.82;
       // Feet, knees, arms, and equipment move inside each frame. Keep the whole sprite stable.
       view.image.setFrame(frameName).setScale(base).setRotation(0);
       view.image.setPosition(enemy.x, enemy.y + 6-lift).setDepth(6 + (enemy.y + 6) / 1000).setName(`asset-enemy-${enemy.id}-${enemy.kind}`);
@@ -205,18 +206,99 @@ export class AssetViews {
       if(troop.state==='fighting')fx.lineStyle(1.5,0xe9dcae,.9).lineBetween(troop.x+8,troop.y-18,troop.x+13,troop.y-24);
     }
   }
-  private magic(fx: Phaser.GameObjects.Graphics, kind: TowerKind, x: number, y: number, time: number, id: number): void {
-    const color = TOWER_DEFS[kind].color, phase = time * 1.8 + id;
-    fx.fillStyle(color, .07 + (Math.sin(phase) + 1) * .035).fillCircle(x, y, 17);
-    for (let i = 0; i < 3; i++) {
-      const angle = phase + i * Math.PI * 2 / 3;
-      fx.fillStyle(color, .75).fillCircle(x + Math.cos(angle) * 14, y + Math.sin(angle) * 8, 1.8);
+  /** Secondary chain jumps retain their source on the enemy; primary shots leave the weapon. */
+  getShotOrigin(from:{x:number;y:number}):{x:number;y:number}{
+    return this.weaponOutlets.get(`${from.x.toFixed(1)}:${from.y.toFixed(1)}`)??{x:from.x,y:from.y-8};
+  }
+  /** Brief feedback originates at the actual weapon, rather than the top of a reused tower. */
+  private weaponFlash(fx:Phaser.GameObjects.Graphics,kind:TowerKind,x:number,y:number,flash:number):void {
+    const color=TOWER_DEFS[kind].color,alpha=flash*.85;
+    if(kind==='archer'){fx.lineStyle(1.5,0xf4e4bd,alpha).lineBetween(x-8,y+3,x+8,y+3);return;}
+    if(kind==='cannon'||kind==='mortar'){
+      fx.fillStyle(0xffe5a1,alpha).fillTriangle(x-4,y+4,x+2,y-18*flash,x+11,y-4);
+      fx.fillStyle(0xe9a15b,alpha*.35).fillCircle(x,y-3,12*flash);
+      fx.lineStyle(2,0xc4b6a1,alpha*.65).strokeEllipse(x-4,y+2,16+10*(1-flash),8+5*(1-flash));return;
     }
+    if(kind==='trap'){
+      fx.lineStyle(2,0xe6cba3,alpha).strokeEllipse(x,y,31+flash*13,12+flash*5);
+      for(let i=0;i<4;i++)fx.lineBetween(x-15+i*10,y+4,x-10+i*10,y-8*flash);return;
+    }
+    if(kind==='sonic'){
+      for(let i=0;i<3;i++)fx.lineStyle(1.5,0xe6c7ef,alpha/(i+1)).strokeEllipse(x,y,10+i*10+(1-flash)*28,7+i*7+(1-flash)*18);return;
+    }
+    if(kind==='venom'){
+      fx.fillStyle(0xd0ee97,alpha).fillCircle(x-4,y-6,3).fillCircle(x+4,y-12,2).fillCircle(x+7,y-3,2.5);return;
+    }
+    if(kind==='void'){
+      fx.fillStyle(0x080f21,alpha).fillCircle(x,y,9*flash+2);
+      fx.lineStyle(2,0xc2a1ed,alpha).strokeEllipse(x,y,17*flash+3,23*flash+3);return;
+    }
+    if(kind==='prism'){
+      fx.fillStyle(0xffffe8,alpha).fillCircle(x,y,4+4*flash);
+      fx.lineStyle(1.5,0xe5faff,alpha).lineBetween(x-12,y,x+12,y).lineBetween(x,y-13,x,y+13);return;
+    }
+    if(kind==='solar'){
+      fx.fillStyle(0xffde88,alpha).fillTriangle(x-7,y+6,x-2,y-23*flash,x+8,y+6);
+      fx.lineStyle(2,0xffba70,alpha*.7).strokeCircle(x,y,10+8*(1-flash));return;
+    }
+    if(kind==='earth'){
+      fx.lineStyle(2,0xd9d5b0,alpha).lineBetween(x-14,y+7,x-6,y-4).lineBetween(x-6,y-4,x+5,y+1).lineBetween(x+5,y+1,x+13,y-8);return;
+    }
+    if(kind==='frost'){
+      fx.lineStyle(1.8,0xd8fbff,alpha);
+      for(let i=0;i<3;i++){const a=i*Math.PI/3;fx.lineBetween(x-Math.cos(a)*12,y-Math.sin(a)*12,x+Math.cos(a)*12,y+Math.sin(a)*12);}return;
+    }
+    if(kind==='chrono'){
+      fx.lineStyle(1.5,0xe5dcc0,alpha).strokeCircle(x,y,12+5*(1-flash)).lineBetween(x,y,x,y-9).lineBetween(x,y,x+6,y+3);return;
+    }
+    if(kind==='tesla'){
+      fx.lineStyle(2,0xd7f5ff,alpha).lineBetween(x-12,y-1,x-4,y-10).lineBetween(x-4,y-10,x+2,y-2).lineBetween(x+2,y-2,x+12,y-15);return;
+    }
+    if(kind==='barracks')return;
+    fx.lineStyle(1.5,color,alpha).strokeCircle(x,y,7+8*(1-flash));
+    fx.fillStyle(0xf1e1ff,alpha*.7).fillCircle(x,y,4*flash);
+  }
+  private magic(fx:Phaser.GameObjects.Graphics,kind:TowerKind,x:number,y:number,time:number,id:number):void {
+    const phase=time*1.8+id,color=TOWER_DEFS[kind].color;
+    if(kind==='venom'){
+      for(let i=0;i<2;i++){const age=(time*.45+i*.5+id*.1)%1;fx.fillStyle(0xbfe38a,(1-age)*.55).fillCircle(x-9+i*11,y-age*17,1.4+age*1.4);}return;
+    }
+    if(kind==='tesla'){
+      const jitter=Math.sin(Math.floor(time*9)+id)*4;
+      fx.lineStyle(1,0xaadef5,.5).lineBetween(x-9,y,x-3,y-5-jitter).lineBetween(x-3,y-5-jitter,x+2,y-1).lineBetween(x+2,y-1,x+10,y-7);return;
+    }
+    if(kind==='void'){
+      fx.lineStyle(1,0xbd96e7,.45).strokeEllipse(x,y,14+Math.sin(phase)*2,22);
+      fx.fillStyle(0xc1a2ed,.7).fillCircle(x+Math.cos(phase)*14,y+Math.sin(phase)*21,1.6);return;
+    }
+    if(kind==='solar'){
+      fx.fillStyle(0xffd794,.08+(Math.sin(phase)+1)*.025).fillCircle(x,y,18);
+      for(let i=0;i<2;i++){const age=(time*.65+i*.5)%1;fx.fillStyle(0xffd79b,(1-age)*.6).fillCircle(x+Math.sin(phase+i)*4,y-age*20,1.3);}return;
+    }
+    if(kind==='chrono'){
+      const a=phase*.8;fx.lineStyle(1.1,0xe6d7aa,.65).strokeCircle(x,y,10).lineBetween(x,y,x+Math.cos(a)*8,y+Math.sin(a)*8);return;
+    }
+    if(kind==='truesight'){
+      fx.lineStyle(1,0xe3e8b8,.4).strokeEllipse(x,y,14,8);
+      fx.fillStyle(0xf8f4d5,.6).fillCircle(x+Math.sin(phase*.45)*5,y,1.8);return;
+    }
+    if(kind==='prism'){
+      fx.lineStyle(1,0xe7fae7,.35).lineBetween(x-7,y-4,x+7,y+4);
+      fx.fillStyle(0xf7fff4,.5+Math.sin(phase)*.2).fillCircle(x-4,y-4,1.8);return;
+    }
+    if(kind==='nexus'){
+      for(let i=0;i<3;i++){const a=phase*.5+i*Math.PI*2/3;fx.fillStyle([0xd6b0f0,0x9adbe7,0xe4ce90][i],.7).fillCircle(x+Math.cos(a)*17,y+Math.sin(a)*10,1.8);}return;
+    }
+    if(kind==='arcane'){
+      fx.fillStyle(color,.05+(Math.sin(phase)+1)*.025).fillCircle(x,y,12);
+      fx.lineStyle(1,0xd3b4ef,.5).strokeEllipse(x,y+6,12,5);return;
+    }
+    if(kind==='frost')fx.fillStyle(0xd0faff,.65).fillCircle(x+Math.sin(phase*.7)*8,y-5,1.5);
   }
   getSnapshot() {
     const pose = (image: Phaser.GameObjects.Image) => ({ x: image.x, y: image.y, scaleX: image.scaleX, scaleY: image.scaleY, rotation: image.rotation, alpha: image.alpha });
     return { fps: ANIMATION_FPS, poseTick: this.poseTick, presentationTime: this.presentationTime, time: this.clock, reduced: this.reduced, deaths: this.deaths, particles: this.particles.length, ghosts: this.ghosts.length,
-      towers: [...this.towers].map(([id, v]) => ({ id, state: v.state, fireSequence: v.fireSequence, level: v.level, ...pose(v.image) })),
+      towers: [...this.towers].map(([id, v]) => ({ id, state: v.state, fireSequence: v.fireSequence, level: v.level, textureKey:v.image.texture.key, frameName:v.image.frame.name, displayWidth:v.image.displayWidth, displayHeight:v.image.displayHeight, originX:v.image.originX,originY:v.image.originY,...pose(v.image) })),
       enemies: [...this.enemies].map(([id, v]) => ({ id, state: v.state, hitSequence: v.hitSequence, kind: v.enemy.kind, visualKind:v.visualKind, walkFrame: v.walkFrame, walkPhase: v.walkPhase, textureKey: v.image.texture.key, frameName: v.image.frame.name, ...pose(v.image) })),
       troops:[...this.troops].map(([id,v])=>({id,state:v.state,walkFrame:v.walkFrame,...pose(v.image)})) };
   }

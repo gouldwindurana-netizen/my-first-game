@@ -1,0 +1,12 @@
+CC0 1.0 Universal — public domain dedication
+
+The original SVG artwork in role-towers.svg and tower-contact-sheet.svg, and the
+accompanying frame measurements in role-towers.json, were created specifically
+for the Mossguard project through original procedural drawing code.
+
+To the extent possible under law, copyright and related rights in these new art
+assets are waived under CC0 1.0 Universal. No attribution is required. This
+statement applies only to these original tower art assets, not to any game code,
+legacy art packs, maps, music, walking animation, fonts, or other project files.
+
+https://creativecommons.org/publicdomain/zero/1.0/

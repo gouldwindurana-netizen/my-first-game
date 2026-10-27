@@ -1,6 +1,6 @@
 # Third-party notices
 
-Mossguard includes the following independently licensed runtime components. The application code and generated game artwork have not been assigned an open-source license by this repository; the dependency licenses below do not determine the license of that original work.
+Mossguard includes the following independently licensed runtime components. The application code and earlier game artwork have not been assigned an open-source license by this repository; the dependency licenses below do not determine the license of that original work. The new original tower atlas has its own CC0 dedication, described below.
 
 | Component | Bundled version | License | Full notice |
 | --- | --- | --- | --- |
@@ -13,6 +13,10 @@ The bundled fonts are unmodified, locally hosted Latin webfont files. Their copy
 Development tools such as Vite, TypeScript, Vitest, and Playwright retain their respective package licenses. They are used to build and validate the game and are not shipped as runtime dependencies of the HTML sample.
 
 The game does not include assets or source code copied from Kingdom Rush or Bloons TD. Those titles are referenced only to describe familiar gameplay conventions.
+
+## Original tower artwork
+
+The 51 original code-authored tower frames in `src/assets/towers/` are dedicated under CC0-1.0. See `src/assets/towers/LICENSE.txt` and `provenance.json`. The static site includes this notice as `LICENSES/role-towers-CC0.txt`, and the standalone HTML embeds it. This dedication applies only to the new tower art assets; other project files retain their existing status.
 
 ## User-provided Mossguard asset pack
 
