@@ -4,7 +4,7 @@
 .campaign-tools select, .campaign-tools button, .context-journal { min-height: 44px; padding: 9px 12px; color: #e6d8ad; background: #173748; border: 1px solid #738477; border-radius: 4px; font-size: 12px; }
 .campaign-tools select:disabled { opacity: .6; }
 .campaign-rewards { color: #a7c0c7; font-size: 12px; line-height: 1.6; }
-.branch-options { display: grid; gap: 7px; margin: 14px 0; }
+.branch-options { grid-column: 1 / -1; display: grid; gap: 7px; margin: 14px 0; }
 .branch-options h3 { color: #d8c596; font-size: 14px; margin: 0 0 3px; }
 .branch-options button { display: grid; gap: 5px; min-height: 44px; padding: 10px; color: #dcd3b6; text-align: left; background: #123044; border: 1px solid #567287; border-radius: 4px; }
 .branch-options button strong { font-size: 12px; line-height: 1.4; }
