@@ -11,7 +11,7 @@ function runDefense(game: GameModel): void {
   for (let step = 0; step < 25_000 && game.status !== 'won' && game.status !== 'lost'; step++) {
     if(nextSite<Math.min(3,sites.length)){if(game.build(sites[nextSite].id,arsenal[nextSite]))nextSite++;}
     if(nextSite>=Math.min(3,sites.length)){
-      // Upgrade only when the cleared-wave and per-tower training gates permit it.
+      // Upgrade only when earned family XP and per-tower field training permit it.
       for(const tower of game.towers)game.upgrade(tower.id,'A');
       if(nextSite<sites.length&&game.build(sites[nextSite].id,arsenal[nextSite]))nextSite++;
     }
@@ -55,9 +55,9 @@ function investEarnedRewards(progression: Progression): void {
   }
 }
 
-describe('Wave-paced opening and tier balance',()=>{
+describe('Earned experience, opening, and tier balance',()=>{
   for(const difficulty of ['easy','normal'] as const){
-    it(`lets one base Arrow tower clear every ${difficulty} opening without XP, spells, or upgrades`,()=>{
+    it(`lets one base Arrow tower clear every ${difficulty} opening without prior XP, spells, or upgrades`,()=>{
       for(let index=0;index<LEVELS.length;index++){
         const game=new GameModel(index);game.setDifficulty(difficulty);
         expect(game.build(0,'archer')).toBe(true);expect(game.startWave()).toBe(true);
@@ -65,6 +65,7 @@ describe('Wave-paced opening and tier balance',()=>{
         expect(game.status,`${difficulty} ${game.level.name}: kills ${game.kills}, lives ${game.lives}`).toBe('building');
         expect(game.wave).toBe(1);expect(game.lives,`${difficulty} ${game.level.name}: no opening leaks`).toBe(game.maxLives);
         expect(game.kills).toBe(game.waves[0].enemies.length);expect(game.towers).toHaveLength(1);expect(game.towers[0].level).toBe(1);
+        expect(game.getTowerMasteryXP('archer')).toBeGreaterThanOrEqual(12);
       }
     },30000);
   }
@@ -80,6 +81,7 @@ describe('Wave-paced opening and tier balance',()=>{
       game.update(.1);
     }
     expect(game.status).not.toBe('lost');expect(milestones).toEqual([1,3]);expect(arrow.level).toBe(3);
+    expect(game.getTowerMasteryXP('archer')).toBeGreaterThanOrEqual(75);
     expect(game.wave).toBe(3);expect(game.gold).toBeGreaterThanOrEqual(0);
   },30000);
 });
@@ -130,8 +132,12 @@ describe('Normal campaign balance with earned resources', () => {
     for (let index = 0; index < LEVELS.length; index++) {
       const game = new GameModel(index);
       expect(game.setProgression(progression.bonuses, progression.unlockedTowers, progression.unlockedCapstones)).toBe(true);
+      game.setTowerMastery(progression.towerMastery);
       game.reset();
       defend(game);
+      const report = game.towerXPReport;
+      expect(Object.values(progression.recordTowerXP(report)).reduce((sum, xp) => sum + (xp || 0), 0)).toBeGreaterThan(0);
+      game.setTowerMastery(progression.towerMastery, report);
       const earned = progression.recordResult({
         stageId: game.level.id, difficulty: game.difficulty, lives: game.lives,
         maxLives: game.maxLives, wave: game.wave, won: true, runId: `earned-campaign-${game.level.id}`,
@@ -146,6 +152,7 @@ describe('Normal campaign balance with earned resources', () => {
     }
     expect(Object.values(progression.state.stages).filter(stage => stage.normal?.cleared)).toHaveLength(12);
     expect(progression.totalRanks).toBeGreaterThan(0);
+    expect(Object.values(progression.towerMastery).reduce((sum, xp) => sum + (xp || 0), 0)).toBeGreaterThan(500);
     expect(progression.state.shopRanks['supply-cache']).toBe(5);
     expect(progression.unlockedTowers).toHaveLength(12); // No premium family is required to finish Normal.
   },30000);

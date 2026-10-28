@@ -1,6 +1,6 @@
 # Third-party notices
 
-Mossguard includes the following independently licensed runtime components. The application code and earlier game artwork have not been assigned an open-source license by this repository; the dependency licenses below do not determine the license of that original work. The new original tower atlas has its own CC0 dedication, described below.
+Mossguard includes the following independently licensed runtime components. The application code and earlier game artwork have not been assigned an open-source license by this repository; the dependency licenses below do not determine the license of that original work. The previous original SVG tower atlas has its own CC0 dedication; the currently loaded user-provided PNG tower pack has a separate source notice, described below.
 
 | Component | Bundled version | License | Full notice |
 | --- | --- | --- | --- |
@@ -16,8 +16,12 @@ The game does not include assets or source code copied from Kingdom Rush or Bloo
 
 ## Original tower artwork
 
-The 51 original code-authored tower frames in `src/assets/towers/` are dedicated under CC0-1.0. See `src/assets/towers/LICENSE.txt` and `provenance.json`. The static site includes this notice as `LICENSES/role-towers-CC0.txt`, and the standalone HTML embeds it. This dedication applies only to the new tower art assets; other project files retain their existing status.
+The previous 51 original code-authored tower frames in `src/assets/towers/` are dedicated under CC0-1.0 and remain tracked as historical source material. See `src/assets/towers/LICENSE.txt` and `provenance.json`. The static site includes this notice as `LICENSES/role-towers-CC0.txt`, and the standalone HTML embeds it. This dedication applies only to those original SVG assets; it does not cover the supplied PNG pack or other project files.
 
 ## User-provided Mossguard asset pack
 
 The tower/enemy artwork, WAV effects, and matching SVG icons in `src/assets/pack/` came from the user's `Mossguard_Design_and_Assets.zip`. See `docs/ASSET_INTEGRATION.md` and `src/assets/pack/provenance.json` for source mapping and processing notes. Supplied design documents were reference material and were not executed. This notice does not assert a separate license grant for user-provided material.
+
+## User-provided 30 FPS tower animations
+
+The current tower visuals are normalized lossless WebP copies of the PNG artwork from the user's `Mossguard_17_Towers_30FPS.zip`, explicitly authorized by the user for integration. Source sheets, metadata, and checksums are in `src/assets/towers/animated/`. The archive supplies no separate license file; this record does not assert a new ownership claim or license grant. See `USER_ASSET_NOTICE.txt` and `provenance.json` in that directory. The static build includes the notice as `LICENSES/mossguard-supplied-towers.txt`, and standalone HTML embeds the notice, provenance, and normalization record. The previous atlas's CC0 dedication does not apply to these supplied files.

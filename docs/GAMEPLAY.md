@@ -1,6 +1,6 @@
 # Combat and progression
 
-Mossguard has 12 stages, 17 tower families, 68 specializations, and 24 enemy types. Each tower family has its own original isometric silhouette and three visual tiers. The campaign uses the existing five map illustrations and four enemy walking families.
+Mossguard has 12 stages, 17 tower families, 68 specializations, and 24 enemy types. Each tower family uses the supplied 30-FPS idle and attack sheets. The pack has one appearance per family; tier size and badges identify upgrades. The campaign uses the existing five map illustrations and four enemy walking families.
 
 ## Navigation
 
@@ -20,7 +20,19 @@ Path traps snap to the road, need 24 units of separation, and have a maximum of 
 
 ## Tower upgrades
 
-Build a base tower with gold. Tier II requires one globally cleared wave and one clear after that tower was built. A permanent specialization requires three globally cleared waves and one more clear after tier II. These requirements use completed waves, not the currently active wave. An early tower can reach maximum tier during the six-wave first level. Gold is still required, and a newly built late-stage tower must gain its own battle experience. A–C work in every difficulty; D requires Hell. Branch prices and exact effects are shown in the selected tower panel. Premium gem purchases permanently unlock a family; its construction and upgrades still use battle gold.
+Build a base tower with gold. Each family now earns permanent practice XP, separate from the account XP spent on skills. Its upgrades research automatically at these cumulative thresholds; XP is never spent:
+
+| Research | Family XP |
+| --- | --- |
+| Tier II | 12 |
+| A specialization | 75 |
+| B specialization | 105 |
+| C specialization | 135 |
+| D specialization | 180; purchase also requires Hell |
+
+A genuine tower attack awards one practice XP. Each actively engaged tower earns another 0.5 XP per combat second; this includes eligible control, troop, reveal, and support participation. A family that participated in a successfully cleared wave gains eight XP once, regardless of how many copies were built. Idle, paused, disabled, exhausted traps, and weapons unable to engage a target do not train. Family XP is shared by that tower type across placements, levels, losses, and replays. It does not unlock premium families or spend account XP/gems.
+
+Researched upgrades still cost gold. Tier II also requires one globally cleared wave and one clear after that tower was built. A specialization requires three globally cleared waves and one more clear after tier II. These use completed waves, not the currently active wave. An early Arrow can research tier II after the opening and specialization A during the six-wave first level. A newly built late-stage tower must still gain its own field experience, even if its family's research is complete. A–C work in every difficulty; D requires Hell. The selected tower's XP panel opens **Tower mastery** to show all five milestones, effects, and gold costs. Premium gems unlock a family; using it earns its upgrade research.
 
 | Family | Base / tier II gold | A | B | C | D · Hell |
 | --- | --- | --- | --- | --- | --- |
@@ -86,7 +98,7 @@ Wave health grows 4.5% and speed 0.6% per wave after the first, alongside each r
 
 ## Saved progression
 
-Victory awards one to three stars: three at 90% keep lives, two at 50%, one for any other victory. Progress is stored separately for each stage and difficulty. XP, gems, purchases, and ranks save in localStorage under `mossguard-progression-v2`. Legacy campaign best waves and clear flags migrate. If storage is unavailable, the same systems work for the current session. Active battles themselves are not saved.
+Victory awards one to three stars: three at 90% keep lives, two at 50%, one for any other victory. Progress is stored separately for each stage and difficulty. Account XP, family XP, gems, purchases, and ranks save in localStorage under `mossguard-progression-v2`. Existing v2 saves retain their account progress and start the new family research without fabricated XP. Family combat reports reconcile once per simulation second and flush before resets, menus, stage/difficulty changes, and normal page exit; the same report never awards XP twice. Legacy campaign best waves and clear flags migrate. If storage is unavailable, the same systems work for the current session. Active battles themselves are not saved.
 
 First clears award XP and gems. Replays award smaller XP rewards; gems require a new difficulty clear or improved stars. A run ID prevents duplicate result awards. All 12 Normal three-star first clears yield 438 gems, while the five premium tower unlocks total 280. Gems are earned in game; there is no checkout.
 

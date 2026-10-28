@@ -40,7 +40,7 @@ const branch=(name:string,cost:number,description:string,effects:TowerEffects,st
 
 export const TOWER_DEFS: Record<TowerKind,TowerDef> = {
   archer: {
-    name:'Arrow tower', description:'Fast physical arrows against ground and flying foes. Tier II lanterns reveal hidden enemies for nearby allies.', cost:80,tier2Cost:55,tier2Name:'Lantern Sentries',tier2Description:'Reveals hidden enemies within firing range for this tower and nearby allies. Unlocked after this tower defends one wave.',tier2Effects:{reveal:true},damage:16,range:175,interval:.65,color:0xd8ba75,damageType:'physical',role:'PRECISION & SCOUTING',effects:{},
+    name:'Arrow tower', description:'Fast physical arrows against ground and flying foes. Tier II lanterns reveal hidden enemies for nearby allies.', cost:80,tier2Cost:55,tier2Name:'Lantern Sentries',tier2Description:'Reveals hidden enemies within firing range for this tower and nearby allies. Earn Arrow XP through combat, then defend a wave before buying tier II.',tier2Effects:{reveal:true},damage:16,range:175,interval:.65,color:0xd8ba75,damageType:'physical',role:'PRECISION & SCOUTING',effects:{},
     branches:{
       A:branch('Longbow Citadel',150,'Fires at three separate targets.',{targets:3},{damage:30,range:205,interval:.85}),
       B:branch('Rapid Archer',145,'Rapid arrows pierce one additional foe.',{pierce:2},{damage:17,range:185,interval:.27}),

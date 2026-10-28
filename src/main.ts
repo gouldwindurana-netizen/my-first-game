@@ -30,7 +30,15 @@ let saveStorage:Storage|null=null;
 try{saveStorage=window.localStorage;}catch{/* Progression remains available for this session. */}
 const progression = new Progression(saveStorage,LEVELS.map(level=>level.id));
 const model = new GameModel();
-function applyProgression(){model.setProgression(progression.bonuses,progression.unlockedTowers,progression.unlockedCapstones);}
+function applyProgression(){model.setProgression(progression.bonuses,progression.unlockedTowers,progression.unlockedCapstones);model.setTowerMastery(progression.towerMastery);}
+let lastTowerXPSession='',lastTowerXPSyncTime=-1;
+/** Save cumulative combat credit at a bounded rate; boundaries flush before any reset. */
+function syncTowerXP(force=false){
+ const report=model.towerXPReport;
+ if(!force&&model.status==='wave'&&report.sessionId===lastTowerXPSession&&model.time-lastTowerXPSyncTime<1)return;
+ progression.recordTowerXP(report);model.setTowerMastery(progression.towerMastery,report);
+ lastTowerXPSession=report.sessionId;lastTowerXPSyncTime=model.time;
+}
 applyProgression();
 try{const difficulty=saveStorage?.getItem('mossguard-difficulty');if(['easy','normal','hard','hell'].includes(difficulty||''))model.setDifficulty(difficulty as 'easy'|'normal'|'hard'|'hell');}catch{/* Optional save. */}
 model.reset();
@@ -111,7 +119,7 @@ const bridge:SceneBridge={model,selectedPad,selectedKind,meteorArmed,tactical:fa
 const unitPreview=new UnitPreview(()=>bridge.reduceMotion);
 const game = new Phaser.Game({type:Phaser.CANVAS,parent:'battlefield',backgroundColor:'#091724',...getRenderSize(),transparent:false,scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH},render:{antialias:true,roundPixels:false},scene:[new GroveScene(bridge)],banner:false});
 const progressionPanel=new ProgressionUI(progression,{
- onOpen:()=>{metaPaused=model.paused;model.paused=true;},
+ onOpen:()=>{syncTowerXP(true);metaPaused=model.paused;model.paused=true;},
  onClose:()=>{if(returnToMainMenu('skills'))return;model.paused=metaPaused;tick();focusBattlefield();},
  onChange:()=>{if(model.wave===0&&model.towers.length===0){const paused=model.paused;applyProgression();model.reset();model.paused=paused;}lastSignature='';tick();},
 });
@@ -126,9 +134,10 @@ const mainMenu=new MainMenu($('game-shell'),{
 function hasLiveDefense(){return !['won','lost'].includes(model.status)&&(model.wave>0||model.towers.length>0);}
 function showMainMenu(){
  if(mainMenu.isOpen)return;
+ syncTowerXP(true);
  model.paused=true;selectedKind=null;selectedPad=null;meteorArmed=false;rallyTowerId=null;
  bridge.selectedKind=null;bridge.selectedPad=null;bridge.meteorArmed=false;bridge.trapArmed=false;bridge.rallyTowerId=null;
- mainMenu.show({canResume:hasLiveDefense(),hasProgress:Object.keys(progression.state.stages).length>0||progression.totalRanks>0,completed:LEVELS.filter(level=>progression.stageProgress(level.id,model.difficulty)?.cleared).length,total:LEVELS.length,xp:progression.xp,gems:progression.gems,difficulty:model.difficulty,canChooseStage:model.status!=='wave'});
+ mainMenu.show({canResume:hasLiveDefense(),hasProgress:Object.keys(progression.state.stages).length>0||progression.totalRanks>0||Object.keys(progression.towerMastery).length>0,completed:LEVELS.filter(level=>progression.stageProgress(level.id,model.difficulty)?.cleared).length,total:LEVELS.length,xp:progression.xp,gems:progression.gems,difficulty:model.difficulty,canChooseStage:model.status!=='wave'});
  tick();
 }
 function openMenuPage(page:MenuPage){
@@ -143,6 +152,7 @@ function continueFromMenu(){
  mainMenu.hide();menuPage=null;
  if(hasLiveDefense()){model.paused=false;syncSelection();focusBattlefield();return;}
  const next=LEVELS.findIndex(level=>!progression.stageProgress(level.id,model.difficulty)?.cleared);
+ syncTowerXP(true);
  if(model.selectLevel(next<0?0:next)){applyProgression();model.reset();resetSelection();updateLevelLabels();focusBattlefield();}
 }
 function syncBattleInteractivity(){
@@ -150,11 +160,12 @@ function syncBattleInteractivity(){
  for(const element of document.querySelectorAll<HTMLElement>('.battle-column,.build-panel,.tower-dock,.site-header,.mission-heading'))element.inert=blocked;
 }
 
-function openProgression(tab:'skills'|'capstones'|'shop'|'bestiary'='skills'){
+function openProgression(tab:'skills'|'research'|'capstones'|'shop'|'bestiary'='skills',kind?:TowerKind){
+ syncTowerXP(true);
  if(menuPage!==null)menuPage='skills';
  if(!$('campaign').hidden)closeCampaign();if(!$('settings').hidden)closeSettings();
  if(!$('guide').hidden||!$('unit-preview').hidden||!$('wave-preview').hidden||!$('result').hidden)return;
- progressionPanel.open(tab);tick();
+ progressionPanel.open(tab,kind);tick();
 }
 function openWavePreview(){
  if(progressionPanel.isOpen||!$('campaign').hidden||!$('settings').hidden||!$('guide').hidden||!$('unit-preview').hidden||!$('wave-preview').hidden)return;
@@ -263,9 +274,11 @@ function renderContext(){
  const signature=[selectedPad,selectedKind,rallyTowerId,model.wave,tower?.level,tower?.branch,tower?.id,tower?.uses,tower?.shieldCharges,model.status,model.paused,model.difficulty].join(':');
  const terminal=['won','lost'].includes(model.status),unavailable=terminal||model.paused;
  if(lastSignature===signature){
+  if(kind)refreshTowerResearch(kind);
   if(tower){
    const upgrade=$<HTMLButtonElement>('upgrade');if(upgrade)upgrade.disabled=tower.level>=3||unavailable||!model.getUpgradeGate(tower).allowed||(tower.level===1&&model.gold<model.upgradeCost(tower));
-   document.querySelectorAll<HTMLButtonElement>('[data-branch]').forEach(button=>{const key=button.dataset.branch as TowerBranchKey;button.disabled=unavailable||!model.getUpgradeGate(tower).allowed||model.gold<TOWER_DEFS[tower.kind].branches[key].cost||(key==='D'&&model.difficulty!=='hell');});
+   setText('upgrade-gate',model.getUpgradeGate(tower).reason||'Research and field training complete. Upgrades use battle gold.');
+   document.querySelectorAll<HTMLButtonElement>('[data-branch]').forEach(button=>{const key=button.dataset.branch as TowerBranchKey;button.disabled=unavailable||!model.getUpgradeGate(tower,key).allowed||model.gold<TOWER_DEFS[tower.kind].branches[key].cost||(key==='D'&&model.difficulty!=='hell');});
    const rearm=$<HTMLButtonElement>('rearm-trap');if(rearm)rearm.disabled=unavailable||model.gold<model.rearmCost(tower)||tower.uses===tower.maxUses;
   }return;
  }
@@ -281,13 +294,15 @@ function renderContext(){
  const specialization=tower?.branch?def.branches[tower.branch]:null;
  const tierName=level>=2?def.tier2Name:undefined,tierDescription=level>=2?def.tier2Description:undefined;
  const upgradeGate=tower?model.getUpgradeGate(tower):null;
- $('context').innerHTML=`<div class="tower-detail ${kind}"><div class="detail-header"><h2>${specialization?.name||tierName||def.name}</h2><span>${tower?`TIER ${level}${tower.branch?` · ${tower.branch}`:''}`:'BLUEPRINT'}</span></div><div class="tower-portrait">${towerArt(kind,level)}</div><div class="detail-role">${roles[kind]}</div><p class="detail-description">${specialization?.description||tierDescription||def.description}</p><div class="stat-list"><div><span>Damage</span><b>${Math.round(stats.damage)}</b></div><div><span>Range</span><b>${Math.round(stats.range)}</b></div><div><span>Fire interval</span><b>${stats.interval.toFixed(2)}s</b></div></div><p class="effect-summary">${tags}</p>${level===1&&def.tier2Name?`<p class="tier-unlock"><b>Tier II · ${def.tier2Name} · ${def.tier2Cost} gold</b><span>${def.tier2Description}</span></p>`:''}
+ $('context').innerHTML=`<div class="tower-detail ${kind}"><div class="detail-header"><h2>${specialization?.name||tierName||def.name}</h2><span>${tower?`TIER ${level}${tower.branch?` · ${tower.branch}`:''}`:'BLUEPRINT'}</span></div><div class="tower-portrait">${towerArt(kind,level)}</div><div class="detail-role">${roles[kind]}</div><p class="detail-description">${specialization?.description||tierDescription||def.description}</p><section class="tower-mastery" aria-label="${def.name} family experience"><button id="tower-research-open"><b id="tower-family-xp"></b><span>Upgrade research ›</span></button><progress id="tower-family-progress" aria-label="Family experience toward next upgrade"></progress><small id="tower-family-next"></small><span>Family XP is saved; gold buys each battlefield upgrade.</span></section><div class="stat-list"><div><span>Damage</span><b>${Math.round(stats.damage)}</b></div><div><span>Range</span><b>${Math.round(stats.range)}</b></div><div><span>Fire interval</span><b>${stats.interval.toFixed(2)}s</b></div></div><p class="effect-summary">${tags}</p>${level===1&&def.tier2Name?`<p class="tier-unlock"><b>Tier II · ${def.tier2Name} · ${def.tier2Cost} gold</b><span>${def.tier2Description}</span></p>`:''}
  ${kind==='trap'?`<p class="trap-charges">${tower?`${tower.uses} / ${tower.maxUses} charges remaining`:'Four charges · place on or near the road'}</p>`:''}
  ${tower?`<div class="strategy-controls"><label for="targeting-select">Target priority</label><select id="targeting-select" ${unavailable?'disabled':''}>${TARGET_MODES.map(mode=>`<option value="${mode}" ${tower.targeting===mode?'selected':''}>${mode[0].toUpperCase()+mode.slice(1)}</option>`).join('')}</select><small id="targeting-hint">${targetingHints[tower.targeting]}</small>
  ${kind==='barracks'?`<button id="rally-troops" aria-pressed="${rallyTowerId===tower.id}" ${unavailable?'disabled':''}>${rallyTowerId===tower.id?'Choose rally point on road':'Set soldier rally point'}</button>`:''}
  ${kind==='trap'?`<button id="rearm-trap" ${unavailable||model.gold<model.rearmCost(tower)||tower.uses===tower.maxUses?'disabled':''}>Rearm · ${model.rearmCost(tower)} gold</button>`:''}</div>
- ${level===2?`<div class="branch-options"><h3>Choose a specialization</h3>${BRANCH_KEYS.map(key=>{const branch=def.branches[key];return `<button data-branch="${key}" ${unavailable||!upgradeGate?.allowed||model.gold<branch.cost||(key==='D'&&model.difficulty!=='hell')?'disabled':''}><strong>${key} · ${branch.name}</strong><span>${branch.description}</span><small>${key==='D'&&model.difficulty!=='hell'?'Hell difficulty required':`${branch.cost} gold`}</small></button>`;}).join('')}</div>`:''}
+ ${level===2?`<div class="branch-options"><h3>Choose a specialization</h3>${BRANCH_KEYS.map(key=>{const branch=def.branches[key];return `<button data-branch="${key}" ${unavailable||!model.getUpgradeGate(tower,key).allowed||model.gold<branch.cost||(key==='D'&&model.difficulty!=='hell')?'disabled':''}><strong>${key} · ${branch.name}</strong><span>${branch.description}</span><small data-branch-research="${key}"></small></button>`;}).join('')}</div>`:''}
  <p id="upgrade-gate" class="upgrade-gate">${upgradeGate?.reason||""}</p><div class="tower-actions"><button id="upgrade" ${level===3||unavailable||!upgradeGate?.allowed||(level===1&&model.gold<model.upgradeCost(tower))?'disabled':''}>${level===3?'Specialized':level===2?'Choose a branch':`Tier II · ${model.upgradeCost(tower)} gold`}</button><button id="sell" ${unavailable?'disabled':''} title="Sell for 70% of invested gold">Sell · ${Math.floor(tower.spent*.7)}</button></div>`:`<div class="placement-note">Build for ${def.cost} gold. ${kind==='trap'?'Choose the road or a named site nearby.':'Choose a glowing foundation or named site.'}</div>`}</div>`;
+ $('tower-research-open').addEventListener('click',()=>openProgression('research',kind));
+ refreshTowerResearch(kind);
  if(!tower)return;
  $('targeting-select').addEventListener('change',()=>{const mode=$<HTMLSelectElement>('targeting-select').value as TowerTargetMode;if(model.setTargeting(tower.id,mode))$('targeting-hint').textContent=targetingHints[mode];});
  $('upgrade').addEventListener('click',()=>{if(tower.level===2){document.querySelector<HTMLButtonElement>('[data-branch]:not(:disabled)')?.focus();return;}if(model.upgrade(tower.id)){effects.play('upgrade');lastSignature='';tick();}});
@@ -296,9 +311,17 @@ function renderContext(){
  $('rally-troops')?.addEventListener('click',()=>{rallyTowerId=rallyTowerId===tower.id?null:tower.id;selectedKind=null;meteorArmed=false;syncSelection();toast('Choose a rally point on the road near the barracks.');});
  $('rearm-trap')?.addEventListener('click',()=>{if(model.rearmTrap(tower.id)){effects.play('build');lastSignature='';tick();}});
 }
+function refreshTowerResearch(kind:TowerKind){
+ const research=model.towerResearch(kind),xp=model.getTowerMasteryXP(kind),next=research.find(item=>!item.unlocked);
+ setText('tower-family-xp',`${xp.toLocaleString()} family XP`);
+ setText('tower-family-next',next?`${xp} / ${next.requiredXP} XP · ${next.name}`:'All family upgrades researched');
+ const bar=$<HTMLProgressElement>('tower-family-progress');bar.max=next?.requiredXP||1;bar.value=next?Math.min(xp,next.requiredXP):1;
+ for(const item of research){if(item.key==='II')continue;const element=document.querySelector<HTMLElement>(`[data-branch-research="${item.key}"]`);if(element)element.textContent=`${TOWER_DEFS[kind].branches[item.key].cost} gold · ${item.unlocked?'XP researched':`${xp} / ${item.requiredXP} family XP`}${item.key==='D'&&model.difficulty!=='hell'?' · Hell required':''}`;}
+}
 function tick(){
+ syncTowerXP();
  syncBattleInteractivity();
- setText('gold',String(model.gold));setText('built',`${model.towers.filter(t=>t.kind!=='trap').length} / ${model.pads.length}`);setText('lives',`${model.lives} / ${model.maxLives}`);setText('header-wallet',`${progression.xp} XP · ${progression.gems} gems`);setText('wave',`${String(model.wave).padStart(2,'0')} / ${model.waves.length}`);
+ setText('gold',String(model.gold));setText('built',`${model.towers.filter(t=>t.kind!=='trap').length} / ${model.pads.length}`);setText('lives',`${model.lives} / ${model.maxLives}`);setText('header-wallet',`${progression.xp} skill XP · ${progression.gems} gems`);setText('wave',`${String(model.wave).padStart(2,'0')} / ${model.waves.length}`);
  const active=model.status==='wave',terminal=model.status==='won'||model.status==='lost';
  setText('battle-state',terminal?(model.status==='won'?'The stronghold stands':'The stronghold has fallen'):active?`Wave ${model.wave} · ${model.waves[model.wave-1].name}`:'Prepare your defenses');
  setText('remaining',active?`${model.waveRemaining} foes remaining`:terminal?`${model.kills} foes defeated`:'Build, upgrade, and get ready');
@@ -307,7 +330,7 @@ function tick(){
  setText('speed',`${model.speed}×`);
  const next=model.nextWave();setText('next-name',terminal?'The kingdom calls again.':active?'Hold the line.':next?.name||'The final stand');setText('wave-description',terminal?'Every defeat is a new strategy waiting.':active?'Towers fire automatically. Upgrade your defenses, or call on Starfall.':next?.description||'The old kingdom remembers your courage.');
  const hiddenThreat=terminal?null:model.stealthBriefing();$('stealth-advisory').hidden=active||!hiddenThreat;
- if(hiddenThreat){const ownUpgrade=hiddenThreat.options.find(option=>option.action==='upgrade');setText('stealth-advisory',`Hidden enemies in wave ${hiddenThreat.wave}. ${hiddenThreat.hasDetector?'Check detection coverage along the road.':ownUpgrade?`${ownUpgrade.name}: ${ownUpgrade.cost}g upgrade${ownUpgrade.available?'':' after a clear'}.`:'Plan ahead: Arrow II 135g total, or Magic spire 160g immediately.'} Open ? for counter options.`);$('stealth-advisory').classList.toggle('imminent',hiddenThreat.imminent&&!hiddenThreat.hasDetector);}
+ if(hiddenThreat){const ownUpgrade=hiddenThreat.options.find(option=>option.action==='upgrade');setText('stealth-advisory',`Hidden enemies in wave ${hiddenThreat.wave}. ${hiddenThreat.hasDetector?'Check detection coverage along the road.':ownUpgrade?`${ownUpgrade.name}: ${ownUpgrade.cost}g. ${ownUpgrade.reason||'Research ready.'}`:'Plan ahead: train Arrow II, or build Magic for 160g immediately.'} Open ? for counter options.`);$('stealth-advisory').classList.toggle('imminent',hiddenThreat.imminent&&!hiddenThreat.hasDetector);}
  setText('bonus',model.earlyBonus>0?`+${model.earlyBonus} EARLY GOLD`:'');
  const waveBtn=$<HTMLButtonElement>('start-wave');waveBtn.disabled=active||model.paused;const waveText=active?'Wave in progress':model.wave===0?'Send first wave':terminal?'Defend again':`Send wave ${model.wave+1}`;
  if(waveBtn.dataset.text!==waveText){waveBtn.innerHTML=`<span>${icon(active?'shield':'play')} ${waveText}</span><span class="key">SPACE</span>`;waveBtn.dataset.text=waveText;}
@@ -325,6 +348,7 @@ function tick(){
 }
 function updateRecord(){const saved=progression.stageProgress(model.level.id,model.difficulty);setText('record',saved?`${model.level.name} · ${'★'.repeat(saved.stars)}${'☆'.repeat(3-saved.stars)} · best ${Math.min(saved.bestWave,model.waves.length)}/${model.waves.length}`:`${model.waves.length} waves · ${model.difficulty.toUpperCase()}`);}
 function showResult(){
+ syncTowerXP(true);
  const won=model.status==='won';effects.play(won?'victory':'defeat');
  const reward=progression.recordResult({stageId:model.level.id,difficulty:model.difficulty,lives:model.lives,maxLives:model.maxLives,wave:won?model.wave:Math.max(0,model.wave-1),won,runId});
  $('result').hidden=false;
@@ -336,7 +360,7 @@ function showResult(){
  ($('next-level').hidden?$('restart'):$('next-level')).focus();updateRecord();
 }
 function resetSelection(){runId=globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`;rallyTowerId=null;selectedPad=null;selectedKind=null;meteorArmed=false;resultShown=false;lastStatus=model.status;lastKills=0;lastShotId=0;lastSignature='';$('result').hidden=true;sceneView()?.resetLevel();syncSelection();updateRecord();}
-function restart(){model.reset();applyProgression();model.reset();resetSelection();toast('A fresh beginning. Choose your first defense.');}
+function restart(){syncTowerXP(true);model.reset();applyProgression();model.reset();resetSelection();toast('A fresh beginning. Your tower research is retained.');}
 function renderLevels(){
  $<HTMLSelectElement>('difficulty-select').value=model.difficulty;setText('difficulty-hint',model.difficulty==='easy'||model.difficulty==='normal'?'One arrow tower can defend the opening wave at a good early site. Build out your defense as the waves grow.':model.difficulty==='hard'?'Bring trained skill branches and plan coverage around bends, armor, and tree cover.':'Hell favors a developed skill tree, specialized damage, control, and carefully chosen sites.');$<HTMLSelectElement>('difficulty-select').disabled=model.status==='wave';
  $('level-list').innerHTML=LEVELS.map((level,index)=>{
@@ -349,6 +373,7 @@ function renderLevels(){
 function openCampaign(){if(!$('guide').hidden||!$('settings').hidden||!$('campaign').hidden||!$('unit-preview').hidden||progressionPanel.isOpen||!$('wave-preview').hidden)return;campaignPaused=model.paused;model.paused=true;renderLevels();$('campaign').hidden=false;$('close-campaign').focus();tick();}
 function closeCampaign(){if($('campaign').hidden)return;$('campaign').hidden=true;if(returnToMainMenu('campaign'))return;model.paused=campaignPaused;syncBattleInteractivity();if(document.fullscreenElement)$('rail-levels').focus();else $('levels-open').focus();tick();}
 function changeLevel(index:number){
+ syncTowerXP(true);
  if(!model.selectLevel(index))return;
  $('campaign').hidden=true;menuPage=null;mainMenu.hide();campaignPaused=false;applyProgression();model.reset();resetSelection();updateLevelLabels();effects.play('ui_click');focusBattlefield();toast(`${model.level.name} — choose your defenses.`);
 }
@@ -375,6 +400,7 @@ $('auto-wave').addEventListener('change',()=>{model.autoWave=$<HTMLInputElement>
 $('difficulty-select').addEventListener('change',()=>{
  const difficulty=$<HTMLSelectElement>('difficulty-select').value as 'easy'|'normal'|'hard'|'hell';
  if(model.status==='wave')return;
+ syncTowerXP(true);
  if(model.setDifficulty(difficulty)){applyProgression();model.reset();resetSelection();model.paused=true;campaignPaused=false;try{saveStorage?.setItem('mossguard-difficulty',difficulty);}catch{/* Optional save. */}renderLevels();updateLevelLabels();tick();}
 });
 $('pause-menu').addEventListener('click',()=>showMainMenu());
@@ -432,8 +458,10 @@ document.addEventListener('keydown',e=>{
 });
 // Read-only state for browser checks and bug reports; no production mutation hooks.
 Object.defineProperty(window,'__MOSSGUARD__',{get:()=>({...model.snapshot(),progression:progression.state,catalog:JSON.parse(catalogSnapshot),ui:{screen:mainMenu.isOpen?'main-menu':progressionPanel.isOpen?'skills':menuPage||'battle',hasLiveDefense:hasLiveDefense()},view:sceneView()?.getView()||null,animations:sceneView()?.getAnimationSnapshot()||null})});
-function pauseForBackground(){if(model.status==='wave'&&!model.paused){model.paused=true;meteorArmed=false;syncSelection();}}
+function pauseForBackground(){syncTowerXP(true);if(model.status==='wave'&&!model.paused){model.paused=true;meteorArmed=false;syncSelection();}}
 window.addEventListener('blur',pauseForBackground);
+window.addEventListener('pagehide',()=>syncTowerXP(true));
+window.addEventListener('beforeunload',()=>syncTowerXP(true));
 installPlatformLifecycle({onHide:pauseForBackground,onMotionChange:reduced=>{bridge.reduceMotion=reduced;$<HTMLInputElement>('motion-setting').checked=reduced;}});
 updateLevelLabels();
 showMainMenu();

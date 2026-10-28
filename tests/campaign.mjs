@@ -204,7 +204,7 @@ try {
     try {
       await boot(page);
       await build(page, kind);
-      assert.equal(await page.locator(`#context svg[data-asset="${kind}-1"]`).count(), 1, 'Specialist inspection uses its supplied artwork');
+      assert.equal(await page.locator(`#context svg[data-discipline="${kind}"][data-tier="1"][data-asset="${kind}-idle-0"]`).count(), 1, 'Specialist inspection uses its supplied idle artwork');
       await page.locator('#start-wave').click();
       await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers.some(tower => tower.fireSequence > 0), undefined, { timeout: 20000 });
       await page.waitForFunction(() => window.__MOSSGUARD__.kills > 0, undefined, { timeout: 25000 });

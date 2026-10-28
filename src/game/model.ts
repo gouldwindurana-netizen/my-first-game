@@ -1,6 +1,7 @@
 import { LEVELS } from './levels';
 import { TOWER_DEFS, ENEMY_DEFS, TOWER_KINDS, TARGET_MODES, BRANCH_KEYS, type TowerKind, type EnemyKind, type TowerTargetMode, type TowerBranchKey, type TowerEffects, type DamageType } from './catalog';
 import type { CombatBonuses } from './progression';
+import { normalizedTowerMastery, towerResearch, TOWER_RESEARCH_XP, TOWER_XP_LIMIT, type TowerMastery, type TowerResearchKey, type TowerXPReport } from './tower-mastery';
 export { LEVELS } from './levels';
 export { TOWER_DEFS, ENEMY_DEFS, TOWER_KINDS, TARGET_MODES, BRANCH_KEYS } from './catalog';
 export type { TowerKind, EnemyKind, TowerTargetMode, TowerBranchKey, TowerEffects, DamageType } from './catalog';
@@ -42,7 +43,7 @@ export interface Shot { id: number; kind: TowerKind; from: Point; to: Point; lif
 export interface FloatText { id: number; x: number; y: number; text: string; color: string; life: number; }
 export interface WaveDef { name: string; description: string; enemies: { kind: EnemyKind; delay: number; miniBoss?: boolean }[]; }
 export interface DamageZone { id: number; towerId: number; kind: TowerKind; x: number; y: number; radius: number; damage: number; damageType: DamageType; expiresAt: number; effects: TowerEffects; }
-export interface UpgradeGate { allowed: boolean; requiredClears: number; cleared: number; reason: string; }
+export interface UpgradeGate { allowed: boolean; requiredClears: number; cleared: number; reason: string; researchKey: TowerResearchKey; xp: number; requiredXP: number; researched: boolean; }
 export interface TowerStats { damage: number; range: number; interval: number; damageType: DamageType; effects: TowerEffects; }
 export interface DetectionOption {
   kind: TowerKind; towerId?: number; action: 'upgrade' | 'build' | 'build-upgrade'; name: string;
@@ -72,6 +73,8 @@ const DEFAULT_BONUSES: CombatBonuses = {
   damage:0,range:0,haste:0,area:0,control:0,elemental:0,critical:0,economy:0,fortify:0,grandmastery:0,
   criticalChance:0,criticalDamage:.5,gold:0,startingGold:0,extraLives:0,xp:0,gems:0,capstones:[],
 };
+let practiceSessionSequence = 0;
+function practiceSessionId(): string { return globalThis.crypto?.randomUUID?.() || `practice-${Date.now().toString(36)}-${++practiceSessionSequence}-${Math.random().toString(36).slice(2)}`; }
 
 export class GameModel {
   private levelIndex=0;
@@ -88,6 +91,12 @@ export class GameModel {
   private waveTime=0;
   private clearedAt=0;
   private hitSequence=0;
+  private savedMastery:TowerMastery={};
+  private practiceXP:TowerMastery={};
+  private acknowledgedPractice:TowerMastery={};
+  private practiceSession=practiceSessionId();
+  private practicedThisWave=new Set<TowerKind>();
+  private engagedThisUpdate=new Set<number>();
   constructor(levelIndex=0){this.selectLevel(levelIndex);}
   get currentLevelIndex(){return this.levelIndex;}
   get level(){return LEVELS[this.levelIndex];}
@@ -101,6 +110,22 @@ export class GameModel {
   get earlyBonus(){return this.status==='building'&&this.wave>0?Math.max(0,Math.ceil(24*(1-(this.time-this.clearedAt)/12))):0;}
   get stars(){return this.status!=='won'?0:this.lives/this.maxLives>=.9?3:this.lives/this.maxLives>=.5?2:1;}
   get autoWaveIn(){return this.autoWave&&this.status==='building'&&this.wave>0?Math.max(0,3-(this.time-this.clearedAt)):null;}
+  get towerXPReport():TowerXPReport{return{sessionId:this.practiceSession,totals:normalizedTowerMastery(this.practiceXP)};}
+  getTowerMasteryXP(kind:TowerKind):number{return Math.floor(Math.min(TOWER_XP_LIMIT,(this.savedMastery[kind]||0)+(this.practiceXP[kind]||0)-(this.acknowledgedPractice[kind]||0)));}
+  get towerMastery():TowerMastery {
+    const result:TowerMastery={};
+    for(const kind of TOWER_KINDS){const xp=this.getTowerMasteryXP(kind);if(xp>0)result[kind]=xp;}
+    return result;
+  }
+  towerResearch(kind:TowerKind){return towerResearch(kind,this.towerMastery);}
+  /** Apply saved XP; pass the report just reconciled by Progression to avoid counting it twice. */
+  setTowerMastery(mastery:TowerMastery,acknowledgedReport?:TowerXPReport):void {
+    const next=normalizedTowerMastery(mastery);
+    for(const kind of TOWER_KINDS)this.savedMastery[kind]=Math.max(this.savedMastery[kind]||0,next[kind]||0);
+    if(acknowledgedReport?.sessionId===this.practiceSession){const totals=normalizedTowerMastery(acknowledgedReport.totals);for(const kind of TOWER_KINDS)this.acknowledgedPractice[kind]=Math.max(this.acknowledgedPractice[kind]||0,Math.min(totals[kind]||0,Math.floor(this.practiceXP[kind]||0)));}
+  }
+  private practice(kind:TowerKind,amount:number){this.practiceXP[kind]=Math.min(TOWER_XP_LIMIT,Math.round(((this.practiceXP[kind]||0)+amount)*1_000_000)/1_000_000);this.practicedThisWave.add(kind);}
+  private engage(tower:Tower,delta:number){if(this.engagedThisUpdate.has(tower.id)||(tower.disabledUntil||0)>this.time)return;this.engagedThisUpdate.add(tower.id);this.practice(tower.kind,delta*.5);}
   private get actionable(){return this.status!=='won'&&this.status!=='lost';}
   selectLevel(index:number):boolean {
     if(this.status==='wave'||!Number.isInteger(index)||index<0||index>=LEVELS.length)return false;
@@ -164,19 +189,20 @@ export class GameModel {
     tower.rally={x:road.x,y:road.y};this.syncTroops();return true;
   }
   /** Wave milestones pace progression; every newly built or upgraded tower must defend another wave. */
-  getUpgradeGate(tower:Tower):UpgradeGate {
+  getUpgradeGate(tower:Tower,branch:TowerBranchKey='A'):UpgradeGate {
     const cleared=this.clearedWaves;
-    if(tower.level>=3)return{allowed:false,requiredClears:3,cleared,reason:'Fully specialized'};
+    const researchKey:TowerResearchKey=tower.level===1?'II':branch,xp=this.towerMastery[tower.kind]||0,requiredXP=TOWER_RESEARCH_XP[researchKey],researched=xp>=requiredXP;
+    if(tower.level>=3)return{allowed:false,requiredClears:3,cleared,reason:'Fully specialized',researchKey,xp,requiredXP,researched};
     const requiredClears=tower.level===1?Math.max(1,(tower.builtAfterClear??0)+1):Math.max(3,(tower.upgradedAfterClear??tower.builtAfterClear??0)+1);
-    const allowed=this.actionable&&cleared>=requiredClears;
-    const reason=!this.actionable?'Defense is complete':allowed?'':`Clear wave ${requiredClears} before ${tower.level===1?'tier II':'specializing this tower'}.`;
-    return{allowed,requiredClears,cleared,reason};
+    const allowed=this.actionable&&researched&&cleared>=requiredClears&&(tower.level!==2||branch!=='D'||this.difficulty==='hell');
+    const reason=!this.actionable?'Defense is complete':!researched?`${TOWER_DEFS[tower.kind].name} XP ${xp}/${requiredXP} — use this family in combat.`:cleared<requiredClears?`Clear wave ${requiredClears} before ${tower.level===1?'tier II':'specializing this tower'}.`:tower.level===2&&branch==='D'&&this.difficulty!=='hell'?'Hell specialization':allowed?'':'Upgrade unavailable';
+    return{allowed,requiredClears,cleared,reason,researchKey,xp,requiredXP,researched};
   }
-  upgradeLockReason(tower:Tower):string{return this.getUpgradeGate(tower).reason;}
+  upgradeLockReason(tower:Tower,branch:TowerBranchKey='A'):string{return this.getUpgradeGate(tower,branch).reason;}
   upgradeCost(tower:Tower,branch:TowerBranchKey='A'){return tower.level===1?TOWER_DEFS[tower.kind].tier2Cost:TOWER_DEFS[tower.kind].branches[branch]?.cost??Infinity;}
   upgrade(id:number,branch:TowerBranchKey='A'):boolean {
     const tower=this.towers.find(t=>t.id===id);
-    if(!this.actionable||!tower||!this.getUpgradeGate(tower).allowed||tower.level>=3||!BRANCH_KEYS.includes(branch)||(tower.level===2&&branch==='D'&&this.difficulty!=='hell'))return false;
+    if(!this.actionable||!tower||!BRANCH_KEYS.includes(branch)||!this.getUpgradeGate(tower,branch).allowed||tower.level>=3)return false;
     const cost=this.upgradeCost(tower,branch);if(this.gold<cost)return false;
     this.gold-=cost;tower.spent+=cost;tower.level++;tower.upgradedAfterClear=this.clearedWaves;
     if(tower.level===3){tower.branch=branch;tower.shieldCharges=this.getTowerStats(tower).effects.shield||0;}
@@ -220,12 +246,12 @@ export class GameModel {
     for(const kind of ['archer','frost'] as const){
       const def=TOWER_DEFS[kind],owned=this.towers.filter(tower=>tower.kind===kind&&tower.level===1);
       for(const tower of owned){const gate=this.getUpgradeGate(tower);options.push({kind,towerId:tower.id,action:'upgrade',name:def.tier2Name!,cost:def.tier2Cost,totalCost:def.cost+def.tier2Cost,affordable:this.gold>=def.tier2Cost,available:gate.allowed,unlocked:this.isUnlocked(kind),reason:gate.reason});}
-      if(!owned.length)options.push({kind,action:'build-upgrade',name:def.tier2Name!,cost:def.cost+def.tier2Cost,totalCost:def.cost+def.tier2Cost,affordable:this.gold>=def.cost+def.tier2Cost,available:false,unlocked:this.isUnlocked(kind),reason:'Build now, then defend one wave before tier II.'});
+      if(!owned.length)options.push({kind,action:'build-upgrade',name:def.tier2Name!,cost:def.cost+def.tier2Cost,totalCost:def.cost+def.tier2Cost,affordable:this.gold>=def.cost+def.tier2Cost,available:false,unlocked:this.isUnlocked(kind),reason:`Build and defend a wave; family XP ${this.towerMastery[kind]||0}/${TOWER_RESEARCH_XP.II}.`});
     }
     for(const kind of ['arcane','prism'] as const){const def=TOWER_DEFS[kind],unlocked=this.isUnlocked(kind),hasSite=this.pads.some(pad=>!this.towers.some(tower=>tower.padId===pad.id));options.push({kind,action:'build',name:def.name,cost:def.cost,totalCost:def.cost,affordable:this.gold>=def.cost,available:this.actionable&&hasSite&&unlocked,unlocked,reason:hasSite?'Detects hidden enemies immediately.':'Requires a free foundation.'});}
     return{wave:index+1,imminent:index===this.wave,groups:Object.entries(counts).map(([kind,count])=>({kind:kind as EnemyKind,name:ENEMY_DEFS[kind as EnemyKind].name,count:count!})),hasDetector:this.towers.some(tower=>this.effectsFor(tower).reveal),options:options.sort((a,b)=>Number(b.available)-Number(a.available)||a.cost-b.cost)};
   }
-  startWave():boolean {const next=this.nextWave();if(this.status!=='building'||this.paused||!next)return false;this.gold+=this.earlyBonus;this.wave++;this.waveTime=0;this.pending=next.enemies.map(e=>({...e})).sort((a,b)=>a.delay-b.delay);this.status='wave';return true;}
+  startWave():boolean {const next=this.nextWave();if(this.status!=='building'||this.paused||!next)return false;this.gold+=this.earlyBonus;this.wave++;this.waveTime=0;this.practicedThisWave.clear();this.pending=next.enemies.map(e=>({...e})).sort((a,b)=>a.delay-b.delay);this.status='wave';return true;}
   meteor(x:number,y:number):boolean {
     if(this.status!=='wave'||this.paused||this.meteorCooldown>0||!Number.isFinite(x)||!Number.isFinite(y))return false;
     this.meteorCooldown=25/(1+this.bonuses.haste*.5);
@@ -238,7 +264,7 @@ export class GameModel {
     this.enemies.push(enemy);return enemy;
   }
   private abilityActive(enemy:Enemy){return(enemy.disabledUntil||0)<=this.time&&(enemy.stunUntil||0)<=this.time;}
-  private revealEnemies(){for(const tower of this.towers){const stats=this.getTowerStats(tower);if(!stats.effects.reveal||(tower.disabledUntil||0)>this.time)continue;const point=this.getTowerPosition(tower);for(const enemy of this.enemies)if(Math.hypot(point.x-enemy.x,point.y-enemy.y)<=stats.range)enemy.revealedUntil=this.time+.3;}}
+  private revealEnemies(delta:number){for(const tower of this.towers){const stats=this.getTowerStats(tower);if(!stats.effects.reveal||(tower.disabledUntil||0)>this.time)continue;const point=this.getTowerPosition(tower);for(const enemy of this.enemies)if(enemy.hp>0&&Math.hypot(point.x-enemy.x,point.y-enemy.y)<=stats.range){enemy.revealedUntil=this.time+.3;if(ENEMY_DEFS[enemy.kind].stealth)this.engage(tower,delta);}}}
   private eligible(tower:Tower,enemy:Enemy,origin:Point,checkSight=true):boolean {
     if(enemy.hp<=0)return false;const def=ENEMY_DEFS[enemy.kind],fx=this.effectsFor(tower);
     if(def.flying&&['cannon','mortar','earth','trap','barracks'].includes(tower.kind))return false;
@@ -262,6 +288,7 @@ export class GameModel {
   update(deltaSeconds:number):void {
     if(this.paused||!this.actionable||!Number.isFinite(deltaSeconds)||deltaSeconds<=0)return;
     const delta=Math.min(deltaSeconds,.1)*([1,2,3].includes(this.speed)?this.speed:1),previous=this.time;this.time+=delta;
+    this.engagedThisUpdate.clear();
     this.meteorCooldown=Math.max(0,this.meteorCooldown-delta);
     for(const shot of this.shots)shot.life-=delta;this.shots=this.shots.filter(s=>s.life>0);
     for(const text of this.floats){text.life-=delta;text.y-=delta*19;}this.floats=this.floats.filter(f=>f.life>0);
@@ -269,7 +296,7 @@ export class GameModel {
     if(this.status!=='wave'){this.zones=this.zones.filter(zone=>zone.expiresAt>this.time);this.updateTroops(delta,false);if(this.autoWave&&this.wave>0&&this.time-this.clearedAt>=3)this.startWave();return;}
     this.waveTime+=delta;
     while(this.pending.length&&this.pending[0].delay<=this.waveTime){const entry=this.pending.shift()!;this.spawn(entry.kind,0,!!entry.miniBoss);}
-    this.revealEnemies();
+    this.revealEnemies(delta);
     for(const enemy of [...this.enemies]){
       if(enemy.hp<=0)continue;
       for(const [until,dps,type] of [[enemy.poisonUntil,enemy.poisonDps,'poison'],[enemy.burnUntil,enemy.burnDps,'fire']] as const){const duration=Math.max(0,Math.min(this.time,until||0)-previous);if(duration>0)this.damage(enemy,(dps||0)*duration,type,false,false);}
@@ -288,16 +315,21 @@ export class GameModel {
     this.zones=this.zones.filter(z=>z.expiresAt>this.time);
     for(const tower of this.towers){
       tower.cooldown=Math.max(0,tower.cooldown-delta);
-      if(tower.kind==='barracks'||tower.cooldown>0||(tower.disabledUntil||0)>this.time||(tower.kind==='trap'&&(tower.uses||0)<=0))continue;
+      if(tower.kind==='barracks'||(tower.disabledUntil||0)>this.time||(tower.kind==='trap'&&(tower.uses||0)<=0))continue;
       const point=this.getTowerPosition(tower),stats=this.getTowerStats(tower);
       const priority=(e:Enemy)=>tower.targeting==='last'?-e.distance:tower.targeting==='strongest'?e.hp:tower.targeting==='fastest'?this.movementSpeed(e):e.distance;
       const targets=this.enemies.filter(e=>this.eligible(tower,e,point)&&Math.hypot(e.x-point.x,e.y-point.y)<=stats.range).sort((a,b)=>priority(b)-priority(a)||a.id-b.id);
       if(!targets.length)continue;
+      this.engage(tower,delta);if(tower.cooldown>0)continue;
       tower.cooldown=stats.interval;if(tower.kind==='trap')tower.uses=Math.max(0,(tower.uses||0)-1);
+      this.practice(tower.kind,1);
       this.fire(tower,targets,stats);
     }
+    // An aura trains by helping an ally in combat, including when its own weapon has no target.
+    const beneficiaries=new Set(this.engagedThisUpdate);
+    for(const tower of this.towers){const fx=this.effectsFor(tower);if(!(fx.auraDamage||fx.auraHaste)||(tower.disabledUntil||0)>this.time)continue;const point=this.getTowerPosition(tower),range=(tower.branch?TOWER_DEFS[tower.kind].branches[tower.branch].range:undefined)??TOWER_DEFS[tower.kind].range;if(this.towers.some(ally=>ally.id!==tower.id&&beneficiaries.has(ally.id)&&Math.hypot(this.getTowerPosition(ally).x-point.x,this.getTowerPosition(ally).y-point.y)<=range))this.engage(tower,delta);}
     this.enemies=this.enemies.filter(e=>e.hp>0);
-    if(this.waveRemaining===0){this.gold+=Math.round((35+this.wave*7)*(1+(this.bonuses.gold||this.bonuses.economy))*DIFFICULTIES[this.difficulty].gold);this.clearedAt=this.time;this.status=this.wave===this.waves.length?'won':'building';}
+    if(this.waveRemaining===0){for(const kind of this.practicedThisWave)this.practice(kind,8);this.gold+=Math.round((35+this.wave*7)*(1+(this.bonuses.gold||this.bonuses.economy))*DIFFICULTIES[this.difficulty].gold);this.clearedAt=this.time;this.status=this.wave===this.waves.length?'won':'building';}
   }
   private updateEnemyAbility(enemy:Enemy,delta:number){
     const def=ENEMY_DEFS[enemy.kind];if(!this.abilityActive(enemy))return;
@@ -385,6 +417,7 @@ export class GameModel {
       if(troop.hp<=0){troop.state='fallen';troop.targetId=null;if(this.time>=troop.respawnAt){const home=this.getTowerPosition(tower);troop.x=home.x;troop.y=home.y;troop.hp=troop.maxHp;troop.state='moving';}else continue;}
       const candidates=fighting?this.enemies.filter(enemy=>enemy.hp>0&&!ENEMY_DEFS[enemy.kind].flying&&!ENEMY_DEFS[enemy.kind].ghost&&(!ENEMY_DEFS[enemy.kind].stealth||(enemy.revealedUntil||0)>this.time||enemy.distance>this.pathLength*.82)&&Math.hypot(enemy.x-troop.rally.x,enemy.y-troop.rally.y)<85).sort((a,b)=>Math.hypot(a.x-troop.x,a.y-troop.y)-Math.hypot(b.x-troop.x,b.y-troop.y)||a.id-b.id):[];
       const target=candidates[0];troop.targetId=target?.id??null;const destination=target||troop.rally,distance=Math.hypot(destination.x-troop.x,destination.y-troop.y);
+      if(target)this.engage(tower,delta);
       if(distance>(target?14:2)){const step=Math.min(distance,troop.speed*delta);troop.x+=(destination.x-troop.x)/distance*step;troop.y+=(destination.y-troop.y)/distance*step;troop.state=target?'moving':'returning';}
       else if(target){troop.state='fighting';troop.stealth=false;troop.cooldown=Math.max(0,troop.cooldown-delta);if(troop.cooldown<=0&&(tower.disabledUntil||0)<=this.time){this.hitSequence++;this.damage(target,troop.damage,'physical',false,true);troop.cooldown=((troop.slowUntil||0)>this.time?1.65:.9)*this.getTowerStats(tower).interval;}
         if(target.hp>0&&(target.stunUntil||0)<=this.time)troop.hp=Math.max(0,troop.hp-(6+Math.sqrt(target.maxHp)*.65)*delta/(1+this.bonuses.fortify));
@@ -394,6 +427,8 @@ export class GameModel {
   }
   private float(x:number,y:number,text:string,color:string){this.floats.push({id:this.nextId++,x,y,text,color,life:1.1});if(this.floats.length>120)this.floats.shift();}
   reset():void {
+    // Reconcile the report before resetting. Carry mastery forward for standalone simulations too.
+    this.savedMastery=this.towerMastery;this.practiceXP={};this.acknowledgedPractice={};this.practiceSession=practiceSessionId();this.practicedThisWave.clear();this.engagedThisUpdate.clear();
     this.gold=this.startingGold();this.maxLives=this.startingLives();this.lives=this.maxLives;this.wave=0;this.status='building';this.paused=false;this.speed=1;this.time=0;this.kills=0;
     this.towers=[];this.enemies=[];this.troops=[];this.shots=[];this.floats=[];this.zones=[];this.meteorCooldown=0;this.nextId=1;this.pending=[];this.waveTime=0;this.clearedAt=0;this.hitSequence=0;
   }
@@ -402,7 +437,7 @@ export class GameModel {
     path:this.path.map(p=>({...p})),pads:this.pads.map(p=>({...p})),trees:this.trees.map(t=>({...t})),
     gold:this.gold,lives:this.lives,wave:this.wave,status:this.status,paused:this.paused,speed:this.speed,time:this.time,kills:this.kills,
     meteorCooldown:this.meteorCooldown,waveRemaining:this.waveRemaining,clearedWaves:this.clearedWaves,earlyBonus:this.earlyBonus,autoWave:this.autoWave,autoWaveIn:this.autoWaveIn,wavePreview:this.wavePreview(),stealthBriefing:this.stealthBriefing(),
-    unlockedTowers:[...this.unlockedTowers],towers:this.towers.map(t=>({...t,upgradeGate:this.getUpgradeGate(t),position:t.position?{...t.position}:undefined,rally:t.rally?{...t.rally}:undefined})),
+    unlockedTowers:[...this.unlockedTowers],towerMastery:this.towerMastery,towerXPReport:this.towerXPReport,towers:this.towers.map(t=>({...t,upgradeGate:this.getUpgradeGate(t),position:t.position?{...t.position}:undefined,rally:t.rally?{...t.rally}:undefined})),
     traps:this.towers.filter(t=>t.kind==='trap').map(t=>({...t,position:{...this.getTowerPosition(t)}})),
     enemies:this.enemies.map(e=>({...e})),troops:this.troops.map(t=>({...t,rally:{...t.rally}})),zones:this.zones.map(z=>({...z,effects:{...z.effects}})),
   };}

@@ -209,6 +209,12 @@ try {
     await build(filePage, 'tesla', 0);
     assert.equal((await state(filePage)).gold, 120);
     await clearNextWave(filePage, { starfall: false });
+    await filePage.waitForFunction(()=>window.__MOSSGUARD__.animations.towers[0].animation==='idle');
+    const offlinePractice=await state(filePage);
+    assert(offlinePractice.towerMastery.tesla>0,'Offline real combat earns family XP without network access');
+    assert.equal(offlinePractice.progression.towerMastery.tesla,offlinePractice.towerMastery.tesla,'Offline family XP reconciles into session progression');
+    assert.equal(offlinePractice.animations.towerFps,30,'Offline towers use the supplied 30 FPS animation clips');
+    assert.match(offlinePractice.animations.towers[0].frameName,/^tesla-idle-\d+$/,'Offline construction uses an embedded supplied tower frame');
     await filePage.locator('#battlefield').focus();
     await filePage.keyboard.press('Space');
     await filePage.waitForFunction(() => window.__MOSSGUARD__.status === 'wave');
@@ -223,7 +229,7 @@ try {
     const externalFiles = offlineRequests.filter(request => request.url.startsWith('file:') && request.url !== standaloneUrl);
     assert.deepEqual(http, [], 'The standalone game makes zero HTTP requests, with all network access blocked');
     assert.deepEqual(externalFiles, [], 'The standalone game loads no companion files');
-    checks.push('Standalone offline inline HTML: embedded map, keyboard building, real chain combat, rewards, pause/resume, pagehide auto-pause, zero network/companion files');
+    checks.push('Standalone offline inline HTML: embedded 30 FPS towers, earned family XP, map, real chain combat, rewards, pause/resume, pagehide auto-pause, zero network/companion files');
   } catch (error) {
     await screenshot(filePage, 'standalone-failure').catch(() => {});
     throw error;

@@ -21,7 +21,9 @@
     "test:fit": "node tests/viewport-fit.mjs",
     "test:environment": "node tests/environment.mjs",
     "test:expansion": "node tests/expansion.mjs",
-    "test:menu": "node tests/menu-tree.mjs"
+    "test:menu": "node tests/menu-tree.mjs",
+    "test:mastery": "node tests/mastery.mjs",
+    "test:tower-clips": "node tests/tower-clips.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

@@ -1,0 +1,718 @@
+{
+  "version": 1,
+  "frameWidth": 192,
+  "frameHeight": 192,
+  "columns": 10,
+  "rows": 3,
+  "frameCount": 30,
+  "fps": 30,
+  "anchor": {
+    "x": 0.5,
+    "y": 0.82
+  },
+  "method": "ImageMagick Lanczos downsample to 75% of original dimensions, then lossless WebP encoding. Portraits crop the original first idle cell before the same downsample. Original PNGs are retained unchanged and are not loaded at runtime.",
+  "reason": "1920px sheet width fits 2048px WebGL texture limits; decoded tower-sheet memory decreases from 255 to 143 MiB. Separate portraits avoid DOM decoding seventeen full sheets.",
+  "sourceFrameSize": 256,
+  "semanticChanges": "None: same artwork, transparency, frame count, timing, cell layout, and normalized anchor.",
+  "command": "node scripts/normalize-tower-assets.mjs",
+  "sheetConversion": "magick SOURCE.png -filter Lanczos -resize 1920x576! -define webp:lossless=true runtime/KIND_STATE.webp",
+  "portraitConversion": "magick SOURCE_IDLE.png -crop 256x256+0+0 +repage -filter Lanczos -resize 192x192! -define webp:lossless=true portraits/KIND.webp",
+  "repairs": [
+    {
+      "file": "repairs/earth_idle.png",
+      "sha256": "00eca0f0af5743365e81fa236f7262534a9b0d9451ab0f9034e58898aa4ce582",
+      "bytes": 208662,
+      "width": 2560,
+      "height": 768,
+      "reason": "Original sheets/earth_idle.png is truncated; reconstruct the same row-major cells from the 30 complete individual frames supplied in the same archive.",
+      "originalFile": "sheets/earth_idle.png",
+      "originalSha256": "f06bd67939d9e378660fbcfbfa6044eb92c1328ca63118e11f13feb12bd42866",
+      "inputs": [
+        {
+          "file": "reference-frames/earth/idle/000.png",
+          "sha256": "d4c1b1163d929314b585076e031b1aa01ed4f9e6a86383a0069d4e97e6aee404"
+        },
+        {
+          "file": "reference-frames/earth/idle/001.png",
+          "sha256": "84d3d45a7374c1c6b1400e2ffd87a2fa3411a40996b2647a3da1370cf010e79c"
+        },
+        {
+          "file": "reference-frames/earth/idle/002.png",
+          "sha256": "5f455d55722d9e1cf1da893fbb552072a600ac75c7b5b465883b484d30c4f29e"
+        },
+        {
+          "file": "reference-frames/earth/idle/003.png",
+          "sha256": "9f79cc4e724ac66d692947dc196936d999b8bc1df977263c566cd4b6208aea1e"
+        },
+        {
+          "file": "reference-frames/earth/idle/004.png",
+          "sha256": "e00df51b1f910365e232e95859be03df79cafe25e26fe1c274095fb79c0b7748"
+        },
+        {
+          "file": "reference-frames/earth/idle/005.png",
+          "sha256": "e8a9c909ec3f21b7592ab4f4b541afdd4f11b4c996aa463f7c0155c197b590d5"
+        },
+        {
+          "file": "reference-frames/earth/idle/006.png",
+          "sha256": "bc2ab29ce5e353e24eb2497e99ffbdc588093cd996c961c0257fd06e020c1d1f"
+        },
+        {
+          "file": "reference-frames/earth/idle/007.png",
+          "sha256": "56e0878ac26b88098164771962d524fbba461062c5a8f0a4f756b2d538e01a97"
+        },
+        {
+          "file": "reference-frames/earth/idle/008.png",
+          "sha256": "51661b8712590d11ac444444779e822c23007ace2945efeca3bb8d783f01eea4"
+        },
+        {
+          "file": "reference-frames/earth/idle/009.png",
+          "sha256": "532c1b07a405abb43f05d4a753aee40962327cfdd786d4157f325b1095aaae0b"
+        },
+        {
+          "file": "reference-frames/earth/idle/010.png",
+          "sha256": "2ca87d37af0efe55eaa2bf4c603131f1bfc54394a02d0c3bba1ba08b633ae31a"
+        },
+        {
+          "file": "reference-frames/earth/idle/011.png",
+          "sha256": "77785d145df39344a4f563ed05b4c2aa9b081c377824e8399436c8390c2053d2"
+        },
+        {
+          "file": "reference-frames/earth/idle/012.png",
+          "sha256": "40f74662f197bd35d603e6739eb88d37159eb3ca0aa94e1e56c3d47197db8750"
+        },
+        {
+          "file": "reference-frames/earth/idle/013.png",
+          "sha256": "6c592093fb23e15cc2e2fd68a3e2a673e68390bc656b87889e8c785cd1269710"
+        },
+        {
+          "file": "reference-frames/earth/idle/014.png",
+          "sha256": "6d3512ca0cbc7fb9a67d720de513346375d339dab1180f9d13604fd53c3ec093"
+        },
+        {
+          "file": "reference-frames/earth/idle/015.png",
+          "sha256": "88bd2da2195bb03cefa0159794df885acdd895016945ddc23c591300f83203e9"
+        },
+        {
+          "file": "reference-frames/earth/idle/016.png",
+          "sha256": "f1f38a46010f261c1a5c265a2a152e67c9ccff9f9ff7650c59f7fe204c79b685"
+        },
+        {
+          "file": "reference-frames/earth/idle/017.png",
+          "sha256": "a13a081f6bea021c3fda97d2f2b8393a931afee62a0cbd3af589c0e862d39243"
+        },
+        {
+          "file": "reference-frames/earth/idle/018.png",
+          "sha256": "439092e062369d8cc858d0fd74655979782867ebb87fc0d459293fcb900ee00d"
+        },
+        {
+          "file": "reference-frames/earth/idle/019.png",
+          "sha256": "d4758afbbbfe46eed436e31cfbaad1d7a75679e99f431458b268558c75adea8f"
+        },
+        {
+          "file": "reference-frames/earth/idle/020.png",
+          "sha256": "2a200137e2c48779dcf956e5a716212ec5fe91a63c45f40965296e55a4ae0559"
+        },
+        {
+          "file": "reference-frames/earth/idle/021.png",
+          "sha256": "98e48857600b19cb03c019c8056f25d3f9926a304cd36be78bd8711359b51b5f"
+        },
+        {
+          "file": "reference-frames/earth/idle/022.png",
+          "sha256": "5bd30c5bbf24fa38432b9319cf5798dd3ae2d2943d284baeaa1e90d7853ce4a8"
+        },
+        {
+          "file": "reference-frames/earth/idle/023.png",
+          "sha256": "4899cc04fac3adcfd0c0a923f6d8e370a892db7b1e0e7fe070a071833e6a428d"
+        },
+        {
+          "file": "reference-frames/earth/idle/024.png",
+          "sha256": "95e2f5a4fe235b7fed765cc8f775b671ccf0e050f8e35edbb9fd25acbee3c1c3"
+        },
+        {
+          "file": "reference-frames/earth/idle/025.png",
+          "sha256": "82b9cfda0cec34eda4bab1e0f598e44c845bc63a6ccb96b53542949917a9d509"
+        },
+        {
+          "file": "reference-frames/earth/idle/026.png",
+          "sha256": "0f6cb106af8e3f2e231f09c0000a8d89ba1fa3bac86dafa6f42af0986d267ea3"
+        },
+        {
+          "file": "reference-frames/earth/idle/027.png",
+          "sha256": "cd9043023637a384f9d2111cf243f2477a86e3479721d446ef7728a82a187564"
+        },
+        {
+          "file": "reference-frames/earth/idle/028.png",
+          "sha256": "76481975fbfea46fb14540f591e718630a6a5034114e22a4bed445bef8103374"
+        },
+        {
+          "file": "reference-frames/earth/idle/029.png",
+          "sha256": "a5b41f0f9728937ea9c699fc0900fe47e9b44934bb0e65446093dfe2d6838f3e"
+        }
+      ],
+      "conversion": "magick montage reference-frames/earth/idle/000.png ... 029.png -compose Copy -tile 10x3 -geometry 256x256+0+0 -background none repairs/earth_idle.png"
+    }
+  ],
+  "outputs": [
+    {
+      "file": "portraits/arcane.webp",
+      "source": "sheets/arcane_idle.png",
+      "sourceSha256": "34c4f238256b4d4e73a38919f0336ab43149bb1c4eccb7d96217d033896dec9b",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 12728,
+      "sha256": "43ceaedc5ed7a87a47d9eec494275d69df6f25d102026183e7684edb706080e3"
+    },
+    {
+      "file": "portraits/archer.webp",
+      "source": "sheets/archer_idle.png",
+      "sourceSha256": "fc40b11176088284ddd75b95b38dcd94e834a215779ee488f71fe9a71b7021ab",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 13202,
+      "sha256": "449561868377a9f89b8973151b9263a4bc21a7d17094cf423fefaf61fac52e6d"
+    },
+    {
+      "file": "portraits/barracks.webp",
+      "source": "sheets/barracks_idle.png",
+      "sourceSha256": "abbfc78c6ff72a8efc1aa33a6a6687d57e0b54d89ace7c58aa218bc6c36cc0a4",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 11376,
+      "sha256": "83f1301d9b45fb1d201c99942217c1f8f833578b263eeb76b5628f4dd28f6183"
+    },
+    {
+      "file": "portraits/cannon.webp",
+      "source": "sheets/cannon_idle.png",
+      "sourceSha256": "66a975e287204220ed67e34837a25e5b171dc38f57ebd4161e86f3980a99a235",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 12268,
+      "sha256": "56beecd5f31991a33ab1a1e7c5fcdd04069be3da7ea3f97cbde2b1c445b90903"
+    },
+    {
+      "file": "portraits/chrono.webp",
+      "source": "sheets/chrono_idle.png",
+      "sourceSha256": "aec4b19ab67ebb3917d21edf37d83bf48758b684a8d05c1aeecc6e3029ed241a",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 13902,
+      "sha256": "cfdaa1222f00a88336aad91bc9bbae53a3e09460b03af59dd4aca034fa6de809"
+    },
+    {
+      "file": "portraits/earth.webp",
+      "source": "repairs/earth_idle.png",
+      "sourceSha256": "00eca0f0af5743365e81fa236f7262534a9b0d9451ab0f9034e58898aa4ce582",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 12142,
+      "sha256": "4387e2be8719ad4b1882ea551e54f657fb3a82eb9561784cf0335d452da67863"
+    },
+    {
+      "file": "portraits/frost.webp",
+      "source": "sheets/frost_idle.png",
+      "sourceSha256": "838c1d7f9ea55ad5ecd84e57ea69e641f95329a55282a1c85d74fc93d7a33081",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 12386,
+      "sha256": "ccbfc1991702704754df0f23a80c74a823a9e775bfee331f3be6687e43bba3aa"
+    },
+    {
+      "file": "portraits/mortar.webp",
+      "source": "sheets/mortar_idle.png",
+      "sourceSha256": "06ea1e3b1ae7b533b3baac7c0d84d5dfaa1631309929b64059a304c255c79d7c",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 11782,
+      "sha256": "dbbd736e367bda85784294e7a7efc4af91e41e3f237cf7e501a942669f8629d1"
+    },
+    {
+      "file": "portraits/nexus.webp",
+      "source": "sheets/nexus_idle.png",
+      "sourceSha256": "199e7ee52ab3ddeaeb5549f0a43cab2eb9008f4053b50f05fa9ffad8949ef0f3",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 15154,
+      "sha256": "7ca31b35f717bbd5dfcb02c4dc4352b9e4533cef3ffe6bc5b2bb654df1c79a9f"
+    },
+    {
+      "file": "portraits/prism.webp",
+      "source": "sheets/prism_idle.png",
+      "sourceSha256": "528a7bd499bf5914352a9a2a076a8a5775d99b65ac4891b285222058b905abe7",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 11312,
+      "sha256": "a6150e264c27980cb96aaed874248d6888ba5e244875d34db254ca398e21020e"
+    },
+    {
+      "file": "portraits/solar.webp",
+      "source": "sheets/solar_idle.png",
+      "sourceSha256": "cc1d6aa69cc7943223e1ca55e9a3000e359b35c0388090810c3045de05b7e592",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 13066,
+      "sha256": "a53809deec78fde72a5e4091c38d39d4ba9bb7bb7551fdcb0bdde754b14abbec"
+    },
+    {
+      "file": "portraits/sonic.webp",
+      "source": "sheets/sonic_idle.png",
+      "sourceSha256": "2d352f1775b4215415db9910cc6e867be7e82c89d2240275d5aeab3dbd270d63",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 12436,
+      "sha256": "437c5f383775567f48a9293696ed3ad669ba1268f2267203b0a6eef00d03252b"
+    },
+    {
+      "file": "portraits/tesla.webp",
+      "source": "sheets/tesla_idle.png",
+      "sourceSha256": "c2b6c01fb8d7758665164cb294ef8c1b634cf0225297c29f39e250502dd92943",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 14120,
+      "sha256": "e4591f8d42e649b110fb0787194c77f3ce50a839135cc732e1ce8f3d5ea54bf6"
+    },
+    {
+      "file": "portraits/trap.webp",
+      "source": "sheets/trap_idle.png",
+      "sourceSha256": "533bd7798eb920867852065d614f31bc2a0a675949d9d7a4b8a9813ea73d7a33",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 8314,
+      "sha256": "9ca28a50e47fd35e9fe360cc0c56dadec0304c180c2e90620f5be208f36cd754"
+    },
+    {
+      "file": "portraits/truesight.webp",
+      "source": "sheets/truesight_idle.png",
+      "sourceSha256": "0faaebdeedcce328d642b9732ea295f62114393335dc1c8ef120d364eb5245ca",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 13644,
+      "sha256": "4cd3581dc297a14e603cea9ecbc987238bd3f88752e42b4f2757f897b7371e02"
+    },
+    {
+      "file": "portraits/venom.webp",
+      "source": "sheets/venom_idle.png",
+      "sourceSha256": "767dc22c8929aa991aacf2422649e9210b07bc36755e50abf32c586601e67961",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 12656,
+      "sha256": "b7f106a11f3508e4cc19fde90b9a100bb24668fc316fb86a7348fd5d602b08e7"
+    },
+    {
+      "file": "portraits/void.webp",
+      "source": "sheets/void_idle.png",
+      "sourceSha256": "d608ccc5428e46c1d7f49c3b9958feead4dd136aab6fb84fbcfdc8e0256e7a45",
+      "sourceCrop": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256
+      },
+      "width": 192,
+      "height": 192,
+      "bytes": 13024,
+      "sha256": "eba7b27c86f102f949b08f39659b8ff6914d06bb48c411b3edba0a056ac3724d"
+    },
+    {
+      "file": "runtime/arcane_attack.webp",
+      "source": "sheets/arcane_attack.png",
+      "sourceSha256": "f71c3faf3ab9bef1a6be4a6bcce9fb5e796db7c558a1603a993666403b4ff8a5",
+      "width": 1920,
+      "height": 576,
+      "bytes": 178310,
+      "sha256": "5b821a1dbe4e6c692f02d04cbd41c9ae244c22339f7b5c31e72d0bee9ebe1ba7"
+    },
+    {
+      "file": "runtime/arcane_idle.webp",
+      "source": "sheets/arcane_idle.png",
+      "sourceSha256": "34c4f238256b4d4e73a38919f0336ab43149bb1c4eccb7d96217d033896dec9b",
+      "width": 1920,
+      "height": 576,
+      "bytes": 137120,
+      "sha256": "3fef0f25de845a1bd75c119db43a7e82cdc3af07778f529ab287580e51794421"
+    },
+    {
+      "file": "runtime/archer_attack.webp",
+      "source": "sheets/archer_attack.png",
+      "sourceSha256": "e64bca684bb43afb9446fe3e603e891114c8619ce7bd9e7861cc27cfca9d59ef",
+      "width": 1920,
+      "height": 576,
+      "bytes": 207816,
+      "sha256": "97b2f14567d90ff441522892841678241a80cc99d36d367fa168aeb3184128df"
+    },
+    {
+      "file": "runtime/archer_idle.webp",
+      "source": "sheets/archer_idle.png",
+      "sourceSha256": "fc40b11176088284ddd75b95b38dcd94e834a215779ee488f71fe9a71b7021ab",
+      "width": 1920,
+      "height": 576,
+      "bytes": 128074,
+      "sha256": "072e0f85c2f5672cb81d593f37cc66159346d02037d76dd1e7f42863aec96062"
+    },
+    {
+      "file": "runtime/barracks_attack.webp",
+      "source": "sheets/barracks_attack.png",
+      "sourceSha256": "69ba812c8f7179fa7ab35650723c86abf2093f0574792847de721ccad9b53ac4",
+      "width": 1920,
+      "height": 576,
+      "bytes": 181394,
+      "sha256": "5f036772288cc029d4c429c13d5ffd918cdeca7d185150719a74671a704b9ea4"
+    },
+    {
+      "file": "runtime/barracks_idle.webp",
+      "source": "sheets/barracks_idle.png",
+      "sourceSha256": "abbfc78c6ff72a8efc1aa33a6a6687d57e0b54d89ace7c58aa218bc6c36cc0a4",
+      "width": 1920,
+      "height": 576,
+      "bytes": 105176,
+      "sha256": "7c9f94458c961e159265b150f47ecdc0aaf1ff7311717aecdda5de2710d5a831"
+    },
+    {
+      "file": "runtime/cannon_attack.webp",
+      "source": "sheets/cannon_attack.png",
+      "sourceSha256": "b24682bcbe758e80a90425920e4c74ea8e27e2078b4e8854ff588d8aeee41329",
+      "width": 1920,
+      "height": 576,
+      "bytes": 181094,
+      "sha256": "c3e993ab2a7fd5dbc8bc4d50541751359f4ac4eb063c068b1240590d9cc255f8"
+    },
+    {
+      "file": "runtime/cannon_idle.webp",
+      "source": "sheets/cannon_idle.png",
+      "sourceSha256": "66a975e287204220ed67e34837a25e5b171dc38f57ebd4161e86f3980a99a235",
+      "width": 1920,
+      "height": 576,
+      "bytes": 110232,
+      "sha256": "6a287324f9bd3c348e3e95274a79c8165fad896e1cab9113345edb8a771a13e2"
+    },
+    {
+      "file": "runtime/chrono_attack.webp",
+      "source": "sheets/chrono_attack.png",
+      "sourceSha256": "43e50aa5548e108e014e9436bd1624d8f84d9d3e51ca9e56f27fca69d34fa658",
+      "width": 1920,
+      "height": 576,
+      "bytes": 225968,
+      "sha256": "93d6c5c97c3fc57256b32c580310003d5dfb6acc1b9c649e7f727ee2504462dd"
+    },
+    {
+      "file": "runtime/chrono_idle.webp",
+      "source": "sheets/chrono_idle.png",
+      "sourceSha256": "aec4b19ab67ebb3917d21edf37d83bf48758b684a8d05c1aeecc6e3029ed241a",
+      "width": 1920,
+      "height": 576,
+      "bytes": 170672,
+      "sha256": "dad906d4dcd0a3c428beb36fd5ea20a4054f79c01df137784919e9b701f0acb1"
+    },
+    {
+      "file": "runtime/earth_attack.webp",
+      "source": "sheets/earth_attack.png",
+      "sourceSha256": "5fb040e18fb1b486f92498c8fdbf08e558f1e39a041a9e00bd6f8eb92b1c5557",
+      "width": 1920,
+      "height": 576,
+      "bytes": 170956,
+      "sha256": "995360228feb6e616f47fda23236e9c62118e16f3cbf6b2f619c3d8bb0e2e994"
+    },
+    {
+      "file": "runtime/earth_idle.webp",
+      "source": "repairs/earth_idle.png",
+      "sourceSha256": "00eca0f0af5743365e81fa236f7262534a9b0d9451ab0f9034e58898aa4ce582",
+      "width": 1920,
+      "height": 576,
+      "bytes": 114444,
+      "sha256": "ed7db54529a026b77c5432df0bc6521ceffd709621f9ae70f7e31b03f0504987"
+    },
+    {
+      "file": "runtime/frost_attack.webp",
+      "source": "sheets/frost_attack.png",
+      "sourceSha256": "b55d0ce6efec2fa390a52572c54e5aad9ff7d7d476a1570dd2d5daf891b9ca6e",
+      "width": 1920,
+      "height": 576,
+      "bytes": 148836,
+      "sha256": "f09b81c8e19a502a132aad307c4549e4a9b08fce1636af3d241de06b81297a84"
+    },
+    {
+      "file": "runtime/frost_idle.webp",
+      "source": "sheets/frost_idle.png",
+      "sourceSha256": "838c1d7f9ea55ad5ecd84e57ea69e641f95329a55282a1c85d74fc93d7a33081",
+      "width": 1920,
+      "height": 576,
+      "bytes": 116336,
+      "sha256": "3f22a348cdc993e43868c1cbc519a2cf36ccb632fc5ef64077ef34027ec039b9"
+    },
+    {
+      "file": "runtime/mortar_attack.webp",
+      "source": "sheets/mortar_attack.png",
+      "sourceSha256": "5164c88f731b19c073807958083454ef9547b50a9cf4419b8778fe39dc70a096",
+      "width": 1920,
+      "height": 576,
+      "bytes": 157094,
+      "sha256": "33f4995824950e4bc6353eeae54bdd02cd1163edaa496c3afad5ab4d1cf3c9e7"
+    },
+    {
+      "file": "runtime/mortar_idle.webp",
+      "source": "sheets/mortar_idle.png",
+      "sourceSha256": "06ea1e3b1ae7b533b3baac7c0d84d5dfaa1631309929b64059a304c255c79d7c",
+      "width": 1920,
+      "height": 576,
+      "bytes": 99106,
+      "sha256": "e3b4d4d2ffdb90347a39cb60bd82bd69514332dcc888ca765c8cd92a71fc9a83"
+    },
+    {
+      "file": "runtime/nexus_attack.webp",
+      "source": "sheets/nexus_attack.png",
+      "sourceSha256": "8af3e097a7f65f74f8cb634b8844e038e98a1500c94dc7c43610c77dea618136",
+      "width": 1920,
+      "height": 576,
+      "bytes": 215468,
+      "sha256": "044a99f04ba4c67d772993b6dc37642b8d5dd555bc1001793fd3386bb46e9d25"
+    },
+    {
+      "file": "runtime/nexus_idle.webp",
+      "source": "sheets/nexus_idle.png",
+      "sourceSha256": "199e7ee52ab3ddeaeb5549f0a43cab2eb9008f4053b50f05fa9ffad8949ef0f3",
+      "width": 1920,
+      "height": 576,
+      "bytes": 176096,
+      "sha256": "65e07b50755f8344bb027245680fd5ef1707a37f34eb521cae71f1bb2effb2b7"
+    },
+    {
+      "file": "runtime/prism_attack.webp",
+      "source": "sheets/prism_attack.png",
+      "sourceSha256": "e0e452f2bab76d31677be9c5b605022e648992c859fd0f77cfc3fa5985db6ce9",
+      "width": 1920,
+      "height": 576,
+      "bytes": 145588,
+      "sha256": "bae805bf1a38768741a4ade791a1e42045a9ea3541fd672ff5cd3230c87be076"
+    },
+    {
+      "file": "runtime/prism_idle.webp",
+      "source": "sheets/prism_idle.png",
+      "sourceSha256": "528a7bd499bf5914352a9a2a076a8a5775d99b65ac4891b285222058b905abe7",
+      "width": 1920,
+      "height": 576,
+      "bytes": 105416,
+      "sha256": "55d2b85d8ae477227736b659fb121c839fa97e5e700ec880557e197b103f6c94"
+    },
+    {
+      "file": "runtime/solar_attack.webp",
+      "source": "sheets/solar_attack.png",
+      "sourceSha256": "5ef83fea08f3cc0c2377d3ad0e137dcd23c50a2098a42d404b020c3cbbfb784f",
+      "width": 1920,
+      "height": 576,
+      "bytes": 202966,
+      "sha256": "2de9844f1ef315a7bc20e56531fcd048af9b1d11651ef9e31d472953d8c38925"
+    },
+    {
+      "file": "runtime/solar_idle.webp",
+      "source": "sheets/solar_idle.png",
+      "sourceSha256": "cc1d6aa69cc7943223e1ca55e9a3000e359b35c0388090810c3045de05b7e592",
+      "width": 1920,
+      "height": 576,
+      "bytes": 167654,
+      "sha256": "de5fbe151f60ad7878bd1a8f9836c32268dedbd013d0f85a0005a9d4c08930ee"
+    },
+    {
+      "file": "runtime/sonic_attack.webp",
+      "source": "sheets/sonic_attack.png",
+      "sourceSha256": "78ffbad10198fcabca85e1b6a581f23680cbda40bb2c52bf9d887fa609f7debd",
+      "width": 1920,
+      "height": 576,
+      "bytes": 176418,
+      "sha256": "b7e382ed3876a5b29afc274296d29d25c1822ea7b5d2e85d223cf59b030df6aa"
+    },
+    {
+      "file": "runtime/sonic_idle.webp",
+      "source": "sheets/sonic_idle.png",
+      "sourceSha256": "2d352f1775b4215415db9910cc6e867be7e82c89d2240275d5aeab3dbd270d63",
+      "width": 1920,
+      "height": 576,
+      "bytes": 114206,
+      "sha256": "846a98c8335a2a97845f38ef2012887dfbd6b0fbe4b790359ac8481e219f300d"
+    },
+    {
+      "file": "runtime/tesla_attack.webp",
+      "source": "sheets/tesla_attack.png",
+      "sourceSha256": "cf62a63527b6e839799ae9b7970db42f03fffad6a25dcd98c6620f93d329aa83",
+      "width": 1920,
+      "height": 576,
+      "bytes": 221242,
+      "sha256": "cd13534c3168c714479900b2ee190360aa9ce94c7f25b7b9363df49e04e5562d"
+    },
+    {
+      "file": "runtime/tesla_idle.webp",
+      "source": "sheets/tesla_idle.png",
+      "sourceSha256": "c2b6c01fb8d7758665164cb294ef8c1b634cf0225297c29f39e250502dd92943",
+      "width": 1920,
+      "height": 576,
+      "bytes": 137216,
+      "sha256": "1ebe05d2d169dbaf789711372bf976e7820afc899286c3609dc262aff9e06af9"
+    },
+    {
+      "file": "runtime/trap_attack.webp",
+      "source": "sheets/trap_attack.png",
+      "sourceSha256": "aa2085bfe53806a1ab0d6f44c107d2224615e8c0cc3d2a4de29059c87b0b6a7c",
+      "width": 1920,
+      "height": 576,
+      "bytes": 145800,
+      "sha256": "41b49f2602c174c9bd947bcf3118ef4af681cc7c19cfbcca9a351b7cc0ea377b"
+    },
+    {
+      "file": "runtime/trap_idle.webp",
+      "source": "sheets/trap_idle.png",
+      "sourceSha256": "533bd7798eb920867852065d614f31bc2a0a675949d9d7a4b8a9813ea73d7a33",
+      "width": 1920,
+      "height": 576,
+      "bytes": 91076,
+      "sha256": "d4104c8533b11c2e77f6b6f2f6040db3eb8db9c7e42d2ecbc8d6cd314b575bb6"
+    },
+    {
+      "file": "runtime/truesight_attack.webp",
+      "source": "sheets/truesight_attack.png",
+      "sourceSha256": "7dd5546210a61e17b442979fe9eecbd2c3fd053dadd440a9281f12a182522e8d",
+      "width": 1920,
+      "height": 576,
+      "bytes": 212574,
+      "sha256": "0a157fdb4c4cc98948366d2363bb55761a7ac94bbdf0e664097b8e7688661b03"
+    },
+    {
+      "file": "runtime/truesight_idle.webp",
+      "source": "sheets/truesight_idle.png",
+      "sourceSha256": "0faaebdeedcce328d642b9732ea295f62114393335dc1c8ef120d364eb5245ca",
+      "width": 1920,
+      "height": 576,
+      "bytes": 130690,
+      "sha256": "0607cf2df5d810a52220d9aafe21fa8e43f9a3edc62c63f1ad3695f4e141324d"
+    },
+    {
+      "file": "runtime/venom_attack.webp",
+      "source": "sheets/venom_attack.png",
+      "sourceSha256": "2b2fb0634620a9d42a609cdbe60275fc497f4f99f760d3277e6f9fd80b2006ff",
+      "width": 1920,
+      "height": 576,
+      "bytes": 175546,
+      "sha256": "5702db29f08e3c394a36bd1e81dbb1b4276204d474c8437b4989180bd824c2fe"
+    },
+    {
+      "file": "runtime/venom_idle.webp",
+      "source": "sheets/venom_idle.png",
+      "sourceSha256": "767dc22c8929aa991aacf2422649e9210b07bc36755e50abf32c586601e67961",
+      "width": 1920,
+      "height": 576,
+      "bytes": 125926,
+      "sha256": "d23b4edb47150d4fc59a4de538d75376ae3d88129243eedbd63acff4cb95a9de"
+    },
+    {
+      "file": "runtime/void_attack.webp",
+      "source": "sheets/void_attack.png",
+      "sourceSha256": "ff08ea89c34fa6d20a0b7c6418d5e18eeac62bd4d7b3ceaead4b5c6a93dfea47",
+      "width": 1920,
+      "height": 576,
+      "bytes": 168784,
+      "sha256": "5701b5cb44cef1aadc7d09ce8aed6c8d223d024e1879078ffe36ebe96398e506"
+    },
+    {
+      "file": "runtime/void_idle.webp",
+      "source": "sheets/void_idle.png",
+      "sourceSha256": "d608ccc5428e46c1d7f49c3b9958feead4dd136aab6fb84fbcfdc8e0256e7a45",
+      "width": 1920,
+      "height": 576,
+      "bytes": 132072,
+      "sha256": "795e05822063061c30913a4f4c545154ad6858b8e02591d9618078568ede845d"
+    }
+  ]
+}

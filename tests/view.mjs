@@ -215,7 +215,8 @@ try {
     assert.deepEqual((await state(desktop)).towers, frozen.towers, 'Resize back to the base backing preserves tower state');
     assert.equal((await state(desktop)).gold, frozen.gold);
     checks.push('Render backing 1×→2×→1× and reset-to-fit preserve game state');
-    assert([...assets].some(url => /role-towers[^/]*\.svg/.test(url)), 'Role-specific tower atlas loads successfully');
+    const towerSheets = [...assets].filter(url => /(?:archer|cannon|mortar|frost|earth|arcane|tesla|venom|prism|trap|sonic|barracks|void|solar|chrono|truesight|nexus)_(?:idle|attack)[^/]*\.webp/.test(url));
+    assert.equal(towerSheets.length, 34, 'All seventeen supplied tower families load both normalized supplied clips');
     assert([...assets].some(url => /enemy-roster[^/]*\.webp/.test(url)), 'Supplied enemy atlas loads successfully');
     checks.push('Role-specific tower art and supplied enemy atlas load without asset errors');
   } catch (error) {
@@ -236,7 +237,7 @@ try {
     await selectTower(retina, (await state(retina)).towers[0].id);
     await retina.locator('#upgrade').click();
     await retina.waitForFunction(() => window.__MOSSGUARD__.towers[0].level === 2);
-    assert.equal(await retina.locator('#context svg[data-asset="archer-2"]').count(), 1, 'Level II uses its distinct Lantern Sentries upgrade artwork');
+    assert.equal(await retina.locator('#context svg[data-discipline="archer"][data-tier="2"][data-asset="archer-idle-0"]').count(), 1, 'Level II preserves the supplied Arrow design with its tier cue');
     assert.equal(await retina.locator('[data-branch="A"]').isDisabled(), true, 'Specializations remain gated until further clears');
     await shot(retina, 'desktop-dpr2-upgraded');
     checks.push('DPR2 pointer placement and wave-earned Lantern Sentries artwork');

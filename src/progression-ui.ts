@@ -1,8 +1,10 @@
 import { Progression, SKILL_BRANCHES, SKILL_NODES, CAPSTONES, SHOP_ITEMS, type SkillBranchId } from './game/progression';
-import { ENEMY_KINDS, ENEMY_DEFS } from './game/catalog';
+import { ENEMY_KINDS, ENEMY_DEFS, TOWER_KINDS, TOWER_DEFS, type TowerKind } from './game/catalog';
+import { towerArt } from './asset-art';
 import './progression-ui.css';
 
-type Tab = 'skills' | 'capstones' | 'shop' | 'bestiary';
+export type ProgressionTab = 'skills' | 'research' | 'capstones' | 'shop' | 'bestiary';
+type Tab = ProgressionTab;
 interface Callbacks { onOpen:()=>void; onClose:()=>void; onChange:()=>void; }
 
 /** A bounded DOM journal; upgrades are saved here and applied at the next fresh defense. */
@@ -11,6 +13,7 @@ export class ProgressionUI {
   private tab: Tab = 'skills';
   private branch: SkillBranchId | 'overview' = 'overview';
   private selectedNode: string | null = null;
+  private researchFamily: TowerKind = 'archer';
   private returnFocus: HTMLElement | null = null;
   constructor(private progression: Progression, private callbacks: Callbacks) {
     this.element = document.createElement('div');
@@ -19,8 +22,8 @@ export class ProgressionUI {
       <button id="progression-close" class="modal-close" aria-label="Close progression">×</button>
       <span class="eyebrow">THE WARDEN'S LEGACY</span><h2 id="progression-title">Grow beyond the battlefield</h2>
       <div id="meta-wallet" class="meta-wallet" aria-live="polite"></div>
-      <p class="meta-note">Earn XP and gems by defending stages. Purchases apply to your next fresh defense.</p>
-      <div class="meta-tabs" role="tablist" aria-label="Progression and enemy guide">${(['skills','capstones','shop','bestiary'] as Tab[]).map(tab=>`<button data-meta-tab="${tab}" role="tab" aria-controls="meta-content">${tab==='skills'?'Skill tree':tab==='bestiary'?'Enemy guide':tab[0].toUpperCase()+tab.slice(1)}</button>`).join('')}</div>
+      <p class="meta-note">Earn account XP and gems by defending stages. Account purchases apply to your next fresh defense; family XP unlocks tower research as you fight.</p>
+      <div class="meta-tabs" role="tablist" aria-label="Progression and enemy guide">${(['skills','research','capstones','shop','bestiary'] as Tab[]).map(tab=>`<button id="meta-tab-${tab}" data-meta-tab="${tab}" role="tab" aria-controls="meta-content">${tab==='skills'?'Skill tree':tab==='research'?'Tower mastery':tab==='bestiary'?'Enemy guide':tab[0].toUpperCase()+tab.slice(1)}</button>`).join('')}</div>
       <div id="meta-content" role="tabpanel"></div><p id="meta-feedback" role="status"></p>
       <button id="progression-done" class="primary">Return to defense</button>
     </section>`;
@@ -48,12 +51,14 @@ export class ProgressionUI {
     });
   }
   get isOpen(){return !this.element.hidden;}
-  open(tab:Tab='skills'){
-    if(this.isOpen)return;
+  open(tab:Tab='skills',kind?:TowerKind){
+    if(kind&&TOWER_KINDS.includes(kind))this.researchFamily=kind;
+    if(this.isOpen){this.tab=tab;this.render();this.element.querySelector<HTMLButtonElement>(`[data-meta-tab="${tab}"]`)?.focus();return;}
     this.returnFocus=document.activeElement as HTMLElement|null;this.tab=tab;
     this.callbacks.onOpen();this.element.hidden=false;this.render();
     this.element.querySelector<HTMLButtonElement>('#progression-close')!.focus();
   }
+  openResearch(kind?:TowerKind){this.open('research',kind);}
   close(){if(!this.isOpen)return;this.element.hidden=true;this.callbacks.onClose();if(this.returnFocus?.getClientRects().length)this.returnFocus.focus();}
   refresh(){if(this.isOpen)this.render();}
   private result(ok:boolean,message:string){
@@ -65,6 +70,51 @@ export class ProgressionUI {
     const selector=focusKey&&focusValue?`[data-${focusKey.replace(/[A-Z]/g,letter=>'-'+letter.toLowerCase())}="${focusValue}"]`:null;
     const restored=selector?this.element.querySelector<HTMLButtonElement>(selector):null;
     if(restored&&!restored.disabled)restored.focus();else if(this.tab==='skills'&&this.selectedNode)this.element.querySelector<HTMLButtonElement>(`[data-skill-node="${this.selectedNode}"]`)?.focus();else this.element.querySelector<HTMLButtonElement>(`[data-meta-tab="${this.tab}"]`)?.focus();
+  }
+  private renderResearch(content:HTMLElement){
+    const kind=this.researchFamily,def=TOWER_DEFS[kind],research=this.progression.towerResearch(kind);
+    const xp=research[0].xp,next=research.find(item=>!item.unlocked),unlocked=research.filter(item=>item.unlocked).length;
+    const families=this.progression.unlockedTowers,familyUnlocked=families.includes(kind);
+    const totalXP=Object.values(this.progression.towerMastery).reduce((sum,value)=>sum+(value||0),0);
+    const number=(value:number)=>value.toLocaleString();
+    content.innerHTML=`<div class="research-intro"><div><span class="research-kicker">THE TOWER ARCHIVE</span><h3>Practice becomes power</h3></div><span class="research-total">${TOWER_KINDS.length} families · ${number(totalXP)} family XP saved</span></div>
+      <p class="meta-note research-explainer">Towers earn family XP by fighting, controlling enemies, deploying troops, and supporting allies. Research unlocks automatically; XP is never spent and survives defeats and replays.</p>
+      <div class="research-toolbar"><label for="research-family">Inspect tower family<select id="research-family">${TOWER_KINDS.map(item=>`<option value="${item}" ${item===kind?'selected':''}>${TOWER_DEFS[item].name}${families.includes(item)?'':' · gem locked'}</option>`).join('')}</select></label><p>Skill tree purchases use your separate account XP.</p></div>
+      <div class="research-layout"><nav class="research-families" aria-label="Tower families">${TOWER_KINDS.map(item=>{
+        const entries=this.progression.towerResearch(item),familyXP=entries[0].xp,learned=entries.filter(entry=>entry.unlocked).length,locked=!families.includes(item);
+        return `<button class="research-family ${item===kind?'selected':''} ${locked?'gem-locked':''}" data-research-family="${item}" aria-pressed="${item===kind}" aria-controls="research-detail" aria-label="Inspect ${TOWER_DEFS[item].name}, ${number(familyXP)} family XP, ${learned} of ${entries.length} researched${locked?', family gem locked':''}"><span class="research-family-art">${towerArt(item)}</span><span class="research-family-label"><strong>${TOWER_DEFS[item].name}</strong><small>${number(familyXP)} XP · ${learned}/${entries.length}${locked?' · ◇ gems':''}</small></span></button>`;
+      }).join('')}</nav>
+      <article id="research-detail" class="research-detail" data-research-detail="${kind}" aria-labelledby="research-family-title"><div class="research-family-heading"><div class="research-portrait">${towerArt(kind)}</div><div><span class="research-kicker">${def.role}</span><h3 id="research-family-title">${def.name}</h3><p>${def.description}</p><div class="research-family-score"><strong>${number(xp)} <small>family XP</small></strong><span>${unlocked} / ${research.length} researched</span></div></div></div>
+        ${familyUnlocked?`<div class="research-access"><span aria-hidden="true">◆</span><span>Family available · build for <b>${def.cost} gold</b></span></div>`:`<div class="research-access gem-locked"><span aria-hidden="true">◇</span><div><b>Family locked · ${def.premiumCost} gems</b><span>Unlock this family in the shop, then build it for ${def.cost} gold and earn its XP in battle.</span></div><button id="research-gem-shop">View gem unlock</button></div>`}
+        <div class="research-next" data-research-next="${next?.key||'complete'}"><div><span>${next?`Next research · ${next.name}`:'All family research complete'}</span><b>${next?`${number(xp)} / ${number(next.requiredXP)} XP`:`${research.length} / ${research.length} unlocked`}</b></div>${next?`<progress value="${Math.min(xp,next.requiredXP)}" max="${next.requiredXP}" aria-label="${def.name} XP toward ${next.name}"></progress><small>${number(next.remaining)} more family XP unlocks this upgrade automatically.</small>`:'<small>Every upgrade is researched. Gold and field experience still apply to each placed tower.</small>'}</div>
+        <div class="research-paths" aria-label="${def.name} upgrade research">${research.map(item=>{
+          const tier2=item.key==='II',branch=tier2?null:def.branches[item.key as 'A'|'B'|'C'|'D'];
+          const description=tier2?(def.tier2Description||(kind==='barracks'?'Stronger, tougher soldiers and greater rally reach.':'Improves tower power, range, and firing speed.')):branch!.description;
+          const cost=tier2?def.tier2Cost:branch!.cost;
+          return `<section class="research-path ${tier2?'tier-two':''} ${item.unlocked?'researched':'locked'}" data-research-key="${item.key}" data-research-unlocked="${item.unlocked}" aria-labelledby="research-title-${item.key}"><div class="research-path-top"><span class="research-path-key" aria-hidden="true">${item.key}</span><div><small>${tier2?'TIER II':`BRANCH ${item.key}${item.key==='D'?' · HELL ONLY':''}`}</small><h4 id="research-title-${item.key}">${item.name}</h4></div><span class="research-path-seal" aria-hidden="true">${item.unlocked?'✓':'◇'}</span></div><p>${description}</p><div class="research-requirement"><span>${item.unlocked?'Research complete':`${number(item.remaining)} XP to unlock`}</span><b>${number(item.requiredXP)} family XP</b></div><progress value="${Math.min(xp,item.requiredXP)}" max="${item.requiredXP}" aria-label="${item.name} research"></progress><div class="research-field-cost"><b>${cost} gold</b><span>${tier2?'After a defended wave':'Tier II · wave 3 or later'}${item.key==='D'?' · Hell difficulty':''}</span></div></section>`;
+        }).join('')}</div><p class="research-field-note">Research gives permanent access. Buy upgrades with gold in each defense. A tower must defend a wave before Tier II, then another wave before choosing one branch, from wave 3 onward. Branch D requires Hell difficulty.</p></article></div>`;
+    const select=(selected:TowerKind,fromSelect=false)=>{
+      const roster=content.querySelector<HTMLElement>('.research-families'),scrollTop=roster?.scrollTop||0,scrollLeft=roster?.scrollLeft||0;
+      this.researchFamily=selected;this.render();
+      const updated=content.querySelector<HTMLElement>('.research-families');if(updated){updated.scrollTop=scrollTop;updated.scrollLeft=scrollLeft;}
+      const target=this.element.querySelector<HTMLElement>(fromSelect?'#research-family':`[data-research-family="${selected}"]`);
+      target?.focus({preventScroll:true});
+      if(!fromSelect)target?.scrollIntoView({block:'nearest',inline:'nearest'});
+    };
+    content.querySelector<HTMLSelectElement>('#research-family')!.addEventListener('change',event=>select((event.target as HTMLSelectElement).value as TowerKind,true));
+    content.querySelectorAll<HTMLButtonElement>('[data-research-family]').forEach(button=>button.addEventListener('click',()=>select(button.dataset.researchFamily as TowerKind)));
+    content.querySelector('.research-families')!.addEventListener('keydown',event=>{
+      const key=(event as KeyboardEvent).key,current=TOWER_KINDS.indexOf((document.activeElement as HTMLElement)?.dataset.researchFamily as TowerKind);
+      if(current<0||!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Home','End'].includes(key))return;
+      event.preventDefault();
+      const nextIndex=key==='Home'?0:key==='End'?TOWER_KINDS.length-1:(current+(['ArrowDown','ArrowRight'].includes(key)?1:-1)+TOWER_KINDS.length)%TOWER_KINDS.length;
+      select(TOWER_KINDS[nextIndex]);
+    });
+    content.querySelector('#research-gem-shop')?.addEventListener('click',()=>{
+      this.tab='shop';this.render();
+      const item=SHOP_ITEMS.find(item=>item.tower===kind),button=item?content.querySelector<HTMLButtonElement>(`[data-shop-item="${item.id}"]`):null;
+      button?.scrollIntoView({block:'center'});button?.focus({preventScroll:true});
+    });
   }
   private renderSkills(content:HTMLElement){
     const state=this.progression.state,branch=SKILL_BRANCHES.find(item=>item.id===this.branch);
@@ -112,12 +162,17 @@ export class ProgressionUI {
     const state=this.progression.state;
     const branchView=this.tab==='skills'&&this.branch!=='overview';
     this.element.classList.toggle('skill-branch-view',branchView);
-    this.element.querySelector('#progression-title')!.textContent=branchView?`${SKILL_BRANCHES.find(item=>item.id===this.branch)?.name||'Skill'} paths`:'Grow beyond the battlefield';
-    this.element.querySelector('#meta-wallet')!.textContent=`${state.xp.toLocaleString()} XP · ${state.gems.toLocaleString()} gems · ${this.progression.totalRanks} skill ranks`;
+    this.element.classList.toggle('research-view',this.tab==='research');
+    this.element.querySelector('#progression-title')!.textContent=this.tab==='research'?'Tower mastery':branchView?`${SKILL_BRANCHES.find(item=>item.id===this.branch)?.name||'Skill'} paths`:'Grow beyond the battlefield';
+    this.element.querySelector('#meta-wallet')!.textContent=`${state.xp.toLocaleString()} account XP · ${state.gems.toLocaleString()} gems · ${this.progression.totalRanks} skill ranks`;
     this.element.querySelectorAll<HTMLButtonElement>('[data-meta-tab]').forEach(button=>{button.setAttribute('aria-selected',String(button.dataset.metaTab===this.tab));button.tabIndex=button.dataset.metaTab===this.tab?0:-1;});
     const content=this.element.querySelector<HTMLElement>('#meta-content')!;
+    content.setAttribute('aria-labelledby',`meta-tab-${this.tab}`);
+    this.element.querySelector('#meta-feedback')!.textContent='';
     if(this.tab==='skills'){
       this.renderSkills(content);
+    }else if(this.tab==='research'){
+      this.renderResearch(content);
     }else if(this.tab==='capstones'){
       content.innerHTML=`<p class="meta-note">Seven permanent battle upgrades. Spend XP after developing the required branches.</p><div class="meta-grid">${CAPSTONES.map(item=>{
         const owned=state.capstones.includes(item.id),requirements=Object.entries(item.requires).map(([branch,ranks])=>`${SKILL_BRANCHES.find(b=>b.id===branch)?.name||branch}: ${ranks} ranks`).join(' · ');

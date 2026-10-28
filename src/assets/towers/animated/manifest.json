@@ -1,0 +1,135 @@
+{
+  "fps": 30,
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "columns": 10,
+  "rows": 3,
+  "frameCount": 30,
+  "durationSeconds": 1,
+  "anchor": {
+    "x": 0.5,
+    "y": 0.82
+  },
+  "interpolation": "smoothstep keyframe interpolation; analytic continuous rotation",
+  "towers": [
+    {
+      "id": "archer",
+      "name": "Arrow tower",
+      "color": "#c5d782",
+      "idle": "sheets/archer_idle.png",
+      "attack": "sheets/archer_attack.png"
+    },
+    {
+      "id": "cannon",
+      "name": "Cannon",
+      "color": "#e8ae67",
+      "idle": "sheets/cannon_idle.png",
+      "attack": "sheets/cannon_attack.png"
+    },
+    {
+      "id": "mortar",
+      "name": "Mortar",
+      "color": "#e3bb79",
+      "idle": "sheets/mortar_idle.png",
+      "attack": "sheets/mortar_attack.png"
+    },
+    {
+      "id": "frost",
+      "name": "Ice shrine",
+      "color": "#86e5ef",
+      "idle": "sheets/frost_idle.png",
+      "attack": "sheets/frost_attack.png"
+    },
+    {
+      "id": "earth",
+      "name": "Earth tower",
+      "color": "#c6b077",
+      "idle": "sheets/earth_idle.png",
+      "attack": "sheets/earth_attack.png"
+    },
+    {
+      "id": "arcane",
+      "name": "Magic spire",
+      "color": "#b79aef",
+      "idle": "sheets/arcane_idle.png",
+      "attack": "sheets/arcane_attack.png"
+    },
+    {
+      "id": "tesla",
+      "name": "Tesla coil",
+      "color": "#7edaff",
+      "idle": "sheets/tesla_idle.png",
+      "attack": "sheets/tesla_attack.png"
+    },
+    {
+      "id": "venom",
+      "name": "Poison lab",
+      "color": "#b0df69",
+      "idle": "sheets/venom_idle.png",
+      "attack": "sheets/venom_attack.png"
+    },
+    {
+      "id": "prism",
+      "name": "Prism beacon",
+      "color": "#ffe4a0",
+      "idle": "sheets/prism_idle.png",
+      "attack": "sheets/prism_attack.png"
+    },
+    {
+      "id": "trap",
+      "name": "Path trap",
+      "color": "#d4b173",
+      "idle": "sheets/trap_idle.png",
+      "attack": "sheets/trap_attack.png"
+    },
+    {
+      "id": "sonic",
+      "name": "Sonic tower",
+      "color": "#e1a5e8",
+      "idle": "sheets/sonic_idle.png",
+      "attack": "sheets/sonic_attack.png"
+    },
+    {
+      "id": "barracks",
+      "name": "Barracks",
+      "color": "#a9c6a3",
+      "idle": "sheets/barracks_idle.png",
+      "attack": "sheets/barracks_attack.png"
+    },
+    {
+      "id": "void",
+      "name": "Void obelisk",
+      "color": "#a488ed",
+      "idle": "sheets/void_idle.png",
+      "attack": "sheets/void_attack.png"
+    },
+    {
+      "id": "solar",
+      "name": "Solar tower",
+      "color": "#ffb65e",
+      "idle": "sheets/solar_idle.png",
+      "attack": "sheets/solar_attack.png"
+    },
+    {
+      "id": "chrono",
+      "name": "Chrono spire",
+      "color": "#8fe0ce",
+      "idle": "sheets/chrono_idle.png",
+      "attack": "sheets/chrono_attack.png"
+    },
+    {
+      "id": "truesight",
+      "name": "Truesight watch",
+      "color": "#e2eab0",
+      "idle": "sheets/truesight_idle.png",
+      "attack": "sheets/truesight_attack.png"
+    },
+    {
+      "id": "nexus",
+      "name": "Nexus",
+      "color": "#ecb0ff",
+      "idle": "sheets/nexus_idle.png",
+      "attack": "sheets/nexus_attack.png"
+    }
+  ]
+}

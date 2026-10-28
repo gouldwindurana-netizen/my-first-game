@@ -53,6 +53,13 @@
 .detection-options button strong { color: #e7d5a8; font-size: 12px; }
 .detection-options button span, .detection-options button small { color: #b6d1db; font-size: 11px; line-height: 1.5; }
 .detection-options button:hover { background: #204454; border-color: #d3bc80; }
+.tower-mastery { grid-column: 1 / -1; grid-row: 4; display: grid; gap: 7px; padding: 10px; margin: 10px 0; background: #123044; border: 1px solid #4e7482; border-radius: 4px; }
+.tower-mastery button { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 4px 0; background: transparent; border: 0; text-align: left; color: #e5d2a3; font-size: 12px; }
+.tower-mastery button span { color: #acd5df; font-size: 11px; }
+.tower-mastery small, .tower-mastery > span { color: #b8ced5; font-size: 10px; line-height: 1.6; }
+.tower-mastery progress { display: block; width: 100%; height: 7px; accent-color: #d0b66f; }
+.tower-mastery progress::-webkit-progress-bar { background: #061c2b; border-radius: 4px; }
+.tower-mastery progress::-webkit-progress-value { background: #c6ad69; border-radius: 4px; }
 @media (max-width: 740px) and (min-height: 601px) {
   .tower-detail { grid-template-columns: 64px minmax(0, 1fr); column-gap: 12px; }
   .tower-detail .tower-portrait { display: flex; grid-column: 1; grid-row: 2 / 4; width: 64px; height: 90px; }

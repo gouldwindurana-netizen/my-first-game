@@ -1,0 +1,27 @@
+User-provided Mossguard tower animation assets
+
+Source: Mossguard_17_Towers_30FPS.zip, supplied by the user on 2026-10-28.
+The user explicitly authorized integrating its tower artwork into this game.
+
+The original archive includes no separate license file. This notice records the
+source and authorized use; it does not assign CC0, an open-source license, or any
+additional redistribution rights to the supplied artwork. The CC0 dedication for
+the older role-towers.svg atlas does not apply to this directory.
+
+All 34 PNG sprite sheets, manifest.json, README.md, and tower-catalog.png were
+extracted without changing their bytes. The bundled generator, integration script,
+and preview HTML were not executed. Runtime copies use 192x192 cells in lossless
+WebP sheets at their authored 30 FPS cadence; ImageMagick Lanczos downsampling
+reduces texture memory and keeps sheet width below 2048 pixels. Small first-idle
+portraits avoid loading full sheets in DOM icons.
+
+The original earth_idle.png is internally truncated. Its 30 complete individual
+frames from the same archive reconstruct that sheet before normalization. Original
+source bytes are retained unchanged. Normalization and repair commands, input
+hashes, and output hashes are recorded in normalization.json.
+
+There is one idle and one attack clip for each of the 17 matching tower IDs. The
+pack has no distinct tier or specialization drawings. Gameplay tiers retain size,
+level pips, branch labels, and upgrade effects while using the supplied design.
+
+See provenance.json for source archive and individual file SHA-256 checksums.

@@ -5,7 +5,8 @@ The current gameplay expansion implements the later combat, troop, campaign, and
 ## Implemented
 
 - Main menu with session resume and campaign navigation; connected branching skill tree with preserved saved ranks.
-- Distinct original artwork for all seventeen tower families across three tiers, with matching battlefield sprites and portraits.
+- Supplied 30-FPS idle and attack clips for all seventeen tower families, with matching static portraits, mobile-sized runtime sheets, and a recovered Earth idle sheet.
+- Permanent family XP and automatic upgrade research, a seventeen-family research journal, combat/support/troop credit, and duplicate-safe saves separate from skill XP.
 - Ordinary Arrow/Ice detection upgrades, visible opening patrols, affordable nongem counters, and scout-report preparation advice.
 - More named build sites; permanent tower placement; one-Arrow Easy/Normal opening waves on every stage.
 - Seventeen tower families, five earned-gem unlocks, and A/B/C specializations plus Hell-only D branches.
@@ -21,7 +22,7 @@ The current gameplay expansion implements the later combat, troop, campaign, and
 
 ## Next visual pass
 
-Tower families now have distinct artwork and three tier silhouettes. Enemies and troops still use existing walking families with clear badges, colors, and status markers. Planned visual work includes distinct troop/enemy art, additional walk/attack/defeat cycles, individual specialization silhouettes, and unique artwork for the twelve stage themes.
+Tower families now use the new thirty-frame idle/attack sheets. The supplied pack has no separate tier or branch art, so upgrades use size and badge cues. Enemies and troops still use existing walking families with clear badges, colors, and status markers. Planned visual work includes dedicated tier/specialization drawings, distinct troop/enemy art, additional walk/attack/defeat cycles, and unique artwork for the twelve stage themes.
 
 ## Other planned ideas
 

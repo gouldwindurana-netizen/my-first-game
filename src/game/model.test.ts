@@ -5,8 +5,9 @@ function enemy(game:GameModel,id:number,kind:EnemyKind,distance=210,hp=ENEMY_DEF
   return{id,kind,...positionAt(distance,game.path),hp,maxHp:hp,distance,speed:ENEMY_DEFS[kind].speed,slowUntil:0};
 }
 function advance(game:GameModel,seconds:number){for(let i=0;i<Math.ceil(seconds*10);i++)game.update(Math.min(.1,seconds-i*.1));}
+function trained(game:GameModel){game.setTowerMastery(Object.fromEntries(TOWER_KINDS.map(kind=>[kind,1000])));return game;}
 function armed(kind:TowerKind,branch?:TowerBranchKey){
-  const game=new GameModel();game.setProgression({},TOWER_KINDS);game.gold=10000;game.build(0,kind);
+  const game=trained(new GameModel());game.setProgression({},TOWER_KINDS);game.gold=10000;game.build(0,kind);
   Object.defineProperty(game,'trees',{get:()=>[],configurable:true});
   const tower=game.towers[0];if(branch){game.wave=1;game.upgrade(tower.id);if(branch==='D')game.difficulty='hell';game.wave=3;game.upgrade(tower.id,branch);}
   game.status='wave';game.wave=1;return{game,tower};
@@ -24,8 +25,8 @@ describe('gold, construction and branch contracts',()=>{
     expect(game.towers.map(t=>game.getTowerPosition(t))).toEqual(positions);
   });
   it('locks upgrades by cleared waves and requires the newly upgraded tier to defend another wave',()=>{
-    const game=new GameModel();game.gold=10000;game.build(0,'archer');const tower=game.towers[0],gold=game.gold;
-    expect(game.getUpgradeGate(tower)).toEqual({allowed:false,requiredClears:1,cleared:0,reason:'Clear wave 1 before tier II.'});
+    const game=trained(new GameModel());game.gold=10000;game.build(0,'archer');const tower=game.towers[0],gold=game.gold;
+    expect(game.getUpgradeGate(tower)).toMatchObject({allowed:false,requiredClears:1,cleared:0,reason:'Clear wave 1 before tier II.',researched:true});
     expect(game.upgrade(tower.id)).toBe(false);expect(game.gold).toBe(gold);
     game.wave=1;game.status='wave';expect(game.upgrade(tower.id)).toBe(false);
     game.status='building';expect(game.upgrade(tower.id)).toBe(true);
@@ -40,7 +41,7 @@ describe('gold, construction and branch contracts',()=>{
     game.paused=false;game.update(.1);expect(game.zones).toHaveLength(1);game.update(.1);expect(game.zones).toHaveLength(0);
   });
   it('charges the requested base and tier-two prices, rejects invalid and occupied sites',()=>{
-    const game=new GameModel();const initial=game.gold;
+    const game=trained(new GameModel());const initial=game.gold;
     expect(game.build(0,'archer')).toBe(true);expect(game.gold).toBe(initial-80);
     expect(game.build(0,'cannon')).toBe(false);expect(game.build(999,'archer')).toBe(false);
     game.wave=1;expect(game.upgrade(game.towers[0].id)).toBe(true);expect(game.gold).toBe(initial-80-55);
@@ -52,14 +53,14 @@ describe('gold, construction and branch contracts',()=>{
     expect(game.build(1,'nexus')).toBe(false);
   });
   it('offers mutually exclusive branches and model-enforces the Hell specialization',()=>{
-    const game=new GameModel();game.gold=10000;game.build(0,'archer');const t=game.towers[0];
+    const game=trained(new GameModel());game.gold=10000;game.build(0,'archer');const t=game.towers[0];
     game.wave=1;game.upgrade(t.id);game.wave=3;const before=game.gold;expect(game.upgrade(t.id,'D')).toBe(false);expect(game.gold).toBe(before);
     expect(game.upgrade(t.id,'B')).toBe(true);expect(t.branch).toBe('B');expect(game.upgrade(t.id,'C')).toBe(false);
     expect(game.getTowerStats(t).effects.pierce).toBe(2);
-    const hell=new GameModel();hell.setDifficulty('hell');hell.gold=10000;hell.build(0,'archer');hell.wave=1;hell.upgrade(hell.towers[0].id);hell.wave=3;expect(hell.upgrade(hell.towers[0].id,'D')).toBe(true);
+    const hell=trained(new GameModel());hell.setDifficulty('hell');hell.gold=10000;hell.build(0,'archer');hell.wave=1;hell.upgrade(hell.towers[0].id);hell.wave=3;expect(hell.upgrade(hell.towers[0].id,'D')).toBe(true);
   });
   it('sells fixed defenses for 70% of the paid investment',()=>{
-    const game=new GameModel();game.gold=1000;game.build(0,'archer');const t=game.towers[0];game.wave=1;game.upgrade(t.id);
+    const game=trained(new GameModel());game.gold=1000;game.build(0,'archer');const t=game.towers[0];game.wave=1;game.upgrade(t.id);
     const before=game.gold,spent=t.spent;expect(game.sell(t.id)).toBe(true);expect(game.gold).toBe(before+Math.floor(spent*.7));expect(game.sell(t.id)).toBe(false);
   });
   it('merges meta bonuses once, uses auras, and preserves branch identity',()=>{
@@ -168,7 +169,7 @@ describe('physical troops and finite-use traps',()=>{
     const rearmGold=game.gold;expect(game.rearmTrap(trap.id)).toBe(true);expect(game.gold).toBe(rearmGold-63);expect(trap.uses).toBe(trap.maxUses);
   });
   it('preserves used charges through paced upgrades instead of refilling for free',()=>{
-    const game=new GameModel();game.gold=10000;game.build(0,'trap');const trap=game.towers[0];trap.uses=1;game.wave=1;game.upgrade(trap.id);expect(trap.uses).toBe(1);game.wave=3;game.upgrade(trap.id,'A');expect(trap.maxUses).toBe(6);expect(trap.uses).toBe(3);
+    const game=trained(new GameModel());game.gold=10000;game.build(0,'trap');const trap=game.towers[0];trap.uses=1;game.wave=1;game.upgrade(trap.id);expect(trap.uses).toBe(1);game.wave=3;game.upgrade(trap.id,'A');expect(trap.maxUses).toBe(6);expect(trap.uses).toBe(3);
   });
 });
 

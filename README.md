@@ -21,6 +21,7 @@ The game opens on a dedicated title screen. **Play campaign** opens stage and di
 - Barracks soldiers physically move to a rally point, block and fight ground enemies, return when idle, and respawn after defeat.
 - Finite-use traps snap to the road. Rearm them with gold; they do not consume tower foundations.
 - Earn upgrades through wave clears: tier II needs the first cleared wave and a clear since construction; a specialization needs three cleared waves and a clear since tier II. An early tower can reach maximum tier within the first level, but cannot max out immediately. A/B/C branches are available normally; D requires Hell.
+- Each family also earns permanent **tower XP** by fighting, controlling enemies, fielding troops, or supporting combat. Research unlocks automatically at 12 XP for tier II and 75/105/135/180 XP for A/B/C/D. Tower XP is never spent; gold still buys each upgrade, and field-training wave requirements still apply. Open **Tower mastery** in the Legacy journal or the selected tower's XP panel.
 - Use the **?** scout report to see next-wave types and counts. Automatic waves are optional in settings.
 
 [Full combat, tower, enemy, and progression rules](docs/GAMEPLAY.md) document actual prices and effects.
@@ -62,9 +63,9 @@ Progress, stars, XP, gems, ranks, and purchases save in localStorage. Old campai
 
 Every map preserves its original aspect ratio and fits completely at 100%. Zoom from 100% to 250%, drag to pan, and press **0** to fit again. Fullscreen and resizing preserve battle state. The field, dock, and wave action stay within desktop, laptop, tablet, and phone viewports; portrait inspection uses a dismissible drawer. Maps have 7–11 named foundations, adding 32 build opportunities across the twelve stages. Placement is permanent: towers and traps cannot relocate; sell and rebuild to change a layout. Sites have no numeric labels.
 
-The 12 stages reuse five existing high-resolution environment illustrations with different wave scripts and economies. All 17 tower families have distinct original isometric artwork across three tiers, shared by battlefield sprites and portraits. Their weapons and silhouettes show their roles; Sonic’s Echo Observatory replaces its overlapping support specialization with detection and pushback. Enemies retain the four supplied walking families, badges, and status indicators. The existing 24-fps interpolated walking and seamless scenery loops remain intact. Pause and reduced-motion settings are respected.
+The 12 stages reuse five existing high-resolution environment illustrations with different wave scripts and economies. All 17 tower families use the new user-provided **30-FPS idle and attack animations**, with matching static portraits. The pack has no separate tier or specialization drawings; size and badges distinguish upgrades. Runtime sheets use 192-pixel cells to reduce decoded image memory and fit 2048-pixel texture limits, with original source files retained. Enemies keep their existing 24-fps walking cycles and seamless scenery loops. Pause and reduced-motion settings are respected.
 
-[Tower artwork](docs/TOWER_ART.md) documents the 51 new frames and reproducible generator. [Asset integration](docs/ASSET_INTEGRATION.md) records original source crops, generated map restorations, walking provenance, and current art limitations. [Expansion roadmap](docs/EXPANSION_ROADMAP.md) separates remaining ideas from implemented systems.
+[Tower artwork](docs/TOWER_ART.md) documents the supplied animation sheets, normalization, and repaired Earth idle sheet. [Asset integration](docs/ASSET_INTEGRATION.md) records source crops, map restorations, walking provenance, and art limitations. [Expansion roadmap](docs/EXPANSION_ROADMAP.md) separates remaining ideas from implemented systems.
 
 ## Run and test
 
@@ -82,6 +83,8 @@ In another terminal:
 
 ```sh
 GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:menu
+GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:mastery
+GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:tower-clips
 GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:expansion
 GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:view
 GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:fit

@@ -163,7 +163,7 @@ try{
  assert.equal((await state(funded)).paused,true,'Learning a skill keeps the open journal paused');
  assert.equal(await funded.locator('[data-skill-buy]').evaluate(button=>document.activeElement===button),true,'Purchasing retains keyboard focus');
  await funded.locator('[data-meta-tab="skills"]').focus();await funded.keyboard.press('ArrowRight');
- assert.equal(await funded.locator('[data-meta-tab="capstones"]').getAttribute('aria-selected'),'true','Arrow keys switch progression tabs');
+ assert.equal(await funded.locator('[data-meta-tab="research"]').getAttribute('aria-selected'),'true','Arrow keys switch progression tabs');
  await funded.keyboard.press('End');assert.equal(await funded.locator('[data-meta-tab="bestiary"]').getAttribute('aria-selected'),'true');
  await funded.keyboard.press('Home');assert.equal(await funded.locator('[data-meta-tab="skills"]').getAttribute('aria-selected'),'true');
  await funded.locator('[data-meta-tab="capstones"]').click();const beforeCapstone=await stored(funded);
@@ -228,7 +228,7 @@ try{
  const mobile=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});monitor(mobile,'mobile');await boot(mobile);
  await assertViewport(mobile,'390px phone');await mobile.locator('#fullscreen').click();await mobile.waitForFunction(()=>!!document.fullscreenElement);
  await openMeta(mobile);await assertModal(mobile,'#progression .modal','Phone fullscreen progression');
- for(const tab of ['skills','capstones','shop','bestiary']){
+ for(const tab of ['skills','research','capstones','shop','bestiary']){
   await mobile.locator(`[data-meta-tab="${tab}"]`).click();await assertModal(mobile,'#progression .modal',`Phone ${tab}`);
  }
  await screenshot(mobile,'phone-fullscreen-journal');await closeMeta(mobile);await assertViewport(mobile,'Phone after journal');

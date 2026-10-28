@@ -9,9 +9,9 @@ function nearbyHidden(game:GameModel,kind:EnemyKind='scout'):Enemy {
 }
 
 describe('ordinary detection upgrades and a fair stealth introduction',()=>{
-  it('gives Arrow and Ice a gold-only tier-II detector that survives specialization',()=>{
+  it('gives trained Arrow and Ice ordinary tier-II detectors that survive specialization',()=>{
     for(const kind of ['archer','frost'] as const){
-      const game=new GameModel();game.gold=1000;game.build(0,kind);const tower=game.towers[0];
+      const game=new GameModel();game.setTowerMastery({[kind]:180});game.gold=1000;game.build(0,kind);const tower=game.towers[0];
       expect(game.getTowerStats(tower).effects.reveal).toBeUndefined();
       expect(game.upgrade(tower.id)).toBe(false);
       game.wave=1;expect(game.upgrade(tower.id)).toBe(true);
@@ -23,7 +23,7 @@ describe('ordinary detection upgrades and a fair stealth introduction',()=>{
   });
 
   it('lets lanterns reveal an enemy for allied physical fire before the keep',()=>{
-    const game=new GameModel();game.gold=1000;game.build(0,'archer');game.build(2,'cannon');
+    const game=new GameModel();game.setTowerMastery({archer:12});game.gold=1000;game.build(0,'archer');game.build(2,'cannon');
     Object.defineProperty(game,'trees',{get:()=>[]});
     const [lantern,cannon]=game.towers;cannon.position={...game.getTowerPosition(lantern)};
     game.status='wave';game.wave=1;const scout=nearbyHidden(game);lantern.cooldown=100;
@@ -49,7 +49,7 @@ describe('ordinary detection upgrades and a fair stealth introduction',()=>{
     let lantern=briefing.options.find(option=>option.action==='upgrade'&&option.kind==='archer')!;
     expect(lantern.cost).toBe(55);expect(lantern.totalCost).toBe(135);expect(lantern.affordable).toBe(true);expect(lantern.available).toBe(false);
     expect(briefing.options.every(option=>option.unlocked&&!TOWER_DEFS[option.kind].premiumCost)).toBe(true);
-    game.wave=3;briefing=game.stealthBriefing()!;expect(briefing.imminent).toBe(true);
+    game.setTowerMastery({archer:12});game.wave=3;briefing=game.stealthBriefing()!;expect(briefing.imminent).toBe(true);
     lantern=briefing.options.find(option=>option.action==='upgrade'&&option.kind==='archer')!;expect(lantern.available).toBe(true);
     const late=game.pads[1];game.build(late.id,'frost');
     expect(game.stealthBriefing()!.options.find(option=>option.kind==='frost'&&option.action==='upgrade')!.available).toBe(false);

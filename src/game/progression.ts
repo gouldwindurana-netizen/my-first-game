@@ -1,4 +1,6 @@
 import type { TowerKind } from './catalog';
+import { normalizedTowerMastery, towerResearch, TOWER_XP_LIMIT, validTowerXPSession, type TowerMastery, type TowerXPReport } from './tower-mastery';
+export type { TowerMastery, TowerResearch, TowerResearchKey, TowerXPReport } from './tower-mastery';
 
 /** Saved progression is independent of rendering and survives unavailable browser storage. */
 export const PROGRESSION_KEY = 'mossguard-progression-v2';
@@ -74,11 +76,11 @@ export interface ShopItem {
   tower?: TowerKind; bonuses?: Partial<CombatBonuses>;
 }
 export const SHOP_ITEMS: ShopItem[] = [
-  { id: 'unlock-void', name: 'Void Spire', description: 'Permanently unlock Void and its four branches.', cost: 45, maxRank: 1, tower: 'void' },
-  { id: 'unlock-solar', name: 'Solar Sanctum', description: 'Permanently unlock Solar and its four branches.', cost: 50, maxRank: 1, tower: 'solar' },
-  { id: 'unlock-chrono', name: 'Chrono Shrine', description: 'Permanently unlock Chrono and its four branches.', cost: 55, maxRank: 1, tower: 'chrono' },
-  { id: 'unlock-truesight', name: 'Truesight Watch', description: 'Permanently unlock Truesight and its four branches.', cost: 40, maxRank: 1, tower: 'truesight' },
-  { id: 'unlock-nexus', name: 'Nexus Heart', description: 'Permanently unlock Nexus and its four branches.', cost: 90, maxRank: 1, tower: 'nexus' },
+  { id: 'unlock-void', name: 'Void Spire', description: 'Permanently unlock the Void family. Earn its XP to research upgrades.', cost: 45, maxRank: 1, tower: 'void' },
+  { id: 'unlock-solar', name: 'Solar Sanctum', description: 'Permanently unlock the Solar family. Earn its XP to research upgrades.', cost: 50, maxRank: 1, tower: 'solar' },
+  { id: 'unlock-chrono', name: 'Chrono Shrine', description: 'Permanently unlock the Chrono family. Earn its XP to research upgrades.', cost: 55, maxRank: 1, tower: 'chrono' },
+  { id: 'unlock-truesight', name: 'Truesight Watch', description: 'Permanently unlock the Truesight family. Earn its XP to research upgrades.', cost: 40, maxRank: 1, tower: 'truesight' },
+  { id: 'unlock-nexus', name: 'Nexus Heart', description: 'Permanently unlock the Nexus family. Earn its XP to research upgrades.', cost: 90, maxRank: 1, tower: 'nexus' },
   { id: 'supply-cache', name: 'Supply Cache', description: '+15 starting gold per rank. Five permanent ranks.', cost: 22, maxRank: 5, bonuses: { startingGold: 15 } },
   { id: 'keep-charter', name: 'Keep Charter', description: '+1 keep life per rank. Four permanent ranks.', cost: 25, maxRank: 4, bonuses: { extraLives: 1 } },
   { id: 'field-journal', name: 'Field Journal', description: '+5% stage XP per rank. Four permanent ranks.', cost: 20, maxRank: 4, bonuses: { xp: .05 } },
@@ -91,6 +93,7 @@ export interface ProgressionState {
   version: 2; xp: number; gems: number; lifetimeXP: number; lifetimeGems: number;
   skillRanks: Record<string, number>; capstones: string[]; shopRanks: Record<string, number>;
   stages: Record<string, Partial<Record<MetaDifficulty, StageProgress>>>; claimedRuns: string[];
+  towerMastery: TowerMastery; towerXPReceipts: Record<string, TowerMastery>;
 }
 export interface StageResult {
   stageId: string; difficulty: MetaDifficulty; lives: number; maxLives: number;
@@ -101,7 +104,7 @@ const ZERO_REWARD: StageReward = { xp: 0, gems: 0, stars: 0, firstClear: false, 
 const integer = (value: unknown, cap = 1_000_000_000) => typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(cap, Math.floor(value))) : 0;
 const plain = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-const blankState = (): ProgressionState => ({ version: 2, xp: 0, gems: 0, lifetimeXP: 0, lifetimeGems: 0, skillRanks: {}, capstones: [], shopRanks: {}, stages: {}, claimedRuns: [] });
+const blankState = (): ProgressionState => ({ version: 2, xp: 0, gems: 0, lifetimeXP: 0, lifetimeGems: 0, skillRanks: {}, capstones: [], shopRanks: {}, stages: {}, claimedRuns: [], towerMastery: {}, towerXPReceipts: {} });
 export function starsForLives(lives: number, maxLives: number): number {
   if (!Number.isFinite(lives) || !Number.isFinite(maxLives) || lives <= 0 || maxLives <= 0) return 0;
   const ratio = Math.min(1, lives / maxLives);
@@ -131,6 +134,26 @@ export class Progression {
   snapshot(): ProgressionState { return this.state; }
   get xp(): number { return this.value.xp; }
   get gems(): number { return this.value.gems; }
+  get towerMastery(): TowerMastery { return { ...this.value.towerMastery }; }
+  towerResearch(kind: TowerKind) { return towerResearch(kind, this.value.towerMastery); }
+  /** Reports are cumulative per defense. Repeated, stale, and reloaded reports only pay their new practice. */
+  recordTowerXP(report: TowerXPReport): TowerMastery {
+    if (!report || !validTowerXPSession(report.sessionId) || !plain(report.totals)) return {};
+    const totals = normalizedTowerMastery(report.totals), previous = this.value.towerXPReceipts[report.sessionId] || {};
+    const awarded: TowerMastery = {}, next = { ...previous };
+    for (const [kind, amount] of Object.entries(totals) as [TowerKind, number][]) {
+      const delta = Math.max(0, amount - (previous[kind] || 0));
+      if (!delta) continue;
+      const before = this.value.towerMastery[kind] || 0;
+      this.value.towerMastery[kind] = Math.min(TOWER_XP_LIMIT, before + delta);
+      awarded[kind] = this.value.towerMastery[kind]! - before; next[kind] = amount;
+    }
+    if (Object.keys(awarded).length) {
+      // Keep all receipts: evicting old sessions would make an old report payable twice.
+      this.value.towerXPReceipts[report.sessionId] = next; this.save();
+    }
+    return awarded;
+  }
   get totalRanks(): number { return Object.values(this.value.skillRanks).reduce((sum, rank) => sum + rank, 0); }
   branchRanks(branch: SkillBranchId): number { return SKILL_NODES.filter(node => node.branch === branch).reduce((sum, node) => sum + (this.value.skillRanks[node.id] || 0), 0); }
   get unlockedTowers(): TowerKind[] { return [...BASE_TOWERS, ...SHOP_ITEMS.filter(item => item.tower && this.value.shopRanks[item.id] > 0).map(item => item.tower!)]; }
@@ -248,6 +271,10 @@ export class Progression {
     const saved = this.read(PROGRESSION_KEY);
     if (plain(saved) && saved.version === 2) {
       const next = blankState(); next.xp = integer(saved.xp); next.gems = integer(saved.gems, 1_000_000);
+      next.towerMastery = normalizedTowerMastery(saved.towerMastery);
+      if (plain(saved.towerXPReceipts)) for (const [session, totals] of Object.entries(saved.towerXPReceipts)) {
+        if (validTowerXPSession(session)) next.towerXPReceipts[session] = normalizedTowerMastery(totals);
+      }
       next.lifetimeXP = Math.max(next.xp, integer(saved.lifetimeXP)); next.lifetimeGems = Math.max(next.gems, integer(saved.lifetimeGems));
       if (plain(saved.skillRanks)) for (const node of SKILL_NODES) {
         const rank = integer(saved.skillRanks[node.id], node.maxRank);

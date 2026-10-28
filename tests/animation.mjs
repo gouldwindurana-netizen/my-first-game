@@ -21,6 +21,11 @@ try {
   await page.screenshot({ path: 'artifacts/animation/build.png' });
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0]?.state === 'idle');
   const initial = (await anim()).towers[0];
+  assert.equal((await anim()).towerFps, 30, 'Supplied tower clips use their authored 30 FPS cadence');
+  assert.equal(initial.textureKey, 'supplied-towers-30fps-archer-idle');
+  const idleFrames = new Set();
+  for (let sample = 0; sample < 5; sample++) { idleFrames.add((await anim()).towers[0].frameName); await wait(45); }
+  assert(idleFrames.size > 1, 'Idle uses changing authored PNG poses');
   assert.equal(await page.locator('#upgrade').isDisabled(), true, 'A fresh tower cannot upgrade before a wave clear');
   await page.locator('#start-wave').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.length > 0);
@@ -33,12 +38,19 @@ try {
   assert.equal(next.scaleX, first.scaleX, 'Walking preserves the whole-body horizontal scale');
   assert.equal(next.scaleY, first.scaleY, 'Walking preserves the whole-body vertical scale');
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0].fireSequence > 0, undefined, { timeout: 15000 });
+  await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0].animation === 'attack');
+  const firing = (await anim()).towers[0];
+  assert.equal(firing.textureKey, 'supplied-towers-30fps-archer-attack');
+  assert.match(firing.frameName, /^archer-attack-\d+$/);
+  const attackFrames = new Set();
+  for (let sample = 0; sample < 5; sample++) { const tower = (await anim()).towers[0]; if (tower.animation === 'attack') attackFrames.add(tower.frameName); await wait(45); }
+  assert(attackFrames.size > 1, 'An actual shot advances through the supplied attack poses');
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.some(e => e.hitSequence > 0), undefined, { timeout: 15000 });
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.deaths > 0 && window.__MOSSGUARD__.animations.ghosts > 0, undefined, { timeout: 15000 });
   await page.screenshot({ path: 'artifacts/animation/combat-a.png' });
   await wait(120);
   await page.screenshot({ path: 'artifacts/animation/combat-b.png' });
-  checks.push('live walking frames, firing recoil, hit response, and defeat feedback');
+  checks.push('live walking frames, authored 30 FPS tower idle/attack clips, hit response, and defeat feedback');
   await clearNextWave(page);
   await selectTower(page, (await state()).towers[0].id);
   await page.locator('#upgrade').click();
@@ -46,9 +58,9 @@ try {
   assert.equal((await anim()).towers[0].level, 2);
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.towers[0]?.state === 'idle');
   const upgraded=(await anim()).towers[0];
-  assert.equal(upgraded.textureKey,'role-led-towers');
-  assert.equal(upgraded.frameName,'archer-2','The earned upgrade changes the rendered frame to the lantern-equipped Arrow tier');
-  assert.notEqual(upgraded.frameName,initial.frameName,'The upgrade changes actual artwork rather than only scaling the base tower');
+  assert.equal(upgraded.textureKey,'supplied-towers-30fps-archer-idle');
+  assert.match(upgraded.frameName,/^archer-idle-\d+$/,'Tiers use the matching supplied family clip; the pack has no separate tier drawings');
+  assert(upgraded.displayWidth>initial.displayWidth,'Tier progression keeps the supplied design and increases its world footprint');
   assert(upgraded.displayWidth>0&&upgraded.displayHeight>0,'The settled upgraded tower retains a visible render footprint');
   checks.push('construction rise and upgrade burst settle correctly');
   await page.locator('#start-wave').click();
@@ -76,7 +88,8 @@ try {
   const reduced = await anim();
   assert.equal(reduced.particles, 0); assert.equal(reduced.ghosts, 0);
   assert(reduced.enemies.every(e => e.rotation === 0 && e.walkFrame === 0), 'Reduced motion holds the neutral walking frame');
-  checks.push('reduced motion holds neutral unit frames and disables particle/ghost motion');
+  assert(reduced.towers.every(t => t.animation === 'idle' && t.animationFrame === 0 && t.rotation === 0), 'Reduced motion holds the first supplied idle pose and its stable foundation');
+  checks.push('reduced motion holds neutral unit/tower frames and disables particle/ghost motion');
   assert.deepEqual(errors, []);
   console.log(`PASS: ${checks.length} animation checks\n${checks.map(c => `  ✓ ${c}`).join('\n')}`);
 } catch (error) { await page.screenshot({ path: 'artifacts/animation/failure.png' }).catch(() => {}); throw error; }
