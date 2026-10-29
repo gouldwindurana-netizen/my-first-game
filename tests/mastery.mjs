@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
-import { enterBattle, clearNextWave, selectTower, closeTowerDetails } from './play-helpers.mjs';
+import { enterBattle, clearNextWave, selectTower, closeTowerDetails, openGameProgression, clickViewControl, chooseTowerCard } from './play-helpers.mjs';
 
 const base=process.env.GAME_URL||'http://127.0.0.1:4173/my-first-game/';
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
@@ -17,7 +17,7 @@ function monitor(page,label){
 }
 async function boot(page){await page.goto(base);await page.waitForSelector('#battlefield[data-ready="true"]');await page.locator('#menu-play').waitFor({state:'visible'});}
 async function build(page,kind,pad){
- await closeTowerDetails(page);await page.locator(`[data-tower="${kind}"]`).click();await page.locator(`[data-foundation="${pad}"]`).click();
+ await closeTowerDetails(page);await chooseTowerCard(page,kind);await page.locator(`[data-foundation="${pad}"]`).click();
  await page.waitForFunction(({kind,pad})=>window.__MOSSGUARD__.towers.some(t=>t.kind===kind&&t.padId===pad),{kind,pad});
  return (await state(page)).towers.find(t=>t.kind===kind&&t.padId===pad);
 }
@@ -26,8 +26,7 @@ async function research(page){
   await page.locator('#tower-research-open').click();await page.locator('#progression').waitFor({state:'visible'});return;
  }
  await closeTowerDetails(page);
- if(await page.locator('#meta-open').isVisible())await page.locator('#meta-open').click();
- else{await page.locator('#rail-levels').click();await page.locator('#progression-open').click();}
+ await openGameProgression(page);
  await page.locator('#progression').waitFor({state:'visible'});await page.locator('[data-meta-tab="research"]').click();
 }
 async function capture(page,name){await page.screenshot({path:`artifacts/mastery/${name}.png`,fullPage:true});}
@@ -48,6 +47,9 @@ try{
  assert.deepEqual(fresh.towerMastery,{});assert.equal(fresh.progression.xp,0);
  await page.waitForTimeout(300);assert.deepEqual((await state(page)).towerMastery,{},'Preparation time does not train an idle tower');
  assert.equal(await page.locator('#upgrade').isDisabled(),true);
+ assert.equal(fresh.towers[0].upgradeGate.requiredClears,0,'Unresearched families have no extra wave requirement');
+ assert.match(fresh.towers[0].upgradeGate.reason,/XP|research/i);
+ assert.doesNotMatch(fresh.towers[0].upgradeGate.reason,/clear wave|defend.*wave/i);
  const detached=await page.evaluate(()=>{const a=window.__MOSSGUARD__;a.towerMastery.archer=9999;a.towerXPReport.totals.archer=9999;return !window.__MOSSGUARD__.towerMastery.archer&&!window.__MOSSGUARD__.towerXPReport.totals.archer;});
  assert(detached,'Mastery and cumulative report diagnostics cannot mutate live XP');
  checks.push('Fresh families start unresearched, preparation gives no XP, and diagnostics are read-only');
@@ -65,7 +67,10 @@ try{
  checks.push('Earned Arrow XP unlocks affordable 55-gold detection while family XP and account XP stay separate');
 
  await build(page,'prism',2);
- for(let wave=2;wave<=3;wave++)await clearNextWave(page,{starfall:false});
+ for(let wave=2;wave<=3;wave++){
+  await clearNextWave(page,{starfall:false});
+  if(wave===2)await build(page,'archer',1);
+ }
  await selectTower(page,arrow.id);const trained=await state(page);
  assert(trained.wave<trained.wavesTotal);assert(trained.towerMastery.archer>=75,'Continued Arrow use researches its first specialization during level one');
  assert(trained.towerMastery.prism>0,'The second deployed family earns its own XP');
@@ -95,11 +100,39 @@ try{
  await page.reload();await page.waitForSelector('#battlefield[data-ready="true"]');await page.locator('#menu-play').waitFor({state:'visible'});
  assert.deepEqual((await state(page)).towerMastery,permanent,'Family XP survives reload exactly once');
  await enterBattle(page);const replayArrow=await build(page,'archer',0);
- assert.equal(await page.locator('#upgrade').isDisabled(),true,'Permanent research still requires each placed tower to defend a wave');
+ assert.equal((await state(page)).wave,0);
+ assert.equal(await page.locator('#upgrade').isDisabled(),false,'Saved family research enables a new tower’s affordable tier II before any wave');
+ const replayGold=(await state(page)).gold;await page.locator('#upgrade').click();
+ assert.equal((await state(page)).towers.find(t=>t.id===replayArrow.id).level,2);
+ assert.equal((await state(page)).gold,replayGold-55);
+ assert.equal((await state(page)).wave,0,'Research upgrades do not start or clear a wave');
  await clearNextWave(page,{starfall:false});await selectTower(page,replayArrow.id);
- assert((await state(page)).towerMastery.archer>permanent.archer,'A new defense adds earned XP to the permanent family total');assert.equal(await page.locator('#upgrade').isDisabled(),false);
- checks.push('Family research survives reload without duplication and carries across defenses while preserving field experience gates');
+ assert((await state(page)).towerMastery.archer>permanent.archer,'A new defense adds earned XP to the permanent family total');
+ assert.equal((await state(page)).towers.find(t=>t.id===replayArrow.id).upgradeGate.requiredClears,0);
+ checks.push('Family research survives reload without duplication and immediately upgrades a fresh defense at wave zero');
  await page.close();
+
+ const researched=await browser.newPage({viewport:{width:1440,height:900}});monitor(researched,'researched-wave-zero');
+ await researched.addInitScript(()=>localStorage.setItem('mossguard-progression-v2',JSON.stringify({version:2,towerMastery:{archer:1000}})));
+ await boot(researched);await enterBattle(researched,6);
+ const prepared=await state(researched);assert(prepared.gold>=395,'This ordinary later-stage treasury can fund Arrow tier II and either the Normal or Hell branch price');
+ const expert=await build(researched,'archer',0);const afterBuild=await state(researched);
+ assert.equal(afterBuild.wave,0);assert.equal(afterBuild.towers.find(t=>t.id===expert.id).upgradeGate.allowed,true);
+ await researched.locator('#upgrade').click();
+ await researched.waitForFunction(id=>window.__MOSSGUARD__.towers.find(t=>t.id===id)?.level===2,expert.id);
+ assert.equal(await researched.locator('[data-branch="A"]').isDisabled(),false,'Previously researched specializations have no new-tower or stage-wave lock');
+ const beforeBranch=await state(researched);assert(beforeBranch.gold>=beforeBranch.catalog.towers.find(t=>t.kind==='archer').branches.D.cost,'The Hell branch is affordable in gold in this Normal fixture');
+ assert.equal(await researched.locator('[data-branch="D"]').isDisabled(),true,'Hell-only branches retain their difficulty restriction despite researched XP and sufficient gold');
+ await researched.locator('[data-branch="A"]').click();const expertReady=await state(researched);
+ assert.equal(expertReady.wave,0);assert.equal(expertReady.clearedWaves,0);assert.equal(expertReady.towers[0].level,3);assert.equal(expertReady.towers[0].branch,'A');
+ assert.equal(expertReady.gold,prepared.gold-325,'Every researched purchase still charges its ordinary gold price');
+ assert.equal(expertReady.towerMastery.archer,1000,'Buying a researched tier or specialization never spends permanent family XP');
+ assert.equal(expertReady.progression.xp,0,'The stored family fixture grants no spendable account XP');
+ await researched.locator('#sell').click();const replacement=await build(researched,'archer',0);
+ assert.equal(await researched.locator('#upgrade').isDisabled(),false,'A sold-and-rebuilt tower also reuses saved research immediately');
+ await researched.locator('#upgrade').click();assert.equal((await state(researched)).towers.find(t=>t.id===replacement.id).level,2);assert.equal((await state(researched)).wave,0);
+ await capture(researched,'researched-wave-zero');await researched.close();
+ checks.push('Stored family XP enables tier II, specialization, and rebuild upgrades at wave zero while gold and Hell restrictions remain meaningful');
 
  const support=await browser.newPage({viewport:{width:1440,height:900}});monitor(support,'troop-credit');await boot(support);await enterBattle(support);
  const barracks=await build(support,'barracks',0);await closeTowerDetails(support);
@@ -118,7 +151,7 @@ try{
 
  for(const [width,height]of [[390,844],[844,390]]){
   const phone=await browser.newPage({viewport:{width,height},isMobile:true,hasTouch:true,deviceScaleFactor:2});monitor(phone,`${width}px-research`);await boot(phone);await enterBattle(phone);
-  await phone.locator('#fullscreen').click();await phone.waitForFunction(()=>Boolean(document.fullscreenElement));await research(phone);await surface(phone,`${width}px fullscreen research`);
+  await clickViewControl(phone,'#fullscreen');await phone.waitForFunction(()=>Boolean(document.fullscreenElement));await research(phone);await surface(phone,`${width}px fullscreen research`);
   await phone.locator('#research-family').selectOption('nexus');assert.equal(await phone.locator('[data-research-detail="nexus"]').count(),1);assert.equal(await phone.locator('[data-research-key="D"]').count(),1);
   await phone.locator('#research-family').selectOption('archer');await capture(phone,`${width}x${height}-fullscreen`);await phone.close();
  }

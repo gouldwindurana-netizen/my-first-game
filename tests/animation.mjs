@@ -1,4 +1,4 @@
-import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
+import { enterBattle, clearNextWave, selectTower, openGameSettings, chooseTowerCard } from './play-helpers.mjs';
 /** Real construction/combat input; diagnostics expose poses without changing the model. */
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -15,7 +15,7 @@ try {
   await page.goto(process.env.GAME_URL || 'http://127.0.0.1:4173/my-first-game/');
   await page.waitForSelector('[data-ready="true"]');
   await enterBattle(page);
-  await page.locator('[data-tower="archer"]').click();
+  await chooseTowerCard(page,'archer');
   await page.locator('[data-foundation="0"]').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations?.towers[0]?.state === 'building');
   await page.screenshot({ path: 'artifacts/animation/build.png' });
@@ -26,7 +26,7 @@ try {
   const idleFrames = new Set();
   for (let sample = 0; sample < 5; sample++) { idleFrames.add((await anim()).towers[0].frameName); await wait(45); }
   assert(idleFrames.size > 1, 'Idle uses changing authored PNG poses');
-  assert.equal(await page.locator('#upgrade').isDisabled(), true, 'A fresh tower cannot upgrade before a wave clear');
+  assert.equal(await page.locator('#upgrade').isDisabled(), true, 'A fresh tower requires permanent family research before its first upgrade');
   await page.locator('#start-wave').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.length > 0);
   const first = (await anim()).enemies[0];
@@ -81,7 +81,7 @@ try {
   assert.equal(after.speed, 2);
   assert(Math.abs((after.animations.time - before.animations.time) - (after.time - before.time)) < .01, 'Animation follows the simulation at 2×');
   checks.push('pause, resume, and doubled-speed animation clock');
-  await page.locator('#settings-open').click();
+  await openGameSettings(page);
   await page.locator('#motion-setting').check();
   await page.locator('#settings-done').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.reduced);

@@ -1,5 +1,6 @@
 import { LEVELS } from './levels';
-import { TOWER_DEFS, ENEMY_DEFS, TOWER_KINDS, TARGET_MODES, BRANCH_KEYS, type TowerKind, type EnemyKind, type TowerTargetMode, type TowerBranchKey, type TowerEffects, type DamageType } from './catalog';
+import { TOWER_DEFS, ENEMY_DEFS, TOWER_KINDS, TARGET_MODES, BRANCH_KEYS, enemyDamageMultiplier, enemyCounterInfo, type TowerKind, type EnemyKind, type TowerTargetMode, type TowerBranchKey, type TowerEffects, type DamageType } from './catalog';
+import { generateWaves } from './waves';
 import type { CombatBonuses } from './progression';
 import { normalizedTowerMastery, towerResearch, TOWER_RESEARCH_XP, TOWER_XP_LIMIT, type TowerMastery, type TowerResearchKey, type TowerXPReport } from './tower-mastery';
 export { LEVELS } from './levels';
@@ -53,7 +54,7 @@ export interface StealthBriefing {
   wave: number; imminent: boolean; groups: { kind: EnemyKind; name: string; count: number }[];
   hasDetector: boolean; options: DetectionOption[];
 }
-export const PATH = LEVELS[0].path, PADS = LEVELS[0].pads, WAVES = LEVELS[0].waves;
+export const PATH = LEVELS[0].path, PADS = LEVELS[0].pads, WAVES = generateWaves(LEVELS[0],'normal');
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 function segmentLengths(path: Point[]): number[] { return path.slice(1).map((point, i) => Math.hypot(point.x-path[i].x,point.y-path[i].y)); }
 const lengths = segmentLengths(PATH);
@@ -88,6 +89,7 @@ export class GameModel {
   meteorCooldown=0;
   private nextId=1;
   private pending:WaveDef['enemies']=[];
+  private campaignWaves:WaveDef[]=[];
   private waveTime=0;
   private clearedAt=0;
   private hitSequence=0;
@@ -102,7 +104,7 @@ export class GameModel {
   get level(){return LEVELS[this.levelIndex];}
   get path(){return this.level.path;}
   get pads(){return this.level.pads;}
-  get waves(){const opening=this.level.openingWave;return opening&&(this.difficulty==='easy'||this.difficulty==='normal')?[opening,...this.level.waves.slice(1)]:this.level.waves;}
+  get waves(){return this.campaignWaves;}
   get trees(){return this.level.trees || [];}
   get pathLength(){return this.segments.reduce((sum,length)=>sum+length,0);}
   get waveRemaining(){return this.pending.length+this.enemies.filter(enemy=>enemy.hp>0).length;}
@@ -188,15 +190,14 @@ export class GameModel {
     if(road.offset>80||Math.hypot(road.x-home.x,road.y-home.y)>this.getTowerStats(tower).range+60)return false;
     tower.rally={x:road.x,y:road.y};this.syncTroops();return true;
   }
-  /** Wave milestones pace progression; every newly built or upgraded tower must defend another wave. */
+  /** Research persists across runs; a researched tier can be bought whenever gold is available. */
   getUpgradeGate(tower:Tower,branch:TowerBranchKey='A'):UpgradeGate {
     const cleared=this.clearedWaves;
     const researchKey:TowerResearchKey=tower.level===1?'II':branch,xp=this.towerMastery[tower.kind]||0,requiredXP=TOWER_RESEARCH_XP[researchKey],researched=xp>=requiredXP;
-    if(tower.level>=3)return{allowed:false,requiredClears:3,cleared,reason:'Fully specialized',researchKey,xp,requiredXP,researched};
-    const requiredClears=tower.level===1?Math.max(1,(tower.builtAfterClear??0)+1):Math.max(3,(tower.upgradedAfterClear??tower.builtAfterClear??0)+1);
-    const allowed=this.actionable&&researched&&cleared>=requiredClears&&(tower.level!==2||branch!=='D'||this.difficulty==='hell');
-    const reason=!this.actionable?'Defense is complete':!researched?`${TOWER_DEFS[tower.kind].name} XP ${xp}/${requiredXP} — use this family in combat.`:cleared<requiredClears?`Clear wave ${requiredClears} before ${tower.level===1?'tier II':'specializing this tower'}.`:tower.level===2&&branch==='D'&&this.difficulty!=='hell'?'Hell specialization':allowed?'':'Upgrade unavailable';
-    return{allowed,requiredClears,cleared,reason,researchKey,xp,requiredXP,researched};
+    if(tower.level>=3)return{allowed:false,requiredClears:0,cleared,reason:'Fully specialized',researchKey,xp,requiredXP,researched};
+    const allowed=this.actionable&&researched&&(tower.level!==2||branch!=='D'||this.difficulty==='hell');
+    const reason=!this.actionable?'Defense is complete':!researched?`${TOWER_DEFS[tower.kind].name} XP ${xp}/${requiredXP} — use this family in combat.`:tower.level===2&&branch==='D'&&this.difficulty!=='hell'?'Hell specialization':allowed?'Research complete — buy with gold at any time.':'Upgrade unavailable';
+    return{allowed,requiredClears:0,cleared,reason,researchKey,xp,requiredXP,researched};
   }
   upgradeLockReason(tower:Tower,branch:TowerBranchKey='A'):string{return this.getUpgradeGate(tower,branch).reason;}
   upgradeCost(tower:Tower,branch:TowerBranchKey='A'){return tower.level===1?TOWER_DEFS[tower.kind].tier2Cost:TOWER_DEFS[tower.kind].branches[branch]?.cost??Infinity;}
@@ -235,18 +236,18 @@ export class GameModel {
     return{damage:Math.round(damage),range,interval,damageType:def.damageType,effects:scaled};
   }
   nextWave():WaveDef|undefined{return this.waves[this.wave];}
-  wavePreview(){const groups:Partial<Record<EnemyKind,number>>={};for(const entry of this.nextWave()?.enemies||[])groups[entry.kind]=(groups[entry.kind]||0)+1;return Object.entries(groups).map(([kind,count])=>({kind:kind as EnemyKind,name:ENEMY_DEFS[kind as EnemyKind].name,count:count!}));}
+  wavePreview(){const groups:Partial<Record<EnemyKind,number>>={};for(const entry of this.nextWave()?.enemies||[])groups[entry.kind]=(groups[entry.kind]||0)+1;return Object.entries(groups).map(([kind,count])=>({kind:kind as EnemyKind,name:ENEMY_DEFS[kind as EnemyKind].name,count:count!,counters:enemyCounterInfo(kind as EnemyKind)}));}
   /** Preview affordable ordinary counters; premium unlocks never gate campaign detection. */
   stealthBriefing():StealthBriefing|null {
     const index=this.waves.findIndex((wave,index)=>index>=this.wave&&wave.enemies.some(entry=>ENEMY_DEFS[entry.kind].stealth));
     if(index<0)return null;
     const counts:Partial<Record<EnemyKind,number>>={};
     for(const entry of this.waves[index].enemies)if(ENEMY_DEFS[entry.kind].stealth)counts[entry.kind]=(counts[entry.kind]||0)+1;
-    const options:DetectionOption[]=[];
+    const options:DetectionOption[]=[],hasSite=this.pads.some(pad=>!this.towers.some(tower=>tower.padId===pad.id));
     for(const kind of ['archer','frost'] as const){
       const def=TOWER_DEFS[kind],owned=this.towers.filter(tower=>tower.kind===kind&&tower.level===1);
       for(const tower of owned){const gate=this.getUpgradeGate(tower);options.push({kind,towerId:tower.id,action:'upgrade',name:def.tier2Name!,cost:def.tier2Cost,totalCost:def.cost+def.tier2Cost,affordable:this.gold>=def.tier2Cost,available:gate.allowed,unlocked:this.isUnlocked(kind),reason:gate.reason});}
-      if(!owned.length)options.push({kind,action:'build-upgrade',name:def.tier2Name!,cost:def.cost+def.tier2Cost,totalCost:def.cost+def.tier2Cost,affordable:this.gold>=def.cost+def.tier2Cost,available:false,unlocked:this.isUnlocked(kind),reason:`Build and defend a wave; family XP ${this.towerMastery[kind]||0}/${TOWER_RESEARCH_XP.II}.`});
+      if(!owned.length){const xp=this.getTowerMasteryXP(kind),researched=xp>=TOWER_RESEARCH_XP.II;options.push({kind,action:'build-upgrade',name:def.tier2Name!,cost:def.cost+def.tier2Cost,totalCost:def.cost+def.tier2Cost,affordable:this.gold>=def.cost+def.tier2Cost,available:this.actionable&&researched&&hasSite,unlocked:this.isUnlocked(kind),reason:!hasSite?'Requires a free foundation.':researched?'Research complete: build and upgrade immediately.':`Earn permanent family XP ${xp}/${TOWER_RESEARCH_XP.II}, then buy with gold. Base Magic detects immediately.`});}
     }
     for(const kind of ['arcane','prism'] as const){const def=TOWER_DEFS[kind],unlocked=this.isUnlocked(kind),hasSite=this.pads.some(pad=>!this.towers.some(tower=>tower.padId===pad.id));options.push({kind,action:'build',name:def.name,cost:def.cost,totalCost:def.cost,affordable:this.gold>=def.cost,available:this.actionable&&hasSite&&unlocked,unlocked,reason:hasSite?'Detects hidden enemies immediately.':'Requires a free foundation.'});}
     return{wave:index+1,imminent:index===this.wave,groups:Object.entries(counts).map(([kind,count])=>({kind:kind as EnemyKind,name:ENEMY_DEFS[kind as EnemyKind].name,count:count!})),hasDetector:this.towers.some(tower=>this.effectsFor(tower).reveal),options:options.sort((a,b)=>Number(b.available)-Number(a.available)||a.cost-b.cost)};
@@ -259,8 +260,9 @@ export class GameModel {
     this.enemies=this.enemies.filter(e=>e.hp>0);this.float(x,y-20,'STARFALL','#ffd9a1');return true;
   }
   private spawn(kind:EnemyKind,distance=0,miniBoss=false,summoned=false):Enemy {
-    const def=ENEMY_DEFS[kind],scale=(1+Math.max(0,this.wave-1)*.045)*this.level.enemyMultiplier*DIFFICULTIES[this.difficulty].health*(miniBoss?1.8:1);
-    const hp=Math.round(def.hp*scale),enemy:Enemy={id:this.nextId++,kind,...positionAlong(distance,this.path,this.segments),hp,maxHp:hp,distance,speed:def.speed*DIFFICULTIES[this.difficulty].speed*(1+Math.max(0,this.wave-1)*.006),slowUntil:0,miniBoss,summoned,flying:!!def.flying,ghost:!!def.ghost,stealth:!!def.stealth,nextAbilityAt:this.time+4,nextTeleportAt:this.time+(def.teleportInterval||1e9)};
+    const progress=Math.max(0,this.wave-1),healthGrowth=1+Math.min(progress,24)*.035+Math.max(0,progress-24)*.012;
+    const def=ENEMY_DEFS[kind],scale=healthGrowth*this.level.enemyMultiplier*DIFFICULTIES[this.difficulty].health*(miniBoss?1.8:1);
+    const hp=Math.round(def.hp*scale),enemy:Enemy={id:this.nextId++,kind,...positionAlong(distance,this.path,this.segments),hp,maxHp:hp,distance,speed:def.speed*DIFFICULTIES[this.difficulty].speed*(1+Math.min(.2,progress*.003)),slowUntil:0,miniBoss,summoned,flying:!!def.flying,ghost:!!def.ghost,stealth:!!def.stealth,nextAbilityAt:this.time+4,nextTeleportAt:this.time+(def.teleportInterval||1e9)};
     this.enemies.push(enemy);return enemy;
   }
   private abilityActive(enemy:Enemy){return(enemy.disabledUntil||0)<=this.time&&(enemy.stunUntil||0)<=this.time;}
@@ -387,11 +389,10 @@ export class GameModel {
     if(enemy.hp<=0||!Number.isFinite(amount)||amount<=0)return false;
     const def=ENEMY_DEFS[enemy.kind];
     if(canDodge&&def.dodge){const roll=((this.hitSequence*73+enemy.id*19)%1000)/1000;if(roll<def.dodge){this.float(enemy.x,enemy.y-25,'DODGE','#b9d4d8');return false;}}
-    const armor=type==='physical'&&!ignoreArmor?clamp(def.armor-((enemy.armorShredUntil||0)>this.time?enemy.armorShred||0:0),0,.9):0;
-    const resistance=clamp(def.resistances[type]||0,-.75,.9),curse=(enemy.curseUntil||0)>this.time?enemy.curse||0:0;
+    const multiplier=enemyDamageMultiplier(enemy.kind,type,(enemy.armorShredUntil||0)>this.time?enemy.armorShred||0:0,ignoreArmor),curse=(enemy.curseUntil||0)>this.time?enemy.curse||0:0;
     // Silence is part of the landed hit, so a fatal sonic hit can prevent a split.
     if(fatalEffects?.disableAbilities)enemy.disabledUntil=Math.max(enemy.disabledUntil||0,this.time+fatalEffects.disableAbilities);
-    enemy.hp=Math.max(0,enemy.hp-amount*(1-armor)*(1-resistance)*(1+curse));
+    enemy.hp=Math.max(0,enemy.hp-amount*multiplier*(1+curse));
     if(enemy.hp===0&&!enemy.rewardGranted){
       enemy.rewardGranted=true;this.kills++;const reward=enemy.summoned?0:Math.max(1,Math.round(def.reward*(1+(this.bonuses.gold||this.bonuses.economy))*DIFFICULTIES[this.difficulty].gold));this.gold+=reward;
       if(reward)this.float(enemy.x,enemy.y-15,'+'+reward,'#e8c981');
@@ -427,6 +428,7 @@ export class GameModel {
   }
   private float(x:number,y:number,text:string,color:string){this.floats.push({id:this.nextId++,x,y,text,color,life:1.1});if(this.floats.length>120)this.floats.shift();}
   reset():void {
+    this.campaignWaves=generateWaves(this.level,this.difficulty);
     // Reconcile the report before resetting. Carry mastery forward for standalone simulations too.
     this.savedMastery=this.towerMastery;this.practiceXP={};this.acknowledgedPractice={};this.practiceSession=practiceSessionId();this.practicedThisWave.clear();this.engagedThisUpdate.clear();
     this.gold=this.startingGold();this.maxLives=this.startingLives();this.lives=this.maxLives;this.wave=0;this.status='building';this.paused=false;this.speed=1;this.time=0;this.kills=0;

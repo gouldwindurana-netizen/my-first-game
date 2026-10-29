@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ENEMY_DEFS, ENEMY_KINDS, type EnemyKind } from './catalog';
 import { LEVELS } from './levels';
+import { generateWaves, WAVES_BY_DIFFICULTY } from './waves';
 
 function distanceToSegment(point: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) {
   const dx = b.x - a.x, dy = b.y - a.y, lengthSquared = dx * dx + dy * dy;
@@ -8,7 +9,7 @@ function distanceToSegment(point: { x: number; y: number }, a: { x: number; y: n
   return Math.hypot(point.x - a.x - t * dx, point.y - a.y - t * dy);
 }
 
-describe('twelve-stage scripted campaign', () => {
+describe('twelve-stage identities and regional formation seeds', () => {
   it('keeps legacy save identities while presenting the requested ordered campaign', () => {
     expect(LEVELS.map(level => level.name)).toEqual([
       'Verdant Vale', 'Windward Plateau', 'Toxic Swamp', 'Frostpeak', 'Storm Highlands',
@@ -45,9 +46,9 @@ describe('twelve-stage scripted campaign', () => {
     expect(LEVELS.at(-1)!.waves).toHaveLength(12);
   });
 
-  it('puts all twenty-four enemy families into real playable formations', () => {
-    const used = new Set(LEVELS.flatMap(level => level.waves.flatMap(wave => wave.enemies.map(enemy => enemy.kind))));
-    expect(used.size).toBe(24);
+  it('puts every enemy family into real difficulty formations', () => {
+    const used = new Set(LEVELS.flatMap(level => generateWaves(level, 'hell').flatMap(wave => wave.enemies.map(enemy => enemy.kind))));
+    expect(used.size).toBe(ENEMY_KINDS.length);
     for (const kind of ENEMY_KINDS) expect(used.has(kind)).toBe(true);
   });
 
@@ -68,7 +69,7 @@ describe('twelve-stage scripted campaign', () => {
   });
 
   it('adds separated road-side choices while preserving the original named sites', () => {
-    const counts: Record<string, number> = { eldervale: 11, frostbound: 9, ember: 10, mirewood: 7, crystal: 8 };
+    const counts: Record<string, number> = { eldervale: 16, frostbound: 16, ember: 16, mirewood: 14, crystal: 14 };
     const originalCounts: Record<string, number> = { eldervale: 8, frostbound: 6, ember: 7, mirewood: 5, crystal: 6 };
     for (const level of LEVELS) {
       expect(level.pads).toHaveLength(counts[level.mapKey]);
@@ -80,14 +81,21 @@ describe('twelve-stage scripted campaign', () => {
         expect(pad.x).toBeLessThanOrEqual(level.world.width - 33);
         expect(pad.y).toBeGreaterThanOrEqual(20);
         expect(pad.y).toBeLessThanOrEqual(level.world.height - 20);
-        for (const other of level.pads.slice(index + 1)) expect(Math.hypot(pad.x - other.x, pad.y - other.y)).toBeGreaterThanOrEqual(75);
+        for (const other of level.pads.slice(index + 1)) expect(Math.hypot(pad.x - other.x, pad.y - other.y), `${level.mapKey}: ${pad.name} / ${other.name}`).toBeGreaterThanOrEqual(65);
         if (index < originalCounts[level.mapKey]) continue;
         const roadDistance = Math.min(...level.path.slice(1).map((point, segment) => distanceToSegment(pad, level.path[segment], point)));
-        expect(roadDistance).toBeGreaterThanOrEqual(35);
+        expect(roadDistance, `${level.mapKey}: ${pad.name}`).toBeGreaterThanOrEqual(28);
         expect(roadDistance).toBeLessThanOrEqual(255);
       }
     }
     expect(LEVELS[0].pads.slice(0, 8).map(pad => pad.name)).toEqual(['West watch','Bridge overlook','River bend','Lower crossing','Grove overlook','Rift bend','Citadel approach','East watch']);
+  });
+
+  it('exposes the requested fixed campaign length for each difficulty', () => {
+    expect(WAVES_BY_DIFFICULTY).toEqual({ easy: 25, normal: 50, hard: 75, hell: 100 });
+    for (const level of LEVELS) for (const difficulty of ['easy', 'normal', 'hard', 'hell'] as const) {
+      expect(generateWaves(level, difficulty)).toHaveLength(WAVES_BY_DIFFICULTY[difficulty]);
+    }
   });
 
   it('provides a gentle first patrol without replacing the original tactical opening scripts', () => {

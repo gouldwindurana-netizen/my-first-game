@@ -1,4 +1,4 @@
-import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
+import { enterBattle, openGameSettings, openGameGuide, openGameCampaign } from './play-helpers.mjs';
 /** Real walking-art QA: atlas pixels, shared preview, and live unit texture frames. */
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -27,7 +27,7 @@ async function boot(page, inline = null) {
   assert.equal((await state(page)).animations.fps, 24, 'The walking presentation rate is 24 fps');
 }
 async function openPreview(page, mobile = false) {
-  if (mobile) await page.locator('#how-to').tap(); else await page.locator('#guide-nav').click();
+  if (mobile) await openGameGuide(page); else await openGameGuide(page);
   await page.locator('#units-open').click();
   await page.locator('#unit-preview').waitFor({ state: 'visible' });
   assert.equal(await page.locator('canvas[data-walk-kind]').count(), 4, 'Each shared walking-art family has a preview');
@@ -170,7 +170,7 @@ try {
 
   // Windward's Hard opening includes goblins and visible runners. Both families
   // exercise the atlases without requiring a hidden enemy in an opening wave.
-  await page.locator('#levels-open').click(); await page.locator('#difficulty-select').selectOption('hard'); await page.locator('[data-stage="windward"]').click();
+  await openGameCampaign(page); await page.locator('#difficulty-select').selectOption('hard'); await page.locator('[data-stage="windward"]').click();
   await namedBuild(page, 'frost', 1); await page.locator('#start-wave').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.enemies.some(enemy => enemy.kind === 'grunt'));
   const first = (await state(page)).animations.enemies.find(enemy => enemy.kind === 'grunt');
@@ -201,7 +201,7 @@ try {
   const frozen = (await state(page)).animations; await page.waitForTimeout(250);
   assert.deepEqual((await state(page)).animations, frozen, 'Combat pause freezes every walk frame and effect');
   await page.locator('#resume').click();
-  await page.locator('#settings-open').click(); await page.locator('#motion-setting').check(); await page.locator('#settings-done').click();
+  await openGameSettings(page); await page.locator('#motion-setting').check(); await page.locator('#settings-done').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.reduced);
   assert((await state(page)).animations.enemies.every(enemy => enemy.walkFrame === 0 && enemy.rotation === 0), 'Reduced motion holds a neutral pose during combat');
   checks.push('Combat pause and reduced motion freeze the new unit poses correctly');

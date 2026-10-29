@@ -1,4 +1,4 @@
-import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
+import { toggleGameSound, enterBattle, clearNextWave, openGameSettings, openGameGuide, clickViewControl } from './play-helpers.mjs';
 /** Run `npm run dev -- --port 5173` first, then `npm run test:browser`.
  * Uses real UI input and the read-only snapshot. Set GAME_URL or CHROMIUM_PATH if needed.
  */
@@ -60,16 +60,16 @@ try {
   assert.equal(await desktop.locator('#meteor').isDisabled(), true, 'Meteor disabled before a wave');
   await desktop.screenshot({ path: 'artifacts/desktop-initial.png', fullPage: true });
   assert.equal(await desktop.locator('[data-tower]').count(), 17, 'All seventeen tower families are available');
-  assert.match(await desktop.locator('#wave').innerText(), /\/ 6$/, 'Training stage has six waves');
-  await desktop.locator('#rail-map').click();
+  assert.match(await desktop.locator('#wave').innerText(), /\/ 50$/, 'Normal difficulty has fifty waves on every stage');
+  await clickViewControl(desktop, '#rail-map');
   assert.equal(await desktop.locator('#rail-map').getAttribute('aria-pressed'), 'true');
   assert.equal(await desktop.locator('#minimap-toggle').evaluate(element => element.classList.contains('active')), true);
   // The compact command panel keeps the minimap state synchronized; the field
   // rail is the persistent tactical control across every viewport size.
-  await desktop.locator('#rail-map').click();
+  await clickViewControl(desktop, '#rail-map');
   assert.equal(await desktop.locator('#rail-map').getAttribute('aria-pressed'), 'false');
   assert.equal(await desktop.locator('#minimap-toggle').evaluate(element => element.classList.contains('active')), false);
-  checks.push('Seventeen towers, six training waves, and tactical map/minimap controls');
+  checks.push('Seventeen towers, fifty Normal waves, and tactical range controls');
 
   await desktop.locator('[data-tower="archer"]').click();
   await point(desktop, 234, 241);
@@ -80,7 +80,7 @@ try {
   await desktop.waitForFunction(() => window.__MOSSGUARD__.towers.length === 2);
   assert.equal((await state(desktop)).gold, 120);
   await point(desktop, 234, 241);
-  assert.equal(await desktop.locator('#upgrade').isDisabled(), true, 'Initial upgrade is gated despite having enough gold');
+  assert.equal(await desktop.locator('#upgrade').isDisabled(), true, 'Initial upgrade needs permanent family research despite having enough gold');
   checks.push('Tower placement and gold spending');
 
   await desktop.locator('[data-tower="frost"]').click();
@@ -93,6 +93,16 @@ try {
   await desktop.keyboard.press('Space');
   await desktop.waitForFunction(() => window.__MOSSGUARD__.status === 'wave' && window.__MOSSGUARD__.enemies.length > 0);
   assert.equal(await desktop.locator('#start-wave').isDisabled(), true);
+  // Cast during the opening of this known wave, before menu checks can let its
+  // final enemy die between the enemy snapshot and the spell-button click.
+  await desktop.locator('#meteor').click();
+  assert.equal(await desktop.locator('#meteor').evaluate(element => element.classList.contains('armed')), true);
+  const target = (await state(desktop)).enemies[0];
+  await point(desktop, target?.x || 150, target?.y || 170);
+  assert((await state(desktop)).meteorCooldown > 20, 'Meteor activates cooldown');
+  assert.equal(await desktop.locator('#meteor').isDisabled(), true);
+  assert.equal(await desktop.locator('#meteor').evaluate(element => element.classList.contains('armed')), false);
+  checks.push('Targeted meteor and cooldown');
   await desktop.waitForFunction(() => window.__MOSSGUARD__?.kills >= 1, undefined, { timeout: 20000 });
   assert((await state(desktop)).gold > 120, 'Combat awards gold');
   checks.push('Keyboard wave start, live spawning, combat, and rewards');
@@ -105,11 +115,11 @@ try {
   assert.equal(stillPaused.time, paused.time, 'Pause freezes simulation time');
   assert.deepEqual(stillPaused.enemies, paused.enemies, 'Pause freezes enemy movement');
   assert.equal(await desktop.locator('#pause-overlay').isVisible(), true);
-  await desktop.locator('#guide-nav').click();
+  await openGameGuide(desktop);
   assert.equal(await desktop.locator('#guide').isVisible(), true);
   await desktop.locator('#guide-done').click();
   assert.equal((await state(desktop)).paused, true, 'Guide restores previous paused state');
-  await desktop.locator('#settings-open').click();
+  await openGameSettings(desktop);
   await desktop.locator('#motion-setting').focus();
   await desktop.keyboard.press('Escape');
   assert.equal(await desktop.locator('#settings').isVisible(), false, 'Escape closes settings while a checkbox has focus');
@@ -120,13 +130,13 @@ try {
 
   await desktop.locator('#speed').click();
   assert.equal((await state(desktop)).speed, 2);
-  await desktop.locator('#guide-nav').click();
+  await openGameGuide(desktop);
   assert.equal((await state(desktop)).paused, true);
   await desktop.locator('#guide-done').click();
   assert.equal((await state(desktop)).paused, false, 'Guide resumes an active game');
   checks.push('Double speed and field guide');
 
-  await desktop.locator('#settings-open').click();
+  await openGameSettings(desktop);
   assert.equal(await desktop.locator('#settings').isVisible(), true);
   assert.equal((await state(desktop)).paused, true, 'Settings pause active combat');
   await desktop.locator('#motion-setting').check();
@@ -136,7 +146,7 @@ try {
   await desktop.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Enable sound' && !document.querySelector('#sound').hasAttribute('aria-busy'));
   await desktop.locator('#settings-done').click();
   assert.equal((await state(desktop)).paused, false, 'Settings restore active combat');
-  await desktop.locator('#settings-open').click();
+  await openGameSettings(desktop);
   assert.equal(await desktop.locator('#motion-setting').isChecked(), true, 'Reduced motion preference survives closing settings');
   await desktop.locator('#motion-setting').uncheck();
   await desktop.locator('#motion-setting').focus();
@@ -144,17 +154,6 @@ try {
   assert.equal(await desktop.locator('#settings').isVisible(), false);
   assert.equal((await state(desktop)).paused, false, 'Escape restores active combat from focused settings checkbox');
   checks.push('Settings pause/resume, reduced motion, and synchronized sound preferences');
-
-  if((await state(desktop)).status==='building')await desktop.locator('#start-wave').click();
-  await desktop.waitForFunction(()=>window.__MOSSGUARD__.status==='wave'&&window.__MOSSGUARD__.enemies.length>0);
-  await desktop.locator('#meteor').click();
-  assert.equal(await desktop.locator('#meteor').evaluate(element => element.classList.contains('armed')), true);
-  const target = (await state(desktop)).enemies[0];
-  await point(desktop, target?.x || 150, target?.y || 170);
-  assert((await state(desktop)).meteorCooldown > 20, 'Meteor activates cooldown');
-  assert.equal(await desktop.locator('#meteor').isDisabled(), true);
-  assert.equal(await desktop.locator('#meteor').evaluate(element => element.classList.contains('armed')), false);
-  checks.push('Targeted meteor and cooldown');
 
   await clearNextWave(desktop);
   await point(desktop, 234, 241);
@@ -169,10 +168,10 @@ try {
   assert(afterSale.gold >= beforeSale.gold + 70, 'Selling refunds 70%');
   checks.push('Upgrade and sale');
   await desktop.screenshot({ path: 'artifacts/desktop-combat.png', fullPage: true });
-  if (await desktop.locator('#sound').getAttribute('aria-label') === 'Mute sound') await desktop.locator('#sound').click();
-  await desktop.locator('#sound').click();
+  if (await desktop.locator('#sound').getAttribute('aria-label') === 'Mute sound') await toggleGameSound(desktop);
+  await toggleGameSound(desktop);
   await desktop.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Mute sound' && !document.querySelector('#sound').hasAttribute('aria-busy'), undefined, { timeout: 20000 });
-  await desktop.locator('#sound').click();
+  await toggleGameSound(desktop);
   await desktop.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Enable sound' && !document.querySelector('#sound').hasAttribute('aria-busy'));
   checks.push('Sound control');
   await desktop.setViewportSize({ width: 1280, height: 900 });
@@ -213,7 +212,7 @@ try {
   const mobileState = await state(mobile);
   assert.equal(mobileState.towers[0].kind, 'frost');
   assert.equal(mobileState.gold, 210);
-  await mobile.locator('#how-to').tap();
+  await openGameGuide(mobile);
   assert.equal(await mobile.locator('#guide').isVisible(), true);
   await mobile.locator('#guide-done').tap();
   assert.equal((await state(mobile)).paused, false);

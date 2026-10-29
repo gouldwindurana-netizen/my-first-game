@@ -141,6 +141,17 @@ describe('campaign meta progression', () => {
     expect(meta.state).toEqual(before);
   });
 
+  it('retains a full hundred-wave Hell clear through storage without losing existing progression', () => {
+    const { meta, storage } = funded(500, 40);
+    meta.buySkill('damage-1');
+    meta.recordResult(result({ difficulty: 'hell', wave: 100, runId: 'hundred-wave-clear' }));
+    const before=meta.state;
+    const restored=new Progression(storage);
+    expect(restored.stageProgress('eldervale','hell')?.bestWave).toBe(100);
+    expect(restored.stageProgress('eldervale','hell')?.cleared).toBe(true);
+    expect(restored.state).toEqual(before);
+  });
+
   it('refunds 80% of exact spent skill and capstone XP once and retains shop purchases', () => {
     const { meta } = funded();
     let spent = 0;
@@ -158,7 +169,7 @@ describe('campaign meta progression', () => {
     expect(meta.xp).toBe(0); expect(meta.gems).toBe(1_000_000);
     expect(snapshot.skillRanks).toEqual({ 'damage-1': 3 }); expect(snapshot.capstones).toEqual([]);
     expect(snapshot.shopRanks).toEqual({ 'unlock-nexus': 1 }); expect(snapshot.claimedRuns).toEqual(['ok']);
-    expect(snapshot.stages.eldervale.normal?.stars).toBe(3); expect(snapshot.stages.eldervale.normal?.bestWave).toBe(99); expect(snapshot.stages.hacked).toBeUndefined();
+    expect(snapshot.stages.eldervale.normal?.stars).toBe(3); expect(snapshot.stages.eldervale.normal?.bestWave).toBe(100); expect(snapshot.stages.hacked).toBeUndefined();
     snapshot.skillRanks['damage-1'] = 0; snapshot.stages.eldervale.normal!.stars = 0;
     expect(meta.state.skillRanks['damage-1']).toBe(3); expect(meta.stageProgress('eldervale')?.stars).toBe(3);
   });

@@ -60,14 +60,14 @@ describe('permanent tower family practice', () => {
     expect(normalizedTowerMastery({ archer: Infinity, frost: -1, hacked: 50, cannon: 4.9 })).toEqual({ cannon: 4 });
   });
 
-  it('uses family XP and field training together, with independent automatic branch thresholds', () => {
+  it('uses permanent family XP with independent branch thresholds and no wave gate', () => {
     const game = new GameModel(); game.gold = 1000; game.build(0, 'archer'); const tower = game.towers[0];
-    game.wave = 3;
+    expect(game.wave).toBe(0);
     expect(game.getUpgradeGate(tower)).toMatchObject({ allowed: false, xp: 0, requiredXP: 12, researched: false });
     expect(game.upgrade(tower.id)).toBe(false);
     game.setTowerMastery({ archer: 74 }); expect(game.upgrade(tower.id)).toBe(true);
     expect(game.getUpgradeGate(tower, 'A')).toMatchObject({ allowed: false, requiredXP: 75, researched: false });
-    game.wave = 4; game.setTowerMastery({ archer: 75 });
+    game.setTowerMastery({ archer: 75 });
     expect(game.towerResearch('archer').map(choice => choice.unlocked)).toEqual([true, true, false, false, false]);
     expect(game.getUpgradeGate(tower, 'A').allowed).toBe(true); expect(game.getUpgradeGate(tower, 'B').allowed).toBe(false);
     const gold = game.gold; expect(game.upgrade(tower.id, 'B')).toBe(false); expect(game.gold).toBe(gold);

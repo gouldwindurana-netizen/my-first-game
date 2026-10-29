@@ -1,3 +1,4 @@
+import { clickViewControl } from './play-helpers.mjs';
 /** Title menu, connected skill graph and paced defense progression through real UI input. */
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -88,19 +89,19 @@ try{
  assert.equal(await desktop.getByRole('button',{name:/Move (tower|defense)/i}).count(),0,'No alternate relocation command remains');
  const fresh=await snapshot(desktop),tower=fresh.towers[0];
  assert.match(await desktop.locator('.tier-unlock').innerText(),/Lantern Sentries.*55 gold/s,'The ordinary Arrow blueprint advertises its gold-only stealth upgrade');
- assert.equal(await desktop.locator('#stealth-advisory').isVisible(),true,'The preparation HUD warns before the first hidden formation');
+ assert.match(await desktop.locator('#wave-preview-open').getAttribute('aria-label'),/scout/i,'The compact HUD exposes the next-wave scouting action');
  await desktop.locator('#wave-preview-open').click();await desktop.locator('#detection-plan').waitFor({state:'visible'});
- assert.match(await desktop.locator('#detection-plan h3').innerText(),/wave 4/,'Training introduces hidden units after time to develop counters');
+ assert.match(await desktop.locator('#detection-plan h3').innerText(),/wave \d+/,'The briefing identifies the next hidden wave');
  const detectionOption=desktop.locator(`[data-detection-option="archer"][data-detection-tower="${tower.id}"]`);
  assert.match(await detectionOption.innerText(),/55 gold/);assert.match(await detectionOption.innerText(),/Gold available/);
  assert.equal(await desktop.locator('[data-detection-option="truesight"]').count(),0,'The preparation options do not require the locked premium specialist');
  await detectionOption.click();await desktop.locator('#wave-preview').waitFor({state:'hidden'});
  assert.equal((await snapshot(desktop)).gold,fresh.gold,'Choosing a detection option inspects the ordinary tower without silently spending gold');
- assert(fresh.gold>=55,'The opening treasury could afford tier II without the pacing gate');
- assert.equal(await desktop.locator('#upgrade').isDisabled(),true,'A fresh tower cannot immediately buy tier II');
- assert.equal(tower.upgradeGate.allowed,false);assert(tower.upgradeGate.reason.length>0);
+ assert(fresh.gold>=55,'The opening treasury could afford tier II before family research');
+ assert.equal(await desktop.locator('#upgrade').isDisabled(),true,'A fresh family still needs permanent research before buying tier II');
+ assert.equal(tower.upgradeGate.allowed,false);assert.equal(tower.upgradeGate.requiredClears,0,'No cleared-wave condition remains');assert(tower.upgradeGate.reason.length>0);
  await desktop.keyboard.press('u');assert.equal((await snapshot(desktop)).towers[0].level,1);assert.equal((await snapshot(desktop)).gold,fresh.gold);
- check('Relocation is absent and a model-backed training gate blocks immediate upgrades even when gold is affordable');
+ check('Relocation is absent and family research blocks unresearched upgrades even when gold is affordable');
 
  await closeDetails(desktop);await desktop.locator('#speed').click();await desktop.locator('#speed').click();await desktop.locator('#start-wave').click();
  await desktop.waitForFunction(()=>window.__MOSSGUARD__.enemies.length>0);
@@ -124,18 +125,20 @@ try{
  assert.match(await desktop.locator('.effect-summary').innerText(),/reveals stealth/);
  assert.equal((await snapshot(desktop)).unlockedTowers.includes('truesight'),false);
  check('The upcoming stealth threat advertises an affordable gold-only Arrow upgrade, and tier II gains detection before hidden enemies arrive');
- assert(await desktop.locator('[data-branch]').evaluateAll(buttons=>buttons.every(button=>button.disabled)),'Specialization remains locked after only one cleared wave');
+ assert(await desktop.locator('[data-branch]').evaluateAll(buttons=>buttons.every(button=>button.disabled)),'The current family research still locks specialization');
  await namedBuild(desktop,'prism',2);await closeDetails(desktop);
  for(const wave of [2,3]){
   await desktop.locator('#start-wave').click();
   await desktop.waitForFunction(wave=>window.__MOSSGUARD__.status==='building'&&window.__MOSSGUARD__.wave===wave,wave,{timeout:45000});
+  // Earned gold supports another Arrow as the longer campaign introduces mixed ranks.
+  if(wave===2){await namedBuild(desktop,'archer',1);await closeDetails(desktop);}
  }
  afterClear=await snapshot(desktop);assert(afterClear.wave<afterClear.wavesTotal,'The first level is still in progress when mastery becomes available');
  await point(desktop,afterClear.pads.find(pad=>pad.id===0));
- assert.equal(await desktop.locator('[data-branch="A"]').isDisabled(),false,'An affordable specialization unlocks after three cleared waves');
+ assert.equal(await desktop.locator('[data-branch="A"]').isDisabled(),false,'Earned family research enables the affordable specialization');
  await desktop.locator('[data-branch="A"]').click();await desktop.waitForFunction(id=>window.__MOSSGUARD__.towers.find(tower=>tower.id===id)?.level===3,tower.id);
  await capture(desktop,'paced-first-level-upgrade');await desktop.close();
- check('One Arrow clears the opening wave, tier II unlocks afterward, and full specialization becomes possible during the first level');
+ check('Real tower use earns permanent research for tier II and specialization during the longer first stage');
 
  const learned=await browser.newPage({viewport:{width:1440,height:900}});monitor(learned,'connected-tree');
  await learned.addInitScript(()=>{
@@ -201,7 +204,7 @@ try{
   const targets=await mobile.locator('[data-skill-node]').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().toJSON()));
   assert(targets.every(rect=>rect.width>=44&&rect.height>=44),'Tree node targets remain at least 44px');
   await capture(mobile,`${width}x${height}-tree`);await mobile.locator('#progression-done').click();await enterCampaign(mobile);await namedBuild(mobile,'archer',0);await closeDetails(mobile);
-  await mobile.locator('#fullscreen').click();await mobile.waitForFunction(()=>Boolean(document.fullscreenElement));
+  await clickViewControl(mobile, '#fullscreen');await mobile.waitForFunction(()=>Boolean(document.fullscreenElement));
   const home=mobile.locator('#main-menu-open,#home-open,#menu-open').first();
   if(await home.count()&&await home.isVisible())await home.click();else await mobile.locator('.brand').click();
   await mobile.locator('#menu-skills').waitFor({state:'visible'});assert.equal(await mobile.locator('#menu-continue').isVisible(),true,'An existing defense exposes Resume');await checkMenuButtons(mobile,`${width}px resumed menu`);await bounds(mobile,'#main-menu',`${width}px resumed menu`);await mobile.locator('#menu-skills').click();

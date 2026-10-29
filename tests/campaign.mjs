@@ -1,4 +1,4 @@
-import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
+import { enterBattle, openGameCampaign, clickViewControl } from './play-helpers.mjs';
 /** Campaign QA uses real menu/build/combat input and the read-only game snapshot. */
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -31,8 +31,7 @@ async function boot(page, inlineHtml = null) {
 }
 async function capture(page, name) { await page.screenshot({ path: `artifacts/campaign/${name}.png`, fullPage: true }); }
 async function openCampaign(page, touch = false) {
-  const opener = await page.locator('#levels-open').isVisible() ? page.locator('#levels-open') : page.locator('#rail-levels');
-  if (touch) await opener.tap(); else await opener.click();
+  await openGameCampaign(page);
   await page.locator('#campaign').waitFor({ state: 'visible' });
   assert.equal(await page.locator('#campaign [data-level]').count(), 12, 'All twelve stages are available from the campaign menu');
 }
@@ -53,7 +52,7 @@ async function choose(page, kind, touch = false) {
 }
 async function assertNamedSites(page) {
   const buttons = await page.locator('[data-foundation]').evaluateAll(elements => elements.map(element => ({ label: element.getAttribute('aria-label'), text: element.textContent.trim() })));
-  assert(buttons.length >= 5, 'Named foundation controls are present');
+  assert(buttons.length >= 14 && buttons.length <= 16, 'Named foundation controls are present');
   assert(buttons.every(button => button.text && !/\d/.test(button.text) && !/\d/.test(button.label || '')), `Placement controls use names without numbers: ${JSON.stringify(buttons)}`);
   assert.equal(new Set(buttons.map(button => button.text)).size, buttons.length, 'Each foundation has a distinct descriptive name');
 }
@@ -112,11 +111,11 @@ try {
     assert.equal(level.towers.length, 0); assert.equal(level.enemies.length, 0);
     assert.equal(level.lives, 20); assert.equal(level.meteorCooldown, 0);
     assert.equal(level.paused, false); assert.equal(level.speed, 1);
-    assert(level.wavesTotal >= 6 && level.wavesTotal <= 12, 'Each map has a complete wave sequence');
-    assert(level.path.length >= 4 && level.pads.length >= 5, 'Each map exposes a playable route and foundations');
+    assert(level.wavesTotal === 50, 'Each map has a complete wave sequence');
+    assert(level.path.length >= 4 && level.pads.length >= 14 && level.pads.length <= 16, 'Each map exposes a playable route and foundations');
     assert(level.pads.every(pad => typeof pad.name === 'string' && pad.name.trim() && !/\d/.test(pad.name)), 'Map foundations use descriptive names');
     assert.equal(new Set(level.pads.map(pad => pad.name)).size, level.pads.length);
-    assert((await desktop.locator('.mission-heading h1').innerText()).includes(level.levelName), 'Mission heading follows the selected map');
+    assert((await desktop.locator('#battlefield').getAttribute('aria-label')).includes(level.levelName), 'Mission heading follows the selected map');
     await choose(desktop, 'archer');
     await assertNamedSites(desktop);
     await desktop.keyboard.press('Escape');
@@ -144,10 +143,10 @@ try {
   assert.equal((await state(desktop)).towers.length, 0, 'A prior match does not leak into the returned map');
   checks.push('Map switching resets match state and each map’s economy');
   const beforeFullscreen = await state(desktop);
-  await desktop.locator('#fullscreen').click();
+  await clickViewControl(desktop, '#fullscreen');
   await desktop.waitForFunction(() => document.fullscreenElement || /Fullscreen is unavailable/.test(document.querySelector('#toast').textContent), undefined, { timeout: 5000 });
   if (await desktop.evaluate(() => Boolean(document.fullscreenElement))) {
-    await desktop.locator('#rail-levels').click();
+    await openGameCampaign(desktop);
     await desktop.locator('#campaign').waitFor({ state: 'visible' });
     const bounds = await desktop.locator('#campaign .modal').evaluate(panel => {
       const box = panel.getBoundingClientRect(), center = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
@@ -159,7 +158,7 @@ try {
     await capture(desktop, 'fullscreen-campaign-menu');
     await desktop.locator('#campaign-done').click();
     assert.equal((await state(desktop)).paused, beforeFullscreen.paused, 'Closing fullscreen campaign menu restores prior pause state');
-    await desktop.locator('#fullscreen').click();
+    await clickViewControl(desktop, '#fullscreen');
     await desktop.waitForFunction(() => !document.fullscreenElement);
     const afterFullscreen = await state(desktop);
     assert.equal(afterFullscreen.levelIndex, beforeFullscreen.levelIndex);
@@ -184,7 +183,7 @@ try {
         else localStorage.removeItem('mossguard-campaign');
       }, seed);
       await boot(page);
-      assert.match(await page.locator('#record').innerText(), new RegExp(`best ${Math.min(seed.expected,6)}/6`));
+      assert.equal((await state(page)).progression.stages.eldervale.normal.bestWave, seed.expected, 'Legacy score survives the new stage length');
       if (seed.progress) {
         const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('mossguard-campaign')));
         assert.equal(saved.eldervale.best, seed.expected);
@@ -193,7 +192,7 @@ try {
       assert.equal(await page.evaluate(() => localStorage.getItem('mossguard-best')), '7', 'Compatibility loading keeps the original score intact');
       await page.reload();
       await page.waitForSelector('#battlefield[data-ready="true"]');
-      assert.match(await page.locator('#record').innerText(), new RegExp(`best ${Math.min(seed.expected,6)}/6`), 'The selected score survives a real reload');
+      assert.equal((await state(page)).progression.stages.eldervale.normal.bestWave, seed.expected, 'The selected score survives a real reload');
       checks.push(seed.label);
     } finally { await page.close(); }
   }

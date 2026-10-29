@@ -24,16 +24,18 @@ describe('gold, construction and branch contracts',()=>{
     const positions=game.towers.map(t=>game.getTowerPosition(t));advance(game,2);
     expect(game.towers.map(t=>game.getTowerPosition(t))).toEqual(positions);
   });
-  it('locks upgrades by cleared waves and requires the newly upgraded tier to defend another wave',()=>{
-    const game=trained(new GameModel());game.gold=10000;game.build(0,'archer');const tower=game.towers[0],gold=game.gold;
-    expect(game.getUpgradeGate(tower)).toMatchObject({allowed:false,requiredClears:1,cleared:0,reason:'Clear wave 1 before tier II.',researched:true});
-    expect(game.upgrade(tower.id)).toBe(false);expect(game.gold).toBe(gold);
-    game.wave=1;game.status='wave';expect(game.upgrade(tower.id)).toBe(false);
-    game.status='building';expect(game.upgrade(tower.id)).toBe(true);
-    expect(game.getUpgradeGate(tower).requiredClears).toBe(3);expect(game.upgrade(tower.id,'A')).toBe(false);
-    game.wave=3;expect(game.upgrade(tower.id,'A')).toBe(true);expect(tower.level).toBe(3);
-    game.build(1,'archer');const late=game.towers[1];expect(game.getUpgradeGate(late).requiredClears).toBe(4);expect(game.upgrade(late.id)).toBe(false);
-    game.wave=4;expect(game.upgrade(late.id)).toBe(true);expect(game.upgrade(late.id,'A')).toBe(false);expect(game.getUpgradeGate(late).requiredClears).toBe(5);
+  it('buys researched upgrades at any wave without requiring another completed wave',()=>{
+    const game=trained(new GameModel());game.gold=10000;game.build(0,'archer');const tower=game.towers[0];
+    expect(game.getUpgradeGate(tower)).toMatchObject({allowed:true,requiredClears:0,cleared:0,researched:true});
+    expect(game.upgrade(tower.id)).toBe(true);expect(game.upgrade(tower.id,'A')).toBe(true);
+    expect(tower.level).toBe(3);expect(game.wave).toBe(0);
+    game.status='wave';game.wave=20;game.build(1,'archer');const late=game.towers[1];
+    expect(game.getUpgradeGate(late)).toMatchObject({allowed:true,requiredClears:0});
+    expect(game.upgrade(late.id)).toBe(true);expect(game.upgrade(late.id,'B')).toBe(true);
+    expect(late.level).toBe(3);expect(game.wave).toBe(20);
+    const recruit=new GameModel();recruit.gold=10000;recruit.build(0,'archer');
+    expect(recruit.upgrade(recruit.towers[0].id)).toBe(false);
+    expect(recruit.getUpgradeGate(recruit.towers[0]).reason).toContain('XP');
   });
   it('expires lingering fields during preparation and freezes their lifetime while paused',()=>{
     const game=new GameModel();game.zones=[{id:100,towerId:1,kind:'earth',x:400,y:300,radius:50,damage:8,damageType:'earth',expiresAt:.15,effects:{}}];

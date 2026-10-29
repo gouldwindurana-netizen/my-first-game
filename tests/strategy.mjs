@@ -1,5 +1,5 @@
-/** Targeting, fixed foundations, paced upgrades, and sell/rebuild through real input. */
-import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
+/** Targeting, fixed foundations, research-priced upgrades, and sell/rebuild through real input. */
+import { enterBattle, clearNextWave, selectTower, chooseTowerCard } from './play-helpers.mjs';
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
@@ -8,7 +8,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'
 const checks=[],errors=[],state=page=>page.evaluate(()=>window.__MOSSGUARD__);
 function watch(page,label){page.on('pageerror',error=>errors.push(`${label}: ${error.message}`));page.on('console',message=>{if(message.type()==='error')errors.push(`${label}: ${message.text()}`);});page.on('requestfailed',request=>errors.push(`${label}: ${request.failure()?.errorText} ${request.url()}`));page.on('response',response=>{if(response.status()>=400)errors.push(`${label}: HTTP ${response.status()} ${response.url()}`);});}
 async function boot(page){await page.goto(base);await page.waitForSelector('#battlefield[data-ready="true"]');await enterBattle(page);await page.evaluate(()=>document.fonts.ready);}
-async function build(page,kind,pad,touch=false){const card=page.locator(`[data-tower="${kind}"]`),site=page.locator(`[data-foundation="${pad}"]`);if(touch)await card.tap();else await card.click();if(touch)await site.tap();else await site.click();await page.waitForFunction(({kind,pad})=>window.__MOSSGUARD__.towers.some(t=>t.kind===kind&&t.padId===pad),{kind,pad});}
+async function build(page,kind,pad,touch=false){const site=page.locator(`[data-foundation="${pad}"]`);await chooseTowerCard(page,kind,touch);if(touch)await site.tap();else await site.click();await page.waitForFunction(({kind,pad})=>window.__MOSSGUARD__.towers.some(t=>t.kind===kind&&t.padId===pad),{kind,pad});}
 async function shot(page,name){await page.screenshot({path:`artifacts/strategy/${name}.png`,fullPage:true});}
 try{
  await mkdir('artifacts/strategy',{recursive:true});const page=await browser.newPage({viewport:{width:1440,height:900}});watch(page,'desktop');await boot(page);
@@ -20,9 +20,9 @@ try{
  const pixel=await page.locator('#battlefield canvas').evaluate((canvas,p)=>{const v=window.__MOSSGUARD__.view,b=canvas.getBoundingClientRect();return{x:b.x+(p.x-v.scrollX)*v.renderScale*v.zoom/canvas.width*b.width,y:b.y+(p.y-v.scrollY)*v.renderScale*v.zoom/canvas.height*b.height};},empty);assert(box);await page.mouse.click(pixel.x,pixel.y);
  assert.deepEqual((await state(page)).towers,before.towers,'Inspecting another foundation cannot relocate a tower');assert.equal((await state(page)).gold,before.gold);
  checks.push('Placed defenses remain fixed and no relocation controls are exposed');
- await selectTower(page,first.id);assert.equal(await page.locator('#upgrade').isDisabled(),true);await page.locator('#battlefield').focus();await page.keyboard.press('u');assert.equal((await state(page)).towers.find(t=>t.id===first.id).level,1,'Upgrade hotkey respects the wave-clear gate');
+ await selectTower(page,first.id);assert.equal(await page.locator('#upgrade').isDisabled(),true);assert.equal((await state(page)).towers.find(t=>t.id===first.id).upgradeGate.requiredClears,0,'Fresh unresearched towers have no wave-clear lock');await page.locator('#battlefield').focus();await page.keyboard.press('u');assert.equal((await state(page)).towers.find(t=>t.id===first.id).level,1,'Upgrade hotkey respects the permanent research requirement');
  await clearNextWave(page);await selectTower(page,first.id);const ready=await state(page);await page.locator('#battlefield').focus();await page.keyboard.press('u');await page.waitForFunction(id=>window.__MOSSGUARD__.towers.find(t=>t.id===id)?.level===2,first.id);const upgraded=await state(page),tower=upgraded.towers.find(t=>t.id===first.id);assert.equal(upgraded.gold,ready.gold-55);assert.equal(tower.padId,0);
- checks.push('Upgrade hotkeys require a genuine clear, charge the tier price, and preserve the foundation');
+ checks.push('Upgrade hotkeys require earned family research, charge the tier price, and preserve the foundation');
  await page.keyboard.press('x');await page.waitForFunction(id=>!window.__MOSSGUARD__.towers.some(t=>t.id===id),first.id);const sold=await state(page);assert.equal(sold.gold,upgraded.gold+Math.floor(tower.spent*.7));await build(page,'archer',2);const rebuilt=await state(page);assert.equal(rebuilt.gold,sold.gold-80);assert(rebuilt.towers.some(t=>t.padId===2&&t.id!==first.id));assert(!rebuilt.towers.some(t=>t.id===first.id));
  checks.push('Changing placement requires selling and paying for a newly built defense');
  for(const speed of [2,3,1]){await page.locator('#speed').click();assert.equal((await state(page)).speed,speed);}

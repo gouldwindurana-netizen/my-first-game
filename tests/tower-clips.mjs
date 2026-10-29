@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from '@playwright/test';
-import { enterBattle, closeTowerDetails, clickWorld } from './play-helpers.mjs';
+import { enterBattle, closeTowerDetails, clickWorld, chooseTowerCard } from './play-helpers.mjs';
 
 const base = process.env.GAME_URL || 'http://127.0.0.1:4173/my-first-game/';
 const families = ['archer','cannon','mortar','frost','earth','arcane','tesla','venom','prism','trap','sonic','barracks','void','solar','chrono','truesight','nexus'];
@@ -11,6 +11,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 const errors = [], loadedClips = new Set(), evidence = [];
 const state = page => page.evaluate(() => window.__MOSSGUARD__);
 let nextFamily = 0;
+const workerCount = Math.max(1, Math.min(3, Number.parseInt(process.env.TOWER_CLIP_WORKERS || '3', 10) || 3));
 
 function watch(page, family) {
   page.on('pageerror', error => errors.push(`${family}: ${error.message}`));
@@ -69,7 +70,7 @@ async function inspectFamily(family) {
     assert.equal(fresh.progression.xp, 0);
     assert.deepEqual(fresh.towerMastery, {}, `${family}: the access fixture grants no practice XP`);
     assert.equal(fresh.animations.towerFps, 30);
-    await page.locator(`[data-tower="${family}"]`).click();
+    await chooseTowerCard(page,family);
     if (family === 'trap') await clickWorld(page, fresh.path[1]);
     else await page.locator('[data-foundation="8"]').click();
     await page.waitForFunction(family => window.__MOSSGUARD__.towers.some(tower => tower.kind === family), family);
@@ -106,7 +107,7 @@ async function worker() {
 
 try {
   await mkdir('artifacts/tower-clips', { recursive: true });
-  const results = await Promise.allSettled([worker(), worker(), worker()]);
+  const results = await Promise.allSettled(Array.from({ length: workerCount }, () => worker()));
   const failures = results.filter(result => result.status === 'rejected');
   for (const failure of failures) console.error(failure.reason);
   assert.equal(failures.length, 0, 'Every all-family animation worker completes');

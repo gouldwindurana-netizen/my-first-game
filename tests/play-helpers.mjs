@@ -62,3 +62,65 @@ export async function clearNextWave(page, { timeout=60000, fast=true, starfall=t
   if(fast) for(let i=0;i<3&&(await page.evaluate(()=>window.__MOSSGUARD__.speed))!==originalSpeed;i++) await page.locator('#speed').click();
   return page.evaluate(()=>window.__MOSSGUARD__);
 }
+
+/** Camera and secondary game actions live in the compact HUD tools popup. */
+export async function openViewTools(page) {
+  if (await page.locator('#hud-camera-tools').isVisible()) return;
+  if (await page.locator('#hud-view').isVisible()) {
+    await page.locator('#hud-view').click();
+    await page.locator('#hud-camera-tools').waitFor({ state: 'visible' });
+  }
+}
+
+export async function clickViewControl(page, selector) {
+  if (!await page.locator(selector).isVisible()) await openViewTools(page);
+  await page.locator(selector).click();
+}
+
+async function openGameAction(page, selectors, surface) {
+  for (const selector of selectors) if (await page.locator(selector).isVisible()) {
+    await page.locator(selector).click();
+    await page.locator(surface).waitFor({ state: 'visible' });
+    return;
+  }
+  await openViewTools(page);
+  for (const selector of selectors) if (await page.locator(selector).isVisible()) {
+    await page.locator(selector).click();
+    await page.locator(surface).waitFor({ state: 'visible' });
+    return;
+  }
+  throw new Error(`No visible HUD action opens ${surface}`);
+}
+
+export const openGameSettings = page => openGameAction(page, ['#settings-open', '#rail-settings'], '#settings');
+export const openGameGuide = page => openGameAction(page, ['#guide-nav', '#how-to', '#hud-guide'], '#guide');
+export const openGameCampaign = page => openGameAction(page, ['#levels-open', '#rail-levels'], '#campaign');
+export const openGameProgression = page => openGameAction(page, ['#progression-open', '#meta-open', '#hud-research'], '#progression');
+
+export async function revealTowerCard(page, kind) {
+  const card = page.locator(`[data-tower="${kind}"]`);
+  if (!await card.isVisible()) {
+    if (await page.locator('#tower-filter-select').isVisible()) await page.locator('#tower-filter-select').selectOption('all');
+    else if (await page.locator('[data-tower-filter="all"]').isVisible()) await page.locator('[data-tower-filter="all"]').click();
+  }
+  await card.scrollIntoViewIfNeeded();
+  return card;
+}
+
+export async function chooseTowerCard(page, kind, touch = false) {
+  const card = await revealTowerCard(page, kind);
+  if (touch) await card.tap(); else await card.click();
+  return card;
+}
+
+export async function toggleGameSound(page) {
+  if (await page.locator('#sound').isVisible()) {
+    await page.locator('#sound').click();
+  } else {
+    await openGameSettings(page);
+    const checkbox=page.locator('#sound-setting');
+    await checkbox.setChecked(!await checkbox.isChecked());
+    await page.waitForFunction(()=>!document.querySelector('#sound')?.hasAttribute('aria-busy'));
+    await page.locator('#settings-done').click();
+  }
+}

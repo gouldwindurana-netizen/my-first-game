@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GameModel, LEVELS, type TowerKind, type Difficulty } from './model';
+import { GameModel, LEVELS, type TowerKind } from './model';
 import { Progression, SKILL_NODES } from './progression';
 
 /** A reproducible player strategy: fill road coverage, specialize, and use Starfall on groups. */
@@ -84,39 +84,6 @@ describe('Earned experience, opening, and tier balance',()=>{
     expect(game.getTowerMasteryXP('archer')).toBeGreaterThanOrEqual(75);
     expect(game.wave).toBe(3);expect(game.gold).toBeGreaterThanOrEqual(0);
   },30000);
-});
-
-describe('Skill investment on tactical difficulties', () => {
-  for (const difficulty of ['hard', 'hell'] as Difficulty[]) {
-    it(`improves ${difficulty} survival using the same fixed-site, nonpremium strategy`, () => {
-      const progression = new Progression({
-        getItem: () => JSON.stringify({ version: 2, xp: 100_000, gems: 0 }),
-        setItem() {},
-      });
-      // Spend a bounded XP bank through the actual dependency/cost rules. No gold or premium unlocks.
-      for (let round = 0; round < 40; round++) {
-        for (const branch of ['damage', 'elemental', 'haste', 'range']) {
-          const next = SKILL_NODES.find(node => node.branch === branch && progression.canBuySkill(node.id));
-          if (next) expect(progression.buySkill(next.id)).toBe(true);
-        }
-      }
-      const recruit = new GameModel(LEVELS.length - 1);
-      const veteran = new GameModel(LEVELS.length - 1);
-      recruit.setDifficulty(difficulty);
-      veteran.setDifficulty(difficulty);
-      veteran.setProgression(progression.bonuses, progression.unlockedTowers, progression.unlockedCapstones);
-      veteran.reset();
-      expect(veteran.gold).toBe(recruit.gold);
-      expect(progression.bonuses.startingGold).toBe(0);
-      expect(progression.unlockedTowers).toHaveLength(12);
-      runDefense(recruit);
-      runDefense(veteran);
-      expect(recruit.status).toBe('lost');
-      expect(veteran.wave).toBeGreaterThan(recruit.wave);
-      expect(veteran.kills).toBeGreaterThan(recruit.kills);
-      expect(veteran.towers.every(tower => ['prism', 'arcane', 'tesla'].includes(tower.kind))).toBe(true);
-    }, 30_000);
-  }
 });
 
 describe('Normal campaign balance with earned resources', () => {

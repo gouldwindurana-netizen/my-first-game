@@ -23,7 +23,8 @@
     "test:expansion": "node tests/expansion.mjs",
     "test:menu": "node tests/menu-tree.mjs",
     "test:mastery": "node tests/mastery.mjs",
-    "test:tower-clips": "node tests/tower-clips.mjs"
+    "test:tower-clips": "node tests/tower-clips.mjs",
+    "test:endurance": "node tests/endurance.mjs"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

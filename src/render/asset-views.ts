@@ -5,6 +5,7 @@ import { TOWER_KINDS } from '../game/catalog';
 import { sampleTowerAnimation, TOWER_ATTACK_DURATION, TOWER_ANIMATION_FPS, type TowerAnimation } from './tower-animation';
 import { sampleWalkCycle, ANIMATION_FPS, animationTick } from './walk-cycle';
 import { UNIT_KINDS, getWalkingAsset, walkFrameName, type VisualUnitKind } from '../walking-assets';
+import { enemyAppearance, type EnemyAppearance } from './enemy-appearance';
 
 export function preloadAssetSheets(scene: Phaser.Scene): void {
   for (const kind of TOWER_KINDS) for (const animation of ['idle', 'attack'] as const) {
@@ -164,7 +165,8 @@ export class AssetViews {
       if (enemy.hp < view.hp) { view.hit = time; view.hitSequence++; this.burst(enemy.x, enemy.y - 16, 0xf6d798, 4, time); }
       const dx = enemy.x - view.lastX;
       if (Math.abs(dx) > .03) view.image.setFlipX(dx < 0);
-      const slow = enemy.slowUntil > model.time, height=enemyHeights[visualKind]*(enemy.miniBoss?1.18:1),base = height / asset.bodyHeight;
+      const appearance=enemyAppearance(enemy.kind);
+      const slow = enemy.slowUntil > model.time, height=enemyHeights[visualKind]*(enemy.miniBoss?1.18:1)*(appearance?.scale??1),base = height / asset.bodyHeight;
       const flying=definition.flying===true,lift=flying?17:0,hidden=(definition.stealth||definition.ghost)&&!((enemy.revealedUntil??0)>model.time)&&enemy.distance<model.pathLength*.82;
       // Feet, knees, arms, and equipment move inside each frame. Keep the whole sprite stable.
       view.image.setFrame(frameName).setScale(base).setRotation(0);
@@ -172,9 +174,10 @@ export class AssetViews {
       view.image.setAlpha((time - view.hit < .12 ? .58 + .42 * Math.max(0,(time - view.hit) / .12) : 1)*(hidden?.42:1));
       view.state = (enemy.stunUntil??0)>model.time?'stunned':(enemy.rootUntil??0)>model.time?'rooted':enemy.blockedBy?'blocked':time - view.hit < .18 ? 'hit' : slow ? 'slowed' : 'walking';
       view.hp = enemy.hp; view.enemy = enemy; view.lastX = enemy.x; view.walkFrame = walk.frame; view.walkPhase = walk.phase; view.lastPoseTick = this.poseTick;
-      const mark=`${enemy.miniBoss?'★ ':''}${enemyMarks[enemy.kind]??''}`;
+      const mark=`${enemy.miniBoss?'★ ':''}${appearance?.mark??enemyMarks[enemy.kind]??''}`;
       view.badge.setText(mark).setPosition(enemy.x,enemy.y-height-lift-12).setVisible(Boolean(mark));
-      const badgeColor=definition.ccImmune?'#e7bb87':definition.flying?'#c4e7ff':definition.ghost?'#d1adff':'#e5e1ce';if(view.badge.style.color!==badgeColor)view.badge.setColor(badgeColor);
+      const badgeColor=appearance?`#${appearance.color.toString(16).padStart(6,'0')}`:definition.ccImmune?'#e7bb87':definition.flying?'#c4e7ff':definition.ghost?'#d1adff':'#e5e1ce';if(view.badge.style.color!==badgeColor)view.badge.setColor(badgeColor);
+      if(appearance)this.enemyEmblem(fx,appearance,enemy.x,enemy.y-lift,height);
       this.shadows.fillStyle(0x04101b, flying?.14:.28).fillEllipse(enemy.x + 1, enemy.y + 5, height * .65, height * .17);
       if ((enemy.poisonUntil ?? 0) > model.time) { fx.fillStyle(0xa7dc72,.24).fillCircle(enemy.x,enemy.y-16,10); }
       if (slow) { fx.lineStyle(1.5, 0x9fe9ff, .75).strokeEllipse(enemy.x, enemy.y + 4, height * .75, height * .23); }
@@ -223,6 +226,37 @@ export class AssetViews {
       if(troop.state==='fighting')fx.lineStyle(1.5,0xe9dcae,.9).lineBetween(troop.x+8,troop.y-18,troop.x+13,troop.y-24);
     }
   }
+  /** Static role equipment and auras share the Canvas-compatible effect layer. */
+  private enemyEmblem(fx:Phaser.GameObjects.Graphics,look:EnemyAppearance,x:number,y:number,height:number):void {
+    const top=y-height*.62;
+    // Graphics work in the Canvas renderer too; Phaser's sprite tint is WebGL-only.
+    fx.fillStyle(look.tint,.12).fillEllipse(x,top+2,18,height*.55);
+    fx.lineStyle(1.4,look.color,.85);
+    if(look.emblem==='armor'){
+      fx.strokePoints([{x:x-9,y:top-4},{x:x+8,y:top-4},{x:x+7,y:top+9},{x,y:top+14},{x:x-8,y:top+8}],true);
+      fx.lineBetween(x,top-1,x,top+9);return;
+    }
+    if(look.emblem==='frost'){
+      for(let i=0;i<3;i++){const a=i*Math.PI/3;fx.lineBetween(x-Math.cos(a)*8,top-Math.sin(a)*8,x+Math.cos(a)*8,top+Math.sin(a)*8);}return;
+    }
+    if(look.emblem==='fire'){
+      fx.lineBetween(x-6,top+6,x-2,top-7).lineBetween(x-2,top-7,x+1,top+1).lineBetween(x+1,top+1,x+5,top-5).lineBetween(x+5,top-5,x+7,top+6);return;
+    }
+    if(look.emblem==='storm'){
+      fx.lineBetween(x+5,top-9,x-3,top).lineBetween(x-3,top,x+3,top).lineBetween(x+3,top,x-5,top+9);return;
+    }
+    if(look.emblem==='crystal'){
+      fx.strokePoints([{x,y:top-10},{x:x+7,y:top},{x,y:top+10},{x:x-7,y:top}],true);return;
+    }
+    if(look.emblem==='poison'){
+      fx.strokeCircle(x,top,6).fillStyle(look.color,.65).fillCircle(x-8,top-9,2).fillCircle(x+8,top-5,1.6);return;
+    }
+    if(look.emblem==='rune'||look.emblem==='specter'){
+      fx.strokeEllipse(x,top,18,look.emblem==='specter'?10:19).lineBetween(x-4,top,x+4,top);return;
+    }
+    fx.lineBetween(x-8,top+5,x-4,top-6).lineBetween(x-4,top-6,x,top+2).lineBetween(x,top+2,x+5,top-7).lineBetween(x+5,top-7,x+8,top+4);
+  }
+
   /** Secondary chain jumps retain their source on the enemy; primary shots leave the weapon. */
   getShotOrigin(from:{x:number;y:number}):{x:number;y:number}{
     return this.weaponOutlets.get(`${from.x.toFixed(1)}:${from.y.toFixed(1)}`)??{x:from.x,y:from.y-8};

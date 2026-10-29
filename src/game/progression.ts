@@ -246,7 +246,7 @@ export class Progression {
     this.value.xp = Math.min(1_000_000_000, this.value.xp + xp); this.value.gems = Math.min(1_000_000, this.value.gems + gems);
     this.value.lifetimeXP = Math.min(1_000_000_000, this.value.lifetimeXP + xp); this.value.lifetimeGems = Math.min(1_000_000_000, this.value.lifetimeGems + gems);
     const stage: StageProgress = {
-      bestWave: Math.max(old?.bestWave || 0, integer(result.wave, 99)), stars: Math.max(old?.stars || 0, stars),
+      bestWave: Math.max(old?.bestWave || 0, integer(result.wave, 100)), stars: Math.max(old?.stars || 0, stars),
       cleared: !!old?.cleared || won, clears: Math.min(1_000_000, (old?.clears || 0) + (won ? 1 : 0)),
       highestLives: Math.max(old?.highestLives || 0, won ? integer(result.lives, 1000) : 0),
       maxLives: Math.max(old?.maxLives || 0, integer(result.maxLives, 1000)),
@@ -291,7 +291,7 @@ export class Progression {
           const entry = stages[difficulty]; if (!plain(entry)) continue;
           const cleared = entry.cleared === true;
           const stars = cleared ? Math.max(1, integer(entry.stars, 3)) : 0;
-          (next.stages[stageId] ||= {})[difficulty] = { bestWave: integer(entry.bestWave, 99), stars, cleared, clears: integer(entry.clears, 1_000_000), highestLives: integer(entry.highestLives, 1000), maxLives: integer(entry.maxLives, 1000) };
+          (next.stages[stageId] ||= {})[difficulty] = { bestWave: integer(entry.bestWave, 100), stars, cleared, clears: integer(entry.clears, 1_000_000), highestLives: integer(entry.highestLives, 1000), maxLives: integer(entry.maxLives, 1000) };
         }
       }
       if (Array.isArray(saved.claimedRuns)) next.claimedRuns = [...new Set(saved.claimedRuns.filter((id): id is string => typeof id === 'string' && !!id.trim() && id.length <= 160))].slice(-100);
@@ -304,7 +304,7 @@ export class Progression {
     if (plain(legacy)) for (const [oldId, oldEntry] of Object.entries(legacy)) {
       const stageId = this.legacyMap[oldId] || oldId;
       if (!this.stageIds.includes(stageId) || !plain(oldEntry)) continue;
-      const bestWave = integer(oldEntry.best, 99), cleared = oldEntry.completed === true;
+      const bestWave = integer(oldEntry.best, 100), cleared = oldEntry.completed === true;
       if (bestWave || cleared) this.value.stages[stageId] = { normal: { bestWave, cleared, stars: cleared ? 1 : 0, clears: cleared ? 1 : 0, highestLives: 0, maxLives: 20 } };
     }
     const legacyBest = integer(this.read('mossguard-best'), 12), elderId = this.legacyMap.eldervale || 'eldervale';

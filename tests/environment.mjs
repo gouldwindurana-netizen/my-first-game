@@ -1,4 +1,4 @@
-import { enterBattle } from './play-helpers.mjs';
+import { enterBattle, openGameSettings, openGameCampaign } from './play-helpers.mjs';
 /** Map proportions, real camera input, and interpolated scenery through read-only diagnostics. */
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -23,7 +23,7 @@ function monitor(page) {
   page.on('response', response => { if (response.status() >= 400) errors.push(`HTTP ${response.status()} ${response.url()}`); });
 }
 async function chooseMap(page, index) {
-  await page.locator('#levels-open').click();
+  await openGameCampaign(page);
   await page.locator('#campaign').waitFor({ state: 'visible' });
   const card = page.locator(`[data-stage="${maps[index].key}"]`);
   const stageIndex = Number(await card.getAttribute('data-level'));
@@ -48,6 +48,11 @@ function assertCamera(snapshot, map) {
 }
 async function pointerBuild(page, pad) {
   await page.locator('[data-tower="archer"]').click();
+  // Collapse the optional named-site picker so even foundations underneath its
+  // overlay remain available to direct canvas placement.
+  await page.locator('#close-inspection').click();
+  assert.equal(await page.locator('[data-tower="archer"]').getAttribute('aria-pressed'), 'true', 'Collapsing placement controls keeps the tower blueprint armed');
+  assert.equal(await page.locator('#foundation-picker').isVisible(), false, 'Collapsed placement controls expose the battlefield');
   const point = await page.locator('#battlefield canvas').evaluate((canvas, pad) => {
     const view = window.__MOSSGUARD__.view, box = canvas.getBoundingClientRect();
     return { x: box.x + (pad.x - view.scrollX) * view.renderScale * view.zoom / canvas.width * box.width,
@@ -129,7 +134,7 @@ try {
   }
   checks.push('2× and 3× combat preserve the independent real-time scenery loop');
 
-  await page.locator('#settings-open').click();
+  await openGameSettings(page);
   await page.locator('#motion-setting').check();
   await page.locator('#settings-done').click();
   await page.waitForFunction(() => window.__MOSSGUARD__.animations.environment.reduced);

@@ -1,4 +1,4 @@
-import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
+import { toggleGameSound, enterBattle, clearNextWave } from './play-helpers.mjs';
 /**
  * Build first: npm run build
  * Serve the project prefix: BASE_PATH=/my-first-game/ node scripts/serve.mjs
@@ -203,7 +203,7 @@ try {
   try {
     await boot(filePage, null, html);
     await layout(filePage, 'Standalone offline inline HTML desktop');
-    await filePage.locator('#sound').click();
+    await toggleGameSound(filePage);
     await filePage.waitForFunction(() => document.querySelector('#sound').getAttribute('aria-label') === 'Mute sound' && !document.querySelector('#sound').hasAttribute('aria-busy'), undefined, { timeout: 20000 });
     checks.push('Standalone offline inline HTML: twelve embedded WAV effects decode and sound enables without network access');
     await build(filePage, 'tesla', 0);

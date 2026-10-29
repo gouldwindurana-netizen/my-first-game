@@ -40,11 +40,11 @@ const branch=(name:string,cost:number,description:string,effects:TowerEffects,st
 
 export const TOWER_DEFS: Record<TowerKind,TowerDef> = {
   archer: {
-    name:'Arrow tower', description:'Fast physical arrows against ground and flying foes. Tier II lanterns reveal hidden enemies for nearby allies.', cost:80,tier2Cost:55,tier2Name:'Lantern Sentries',tier2Description:'Reveals hidden enemies within firing range for this tower and nearby allies. Earn Arrow XP through combat, then defend a wave before buying tier II.',tier2Effects:{reveal:true},damage:16,range:175,interval:.65,color:0xd8ba75,damageType:'physical',role:'PRECISION & SCOUTING',effects:{},
+    name:'Arrow tower', description:'Fast physical arrows against ground and flying foes. Tier II lanterns reveal hidden enemies for nearby allies.', cost:80,tier2Cost:55,tier2Name:'Lantern Sentries',tier2Description:'Reveals hidden enemies within firing range for this tower and nearby allies. Research with permanent Arrow XP, then buy with gold at any time.',tier2Effects:{reveal:true},damage:16,range:175,interval:.65,color:0xd8ba75,damageType:'physical',role:'PRECISION & SCOUTING',effects:{},
     branches:{
-      A:branch('Longbow Citadel',150,'Fires at three separate targets.',{targets:3},{damage:30,range:205,interval:.85}),
-      B:branch('Rapid Archer',145,'Rapid arrows pierce one additional foe.',{pierce:2},{damage:17,range:185,interval:.27}),
-      C:branch('Sniper Post',165,'Extreme-range, high-power precision shots.',{},{damage:118,range:350,interval:1.65}),
+      A:branch('Longbow Citadel',190,'Fires at three separate targets.',{targets:3},{damage:30,range:205,interval:.85}),
+      B:branch('Rapid Archer',185,'Rapid arrows pierce one additional foe.',{pierce:2},{damage:17,range:185,interval:.27}),
+      C:branch('Sniper Post',205,'Extreme-range, high-power precision shots.',{},{damage:118,range:350,interval:1.65}),
       D:branch('Arrow Storm',260,'Hell specialization: volleys hit five separate targets.',{targets:5},{damage:34,range:220,interval:.65}),
     },
   },
@@ -194,7 +194,7 @@ export const TOWER_DEFS: Record<TowerKind,TowerDef> = {
   },
 };
 
-export const ENEMY_KINDS = ['grunt','runner','scout','raider','bat','brute','shieldbearer','ogre','troll','stonegolem','juggernaut','ironsentinel','shaman','necromancer','stormconduit','frostwight','voidling','skeleton','darkknight','shadowwraith','warlord','boss','bonedragon','hellwarden'] as const;
+export const ENEMY_KINDS = ['grunt','runner','scout','raider','bat','brute','shieldbearer','ogre','troll','stonegolem','juggernaut','ironsentinel','shaman','necromancer','stormconduit','frostwight','voidling','skeleton','darkknight','shadowwraith','warlord','boss','bonedragon','hellwarden','swarmmite','frostwolf','emberimp','stormsprite','mossbeetle','plaguecarrier','arcanewarden','crystaldrone','siegebeast','cinderdrake','banshee','nullpriest','mirrorknight','plaguewitch','riftassassin','abysschampion'] as const;
 export type EnemyKind = typeof ENEMY_KINDS[number];
 export interface EnemyDef {
   name: string; hp: number; speed: number; reward: number; leak: number;
@@ -229,4 +229,84 @@ export const ENEMY_DEFS: Record<EnemyKind,EnemyDef> = {
   boss:{name:'Hollow King',hp:1800,speed:25,reward:180,leak:8,armor:.25,resistances:{arcane:.15,holy:-.15},visual:'boss',ccImmune:true,ability:'A crowd-control immune stage boss.'},
   bonedragon:{name:'Bone Dragon',hp:2400,speed:30,reward:220,leak:10,armor:.3,resistances:{fire:.5,poison:.65,holy:-.4},visual:'boss',flying:true,ccImmune:true,summon:'skeleton',ability:'An airborne boss summons skeletons and attacks tower wards.'},
   hellwarden:{name:'Hell Warden',hp:3200,speed:24,reward:280,leak:12,armor:.45,resistances:{fire:.75,void:.2,ice:-.3,holy:-.2},visual:'boss',ccImmune:true,teleportInterval:10,ability:'A fire-resistant boss teleports and suppresses unshielded towers.'},
+  swarmmite:{name:'Rotling',hp:26,speed:64,reward:5,leak:1,armor:0,resistances:{fire:-.35,sonic:-.3,poison:-.2},visual:'grunt',ability:'Small infected goblins arrive in dense swarms. Splash and chain weapons clear the pack.'},
+  frostwolf:{name:'Frostbound Stalker',hp:108,speed:76,reward:17,leak:1,armor:.05,resistances:{ice:.7,fire:-.5,physical:-.15},visual:'runner',ability:'Cold-adapted runner; use arrows or burning damage instead of Ice alone.'},
+  emberimp:{name:'Ember Imp',hp:115,speed:59,reward:19,leak:1,armor:.05,resistances:{fire:.8,ice:-.5,holy:-.2},visual:'grunt',ability:'Fire feeds its ward. Ice pulses break the heat shield.'},
+  stormsprite:{name:'Storm Sprite',hp:91,speed:71,reward:19,leak:1,armor:0,resistances:{lightning:.75,ice:-.4,holy:-.25},visual:'runner',flying:true,ability:'An airborne electrical spirit. Ice, arrows, and holy beams cover the sky.'},
+  mossbeetle:{name:'Ironbark Guardian',hp:255,speed:31,reward:28,leak:2,armor:.65,resistances:{poison:-.5,fire:-.25,earth:.3},visual:'brute',ability:'A thick wooden shell stops arrows; poison and fire penetrate its armor.'},
+  plaguecarrier:{name:'Rotbound Carrier',hp:205,speed:40,reward:27,leak:2,armor:.1,resistances:{poison:.85,fire:-.45,sonic:-.25},visual:'brute',splitInto:'swarmmite',splitCount:3,ability:'Immune to most poison. Bursts into three Rotlings unless silenced; prepare splash behind it.'},
+  arcanewarden:{name:'Rune Warden',hp:245,speed:35,reward:31,leak:2,armor:0,resistances:{arcane:.8,holy:.45,physical:-.3,sonic:-.2},visual:'brute',ability:'Runic wards resist magic and holy beams. Physical arrows, cannon, and mortar bypass the ward.'},
+  crystaldrone:{name:'Crystalwing',hp:145,speed:59,reward:25,leak:1,armor:.1,resistances:{arcane:.55,lightning:-.45,physical:-.2},visual:'runner',flying:true,ability:'A flying crystal shell is vulnerable to chain lightning and precise arrows.'},
+  siegebeast:{name:'Siege Behemoth',hp:640,speed:25,reward:55,leak:3,armor:.55,resistances:{earth:-.5,poison:-.3,physical:.15},visual:'brute',ability:'A slow armored siege animal. Quake zones and poison punish its long march.'},
+  cinderdrake:{name:'Cinder Gargoyle',hp:380,speed:44,reward:41,leak:2,armor:.15,resistances:{fire:.85,ice:-.5,holy:-.25},visual:'brute',flying:true,ability:'An airborne fire beast. Ice and holy weapons hit it; ground artillery cannot.'},
+  banshee:{name:'Moonveil Banshee',hp:270,speed:56,reward:39,leak:2,armor:.05,resistances:{physical:.8,holy:-.65,void:-.3,poison:.55},visual:'runner',ghost:true,stealth:true,ability:'A hidden spirit. Reveal it, then use holy or void damage; physical weapons remain inefficient.'},
+  nullpriest:{name:'Null Priest',hp:310,speed:32,reward:40,leak:2,armor:.05,resistances:{arcane:.65,sonic:-.45,physical:-.2},visual:'grunt',heal:27,ability:'Heals its escorts. Sonic silence stops healing while physical volleys bypass its magic ward.'},
+  mirrorknight:{name:'Mirror Knight',hp:490,speed:31,reward:45,leak:3,armor:.1,resistances:{arcane:.85,holy:.6,physical:-.25,earth:-.35,poison:-.2},visual:'brute',ability:'Mirror armor turns aside bright magic. Earth, poison, and physical artillery exploit its exposed joints.'},
+  plaguewitch:{name:'Gravecap Witch',hp:295,speed:35,reward:40,leak:2,armor:.05,resistances:{poison:.8,fire:-.4,sonic:-.35,holy:-.2},visual:'runner',summon:'swarmmite',ability:'Summons Rotlings until silenced. Sonic disruption and fire stop the growing swarm.'},
+  riftassassin:{name:'Rift Assassin',hp:180,speed:77,reward:34,leak:2,armor:.05,resistances:{ice:-.4,holy:-.3,void:.5},visual:'runner',stealth:true,dodge:.24,teleportInterval:7,ability:'A hidden dodging skirmisher. Detection plus Ice area control or path traps prevents a sudden leak.'},
+  abysschampion:{name:'Abyss Champion',hp:1180,speed:25,reward:86,leak:5,armor:.65,resistances:{physical:.2,earth:.5,void:-.55,holy:-.35,poison:-.2},visual:'boss',ccImmune:true,ability:'An elite immune to movement control. Holy beams, poison, and armor-eroding Void hits reward focused damage.'},
 };
+
+export interface EnemyCounter { towers: TowerKind[]; tip: string; }
+/** Recommendations describe real damage defenses and targeting rules, never required premium purchases. */
+export const ENEMY_COUNTERS: Record<EnemyKind,EnemyCounter> = {
+  grunt:{towers:['archer','barracks'],tip:'Cheap arrows or soldiers handle ordinary ground patrols.'},
+  runner:{towers:['archer','frost','trap'],tip:'Fast arrows and slowing pulses prevent runners escaping coverage.'},
+  scout:{towers:['archer','frost','arcane'],tip:'Arrow II or Ice II reveal the scout; base Magic detects immediately.'},
+  raider:{towers:['cannon','mortar','solar'],tip:'Area attacks cannot be dodged; fire exploits its weakness.'},
+  bat:{towers:['archer','tesla'],tip:'Arrows cover the sky; lightning chains punish clustered bats.'},
+  brute:{towers:['arcane','venom'],tip:'Elemental magic bypasses armor; poison is especially effective.'},
+  shieldbearer:{towers:['tesla','arcane','venom'],tip:'Lightning exploits the shield weakness; elemental damage bypasses physical armor.'},
+  ogre:{towers:['venom','earth','solar'],tip:'Poison and persistent zones exploit a slow march; fire deals bonus damage.'},
+  troll:{towers:['solar','venom','prism'],tip:'Burn stops regeneration; fire and high sustained damage finish the troll.'},
+  stonegolem:{towers:['tesla','sonic','venom'],tip:'Lightning and sonic damage exploit stone; control effects cannot hold it.'},
+  juggernaut:{towers:['arcane','prism','solar'],tip:'Movement control is ineffective. Use elemental damage and fire weakness.'},
+  ironsentinel:{towers:['tesla','venom','arcane'],tip:'Lightning exploits conductive armor; acid and elemental attacks bypass its physical defense.'},
+  shaman:{towers:['sonic','prism','archer'],tip:'Silence stops healing. Holy damage exploits its ward weakness.'},
+  necromancer:{towers:['sonic','prism','mortar'],tip:'Silence prevents summons; holy damage and splash clear its undead escorts.'},
+  stormconduit:{towers:['earth','sonic','prism'],tip:'Earth exploits conductivity; Sonic silence prevents tower disruption.'},
+  frostwight:{towers:['solar','prism','archer'],tip:'Fire and holy damage defeat frost resistance; physical arrows remain useful.'},
+  voidling:{towers:['sonic','prism','mortar'],tip:'Silence prevents splitting and teleports; holy hits and splash clear survivors.'},
+  skeleton:{towers:['prism','solar','mortar'],tip:'Holy damage exploits undead bones; poison is resisted.'},
+  darkknight:{towers:['prism','venom','tesla'],tip:'Holy hits exploit cursed armor; other elements bypass physical armor.'},
+  shadowwraith:{towers:['prism','arcane','truesight'],tip:'Reveal before attacking; holy damage defeats its physical-resistant ghost body.'},
+  warlord:{towers:['prism','venom','sonic'],tip:'Sonic silence stops the war cry; focused elemental damage ignores armor.'},
+  boss:{towers:['prism','venom','void'],tip:'A control-immune boss needs sustained focused damage and holy or armor-eroding hits.'},
+  bonedragon:{towers:['prism','tesla','truesight'],tip:'Anti-air holy damage exploits undead wings. Ground traps and poison are poor choices.'},
+  hellwarden:{towers:['frost','prism','sonic'],tip:'Ice exploits its fire ward; silence prevents suppression and teleports.'},
+  swarmmite:{towers:['cannon','mortar','tesla','sonic'],tip:'Dense low-health groups reward splash, chains, and sonic waves over expensive single-target beams.'},
+  frostwolf:{towers:['archer','solar','barracks'],tip:'Physical volleys exploit low armor; fire breaks cold resistance. Soldiers can block this ground runner.'},
+  emberimp:{towers:['frost','prism'],tip:'Ice deals 50% bonus damage while fire is heavily resisted.'},
+  stormsprite:{towers:['frost','archer','prism'],tip:'Use anti-air Ice, arrows, or holy beams. Tesla is resisted and Earth cannot hit this flyer.'},
+  mossbeetle:{towers:['venom','arcane','solar'],tip:'Poison deals 50% bonus damage and bypasses the thick physical shell.'},
+  plaguecarrier:{towers:['sonic','mortar','solar'],tip:'Silence prevents the split. Fire exploits rot; splash clears spawned Rotlings. Avoid poison.'},
+  arcanewarden:{towers:['archer','cannon','mortar','sonic'],tip:'Physical damage deals 30% bonus damage through the runic ward; Magic and Prism are resisted.'},
+  crystaldrone:{towers:['tesla','archer'],tip:'Anti-air lightning deals 45% bonus damage; arrows exploit its fragile crystal shell.'},
+  siegebeast:{towers:['earth','venom','void'],tip:'Earth deals 50% bonus damage; poison and armor shred reward long coverage.'},
+  cinderdrake:{towers:['frost','prism','archer'],tip:'Ice deals 50% bonus damage to this flyer. Fire, artillery, and ground traps are inefficient.'},
+  banshee:{towers:['prism','arcane','truesight','void'],tip:'Detection plus holy damage is the ordinary counter. Premium ghost hunters and Void are optional specialists.'},
+  nullpriest:{towers:['sonic','archer','cannon'],tip:'Sonic deals 45% bonus damage and silence disables healing. Physical damage bypasses the magic ward.'},
+  mirrorknight:{towers:['earth','cannon','venom','archer'],tip:'Earth and physical shots exploit mirrored armor; arcane and holy beams are heavily resisted.'},
+  plaguewitch:{towers:['sonic','mortar','solar'],tip:'Silence stops summoning; fire and splash clear the witch and its Rotling escort.'},
+  riftassassin:{towers:['frost','arcane','trap','chrono'],tip:'Reveal first, then use Ice area control or roots. Area hits bypass dodge; time control stops teleports.'},
+  abysschampion:{towers:['prism','venom','void'],tip:'Control immunity demands sustained damage. Holy beams, poison, and optional Void exploit its weaknesses.'},
+};
+
+/** Shared by combat and the UI so displayed resistance means the same thing as a landed hit. */
+export function enemyDamageMultiplier(kind:EnemyKind,type:DamageType,armorShred=0,ignoreArmor=false):number {
+  const enemy=ENEMY_DEFS[kind],armor=type==='physical'&&!ignoreArmor?Math.max(0,Math.min(.9,enemy.armor-armorShred)):0;
+  return(1-armor)*(1-Math.max(-.75,Math.min(.9,enemy.resistances[type]||0)));
+}
+export function enemyCounterInfo(kind:EnemyKind) {
+  const enemy=ENEMY_DEFS[kind],counter=ENEMY_COUNTERS[kind];
+  const weaknesses=DAMAGE_TYPES.filter(type=>(enemy.resistances[type]||0)<0);
+  const resistantTo=DAMAGE_TYPES.filter(type=>(enemy.resistances[type]||0)>.2||(type==='physical'&&enemy.armor>.2));
+  const tags=[enemy.flying?'Flying':'Ground',enemy.armor>=.35?'Armored':'',enemy.stealth?'Hidden':'',enemy.ghost?'Ghost':'',enemy.ccImmune?'Control immune':'',enemy.regen?'Regenerates':'',enemy.heal?'Healer':'',enemy.summon?'Summoner':'',enemy.splitInto?'Splits':'',enemy.teleportInterval?'Teleports':'',enemy.dodge?'Dodges':''].filter(Boolean);
+  return{towers:[...counter.towers],towerNames:counter.towers.map(tower=>TOWER_DEFS[tower].name),tip:counter.tip,tags,weaknesses,resistantTo};
+}
+export const TOWER_MATCHUPS=Object.fromEntries(TOWER_KINDS.map(kind=>{
+  const tower=TOWER_DEFS[kind],groundOnly=['cannon','mortar','earth','trap','barracks'].includes(kind);
+  return[kind,{role:tower.role,strongAgainst:ENEMY_KINDS.filter(enemy=>ENEMY_COUNTERS[enemy].towers.includes(kind)),weakAgainst:ENEMY_KINDS.filter(kind=>{
+    const enemy=ENEMY_DEFS[kind];return groundOnly&&enemy.flying||enemyDamageMultiplier(kind,tower.damageType)<.65;
+  })}];
+})) as Record<TowerKind,{role:string;strongAgainst:EnemyKind[];weakAgainst:EnemyKind[]}>;

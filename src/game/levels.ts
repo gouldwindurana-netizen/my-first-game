@@ -284,6 +284,17 @@ const MAP_ROUTES: Record<string, { path: Point[]; pads: Foundation[] }> = {
   mirewood: { path: MIREWOOD_PATH, pads: MIREWOOD_PADS },
   crystal: { path: CRYSTAL_PATH, pads: CRYSTAL_PADS },
 };
+/** Curated on painted banks/courtyards in world coordinates; water and cliff faces stay unbuildable. */
+const RESERVE_SITES: Record<string, [string, number, number][]> = {
+  eldervale: [['Gatewood bank', 115, 185], ['Bracken watch', 455, 155], ['Sentry knoll', 610, 310], ['Moss rampart', 915, 435], ['Waterfall ridge', 1005, 210]],
+  frostbound: [['Glacier outpost', 195, 90], ['Lower aerie', 300, 215], ['Pine ridge', 465, 110], ['Snowfield watch', 530, 370], ['Icemelt bank', 850, 220], ['Winter rampart', 900, 345], ['Crown approach', 1010, 340]],
+  ember: [['Cinder ridge', 125, 190], ['Basalt watch', 370, 225], ['Furnace bank', 510, 270], ['Ashen outpost', 575, 245], ['Obsidian court', 830, 142], ['Lava rampart', 930, 205]],
+  mirewood: [['Willow watch', 145, 185], ['Reed fortress', 110, 285], ['Mossy court', 210, 310], ['Sunken rampart', 930, 438], ['Marsh overlook', 660, 280], ['Fen approach', 1020, 390], ['Cypress bank', 45, 245]],
+  crystal: [['Quartz bastion', 125, 160], ['Geode overlook', 120, 230], ['Sapphire outpost', 430, 290], ['Cavern approach', 867, 185], ['Prismatic bank', 915, 285], ['Echo rampart', 300, 105]],
+};
+function reserveFoundations(mapKey: string, originals: Foundation[]): Foundation[] {
+  return [...originals, ...RESERVE_SITES[mapKey].map(([name, x, y], index) => ({ id: originals.length + index, name, x, y }))];
+}
 interface StageSeed {
   id: string; name: string; mapKey: string; subtitle: string; description: string; biome: string;
   startingGold: number; enemyMultiplier: number;
@@ -300,7 +311,7 @@ const STAGES: StageSeed[] = [
   { id: 'sanctum', name: 'Ancient Sanctum', mapKey: 'crystal', subtitle: 'THE SEALED SHRINE', description: 'Defend the old shrine against an elite army with several elemental defenses.', biome: 'sanctum', startingGold: 440, enemyMultiplier: 1.16 },
   { id: 'voidrift', name: 'The Void Rift', mapKey: 'crystal', subtitle: 'THE UNSTABLE BREACH', description: 'Keep room for reinforcements when the fractured void host begins to split.', biome: 'void', startingGold: 460, enemyMultiplier: 1.20 },
   { id: 'moonlit', name: 'Moonlit Citadel', mapKey: 'eldervale', subtitle: 'THE LAST CITADEL', description: 'Prepare the kingdom’s remaining towers for the final siege.', biome: 'citadel', startingGold: 480, enemyMultiplier: 1.24 },
-  { id: 'reckoning', name: 'Final Reckoning', mapKey: 'eldervale', subtitle: 'SEAL THE RIFT', description: 'Survive twelve mixed assaults and defeat the Hell Warden’s final host.', biome: 'reckoning', startingGold: 520, enemyMultiplier: 1.30 },
+  { id: 'reckoning', name: 'Final Reckoning', mapKey: 'eldervale', subtitle: 'SEAL THE RIFT', description: 'Survive the kingdom’s final siege and defeat the Hell Warden’s host.', biome: 'reckoning', startingGold: 520, enemyMultiplier: 1.30 },
 ];
 
 export const LEVELS: LevelDef[] = STAGES.map(stage => {
@@ -315,12 +326,13 @@ export const LEVELS: LevelDef[] = STAGES.map(stage => {
   // The source traces ended beyond the image to hide leaks. The fitted camera now
   // shows the whole panel, so leaks finish at its exact edge instead of in a border.
   const path = route.path.map(point => fit({ x: Math.min(world.width, Math.max(0, point.x)), y: Math.min(680, Math.max(0, point.y)) }));
+  const trees = MAP_TREES[stage.mapKey].map(tree => ({ ...fit(tree), radius: tree.radius * Math.sqrt(world.height / 680) }));
   return {
-    ...stage, world, path, pads: route.pads.map(fit), waves,
+    ...stage, world, path, pads: reserveFoundations(stage.mapKey, route.pads.map(fit)), waves,
     // Easy and Normal begin with a small, readable patrol that one well-placed
     // base Arrow tower can handle. Hard and Hell keep their original opening.
     openingWave: scripted('First watch', 'A small goblin patrol. One Arrow tower with clear road coverage is enough; save gold for the following waves.', [group('grunt', 4, 2.4)]),
     camera: { x: world.width / 2, y: world.height / 2 },
-    trees: MAP_TREES[stage.mapKey].map(tree => ({ ...fit(tree), radius: tree.radius * Math.sqrt(world.height / 680) })),
+    trees,
   };
 });

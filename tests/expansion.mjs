@@ -1,4 +1,4 @@
-import { enterBattle, clearNextWave, selectTower } from './play-helpers.mjs';
+import { enterBattle, clearNextWave, selectTower, openGameSettings, openGameCampaign, openGameProgression, clickViewControl } from './play-helpers.mjs';
 /** Expansion acceptance checks use real controls and read-only diagnostics. */
 import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
@@ -41,8 +41,7 @@ async function clickWorld(page,point){
 }
 async function openCampaign(page){
  await closeDetails(page);
- const button=await page.locator('#levels-open').isVisible()?page.locator('#levels-open'):page.locator('#rail-levels');
- await button.click();await page.locator('#campaign').waitFor({state:'visible'});
+ await openGameCampaign(page);await page.locator('#campaign').waitFor({state:'visible'});
 }
 async function chooseStage(page,index){
  await openCampaign(page);await page.locator(`[data-level="${index}"]`).click();
@@ -51,15 +50,14 @@ async function chooseStage(page,index){
 }
 async function assertViewport(page,label){
  const size=await page.evaluate(()=>({width:innerWidth,height:innerHeight,pageWidth:document.documentElement.scrollWidth,pageHeight:document.documentElement.scrollHeight,
-  controls:['#pause','#fullscreen','#start-wave'].map(selector=>document.querySelector(selector).getBoundingClientRect().toJSON())}));
+  controls:['#pause','#hud-view','#start-wave'].map(selector=>document.querySelector(selector).getBoundingClientRect().toJSON())}));
  assert(size.pageWidth<=size.width,`${label}: no horizontal page overflow`);
  assert(size.pageHeight<=size.height+1,`${label}: no vertical page scrolling`);
  assert(size.controls.every(rect=>rect.left>=0&&rect.top>=0&&rect.right<=size.width+1&&rect.bottom<=size.height+1&&rect.height>=44),`${label}: core controls remain visible and usable`);
 }
 async function openMeta(page){
  await closeDetails(page);
- if(await page.locator('#meta-open').isVisible())await page.locator('#meta-open').click();
- else{await openCampaign(page);await page.locator('#progression-open').click();}
+ await openGameProgression(page);
  await page.locator('#progression').waitFor({state:'visible'});
  assert.equal((await state(page)).paused,true,'The progression journal pauses the defense');
 }
@@ -92,7 +90,7 @@ try{
  const visited=[];
  for(let i=0;i<stageIds.length;i++){
   const snapshot=await chooseStage(desktop,i);visited.push(snapshot.levelId);
-  assert(snapshot.wavesTotal>=6&&snapshot.wavesTotal<=12,'Each stage has a complete scripted defense');
+  assert(snapshot.wavesTotal===50,'Each stage has a complete scripted defense');
   assert(snapshot.pads.every(pad=>pad.name&&!/\d/.test(pad.name)),'Sites retain descriptive names without numbers');
   assert(snapshot.wavePreview.length>0,'Every unstarted stage previews its first wave');
  }
@@ -119,18 +117,18 @@ try{
  checks.push('Next-wave preview shows enemy types and counts and restores the prior pause state');
 
  const arrow=await namedBuild(desktop,'archer',0);
- assert.equal(await desktop.locator('#upgrade').isDisabled(),true,'Gold alone cannot bypass training at the start');
+ assert.equal(await desktop.locator('#upgrade').isDisabled(),true,'Gold alone cannot bypass permanent research at the start');
  await clearNextWave(desktop,{starfall:false});await selectTower(desktop,arrow.id);const gold=(await state(desktop)).gold;
  await desktop.locator('#upgrade').click();await desktop.waitForFunction(id=>window.__MOSSGUARD__.towers.find(t=>t.id===id)?.level===2,arrow.id);
  assert.equal((await state(desktop)).gold,gold-55,'Arrow tier II retains its requested 55-gold price');
  assert.equal(await desktop.locator('[data-branch]').count(),4);
- assert(await desktop.locator('[data-branch="A"]').isDisabled(),'The first clear does not immediately unlock specialization');
+ assert(await desktop.locator('[data-branch="A"]').isDisabled(),'The currently earned family XP does not yet unlock specialization');
  await namedBuild(desktop,'cannon',2);await namedBuild(desktop,'frost',4);
  await clearNextWave(desktop);await clearNextWave(desktop);await selectTower(desktop,arrow.id);
  assert(await desktop.locator('[data-branch="D"]').isDisabled(),'Hell specialization is locked in Normal');
  await desktop.locator('[data-branch="A"]').click();await desktop.waitForFunction(id=>window.__MOSSGUARD__.towers.find(t=>t.id===id)?.branch==='A',arrow.id);
  assert.equal((await state(desktop)).towers.find(t=>t.id===arrow.id).level,3);await screenshot(desktop,'arrow-branch');
- checks.push('Arrow upgrades require real clears and still reach a specialization during the first level');
+ checks.push('Arrow upgrades retain permanent research progression during the longer campaign');
 
  await openMeta(desktop);
  const skills=[];assert.equal(await desktop.locator('#skill-branch option').count(),11);
@@ -144,11 +142,11 @@ try{
  assert(await desktop.locator('[data-capstone]').evaluateAll(elements=>elements.every(button=>button.disabled)),'Fresh capstones require ranks and XP');
  await desktop.locator('[data-meta-tab="shop"]').click();assert.equal(await desktop.locator('[data-shop-item^="unlock-"]').count(),5);
  assert(await desktop.locator('[data-shop-item]').evaluateAll(elements=>elements.every(button=>button.disabled)),'Fresh zero-gem wallet cannot buy shop upgrades');
- await desktop.locator('[data-meta-tab="bestiary"]').click();assert.equal(await desktop.locator('[data-enemy-guide]').count(),24);
+ await desktop.locator('[data-meta-tab="bestiary"]').click();assert.equal(await desktop.locator('[data-enemy-guide]').count(),40);
  assert.match(await desktop.locator('[data-enemy-guide="bonedragon"]').innerText(),/Flying/);
  assert.match(await desktop.locator('[data-enemy-guide="stonegolem"]').innerText(),/Control immune/);
  await screenshot(desktop,'enemy-guide');await closeMeta(desktop);
- checks.push('All hundred ranked skills, seven capstones, five premium unlocks, and twenty-four enemy guide entries are reachable');
+ checks.push('All hundred ranked skills, seven capstones, five premium unlocks, and forty enemy guide entries are reachable');
  await desktop.close();
 
  const funded=await browser.newPage({viewport:{width:1440,height:900}});monitor(funded,'saved-progression');
@@ -182,9 +180,9 @@ try{
  checks.push('XP ranks, capstones, and gem purchases charge once, stay paused, save, reload, and unlock a buildable premium tower');
  await setDifficulty(funded,'hell');await chooseStage(funded,0);
  const hellArrow=await namedBuild(funded,'archer',0);
- assert.equal(await funded.locator('#upgrade').isDisabled(),true,'Hell also requires wave-earned tower training');
+ assert.equal(await funded.locator('#upgrade').isDisabled(),true,'Hell also requires permanent family research');
  const hellState=await state(funded);assert.equal(hellState.difficulty,'hell');assert(hellState.catalog.towers.every(tower=>tower.branches.D),'Every tower family retains its Hell specialization');
- checks.push('Hell remains a distinct difficulty with specialization content and the same anti-rush upgrade rules');
+ checks.push('Hell remains a distinct difficulty with specialization content and the same permanent research rules');
  await funded.close();
 
  const troops=await browser.newPage({viewport:{width:1440,height:900}});monitor(troops,'troops-and-traps');await boot(troops);await setDifficulty(troops,'hard');
@@ -211,7 +209,7 @@ try{
 
  const automatic=await browser.newPage({viewport:{width:1440,height:900}});monitor(automatic,'automatic-waves');await boot(automatic);
  await namedBuild(automatic,'archer',0);await namedBuild(automatic,'cannon',2);await namedBuild(automatic,'frost',4);await closeDetails(automatic);
- await automatic.locator('#settings-open').click();await automatic.locator('#auto-wave').check();await automatic.locator('#settings-done').click();
+ await openGameSettings(automatic);await automatic.locator('#auto-wave').check();await automatic.locator('#settings-done').click();
  assert.equal((await state(automatic)).autoWave,true);await automatic.locator('#speed').click();await automatic.locator('#speed').click();await automatic.locator('#start-wave').click();
  await automatic.waitForFunction(()=>window.__MOSSGUARD__.wave>=2,undefined,{timeout:45000});
  assert.equal((await state(automatic)).autoWave,true);await screenshot(automatic,'automatic-second-wave');await automatic.close();
@@ -226,7 +224,7 @@ try{
  checks.push('Malformed or denied localStorage leaves a playable session with finite default progression');
 
  const mobile=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true});monitor(mobile,'mobile');await boot(mobile);
- await assertViewport(mobile,'390px phone');await mobile.locator('#fullscreen').click();await mobile.waitForFunction(()=>!!document.fullscreenElement);
+ await assertViewport(mobile,'390px phone');await clickViewControl(mobile, '#fullscreen');await mobile.waitForFunction(()=>!!document.fullscreenElement);
  await openMeta(mobile);await assertModal(mobile,'#progression .modal','Phone fullscreen progression');
  for(const tab of ['skills','research','capstones','shop','bestiary']){
   await mobile.locator(`[data-meta-tab="${tab}"]`).click();await assertModal(mobile,'#progression .modal',`Phone ${tab}`);

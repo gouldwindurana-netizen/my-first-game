@@ -33,7 +33,7 @@ describe('expansion content integrity',()=>{
   });
 
   it('keeps enemy mechanics linked to valid content with bounded armor and resistance',()=>{
-    expect(ENEMY_KINDS).toHaveLength(24);
+    expect(ENEMY_KINDS).toHaveLength(40);
     const names=new Set<string>();
     for(const kind of ENEMY_KINDS){
       const enemy=ENEMY_DEFS[kind];names.add(enemy.name);
@@ -47,7 +47,7 @@ describe('expansion content integrity',()=>{
       if(enemy.summon)expect(ENEMY_KINDS).toContain(enemy.summon);
       if(enemy.teleportInterval)expect(enemy.teleportInterval).toBeGreaterThan(0);
     }
-    expect(names.size).toBe(24);
+    expect(names.size).toBe(40);
     expect(ENEMY_KINDS.some(kind=>ENEMY_DEFS[kind].flying)).toBe(true);
     expect(ENEMY_KINDS.some(kind=>ENEMY_DEFS[kind].ghost)).toBe(true);
     expect(ENEMY_KINDS.some(kind=>ENEMY_DEFS[kind].ccImmune)).toBe(true);

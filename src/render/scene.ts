@@ -3,6 +3,7 @@ import { LEVEL_ART } from '../level-art';
 import { GameModel, TOWER_DEFS, ENEMY_DEFS, type TowerKind } from '../game/model';
 import { preloadAssetSheets, prepareAssetFrames, AssetViews } from './asset-views';
 import { EnvironmentViews } from './environment';
+import { enemyAppearance } from './enemy-appearance';
 
 export interface SceneBridge {
  model: GameModel;
@@ -169,7 +170,7 @@ export class GroveScene extends Phaser.Scene {
   }
   // The supplied sprite bodies are separate images; health and spell effects stay above them.
   for(const e of m.enemies){
-   const visual=ENEMY_DEFS[e.kind].visual,height={grunt:36,runner:34,brute:48,boss:70}[visual]*(e.miniBoss?1.18:1);
+   const visual=ENEMY_DEFS[e.kind].visual,height={grunt:36,runner:34,brute:48,boss:70}[visual]*(e.miniBoss?1.18:1)*(enemyAppearance(e.kind)?.scale??1);
    const width=visual==='boss'?40:visual==='brute'?32:25;
    const y=e.y-height-4-(ENEMY_DEFS[e.kind].flying?17:0);
    g.fillStyle(0x10202b,.95);g.fillRoundedRect(e.x-width/2,y,width,5,2);

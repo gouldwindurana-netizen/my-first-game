@@ -13,6 +13,7 @@ import './unit-preview.css';
 import './strategy.css';
 import './viewport-fit.css';
 import './expansion.css';
+import './combat-hud.css';
 import { installPlatformLifecycle, focusBattlefield } from './platform';
 import { GameModel, LEVELS, TOWER_DEFS, TARGET_MODES, type TowerTargetMode, type TowerKind } from './game/model';
 import { GroveScene, type SceneBridge } from './render/scene';
@@ -21,10 +22,11 @@ import { towerArt } from './asset-art';
 import { GameAudio } from './audio';
 import { LEVEL_ART } from './level-art';
 import { UnitPreview } from './unit-preview';
-import { TOWER_KINDS, BRANCH_KEYS, ENEMY_DEFS, ENEMY_KINDS, type TowerBranchKey } from './game/catalog';
+import { TOWER_KINDS, BRANCH_KEYS, ENEMY_DEFS, ENEMY_KINDS, TOWER_MATCHUPS, enemyCounterInfo, type EnemyKind, type TowerBranchKey } from './game/catalog';
 import { Progression, SKILL_NODES, CAPSTONES, SHOP_ITEMS } from './game/progression';
 import { ProgressionUI } from './progression-ui';
 import { MainMenu } from './main-menu';
+import { WAVES_BY_DIFFICULTY } from './game/waves';
 
 let saveStorage:Storage|null=null;
 try{saveStorage=window.localStorage;}catch{/* Progression remains available for this session. */}
@@ -45,6 +47,7 @@ model.reset();
 const $ = <T extends HTMLElement = HTMLElement>(id:string):T => document.getElementById(id) as T;
 const KINDS:readonly TowerKind[]=TOWER_KINDS;
 const targetingHints:Record<TowerTargetMode,string>={first:'Furthest along the road.',last:'Closest to the entrance.',strongest:'Most remaining health.',fastest:'Fastest current movement, including slows.'};
+const dockNames:Record<TowerKind,string>={archer:'Arrow',cannon:'Cannon',mortar:'Mortar',frost:'Ice',earth:'Earth',arcane:'Magic',tesla:'Tesla',venom:'Poison',prism:'Prism',trap:'Trap',sonic:'Sonic',barracks:'Barracks',void:'Void',solar:'Solar',chrono:'Chrono',truesight:'Truesight',nexus:'Nexus'};
 const roles=Object.fromEntries(KINDS.map(kind=>[kind,TOWER_DEFS[kind].role])) as Record<TowerKind,string>;
 const catalogSnapshot=JSON.stringify({towers:TOWER_KINDS.map(kind=>({kind,...TOWER_DEFS[kind]})),enemies:ENEMY_KINDS.map(kind=>({kind,...ENEMY_DEFS[kind]})),skills:SKILL_NODES,capstones:CAPSTONES,shop:SHOP_ITEMS});
 const app = $('app');
@@ -72,13 +75,13 @@ app.innerHTML = `
    <div class="battle-footer"><span><i class="status-dot"></i><b id="battle-state">Prepare your defenses</b></span><span id="remaining">Hold the road. Defend the stronghold.</span></div>
   </div>
   <aside class="build-panel"><div class="panel-heading"><span class="eyebrow">WARDEN’S COMMAND</span><span class="panel-ornament">✦</span></div><div class="context-panel" id="context"></div><div class="next-wave"><div class="next-label"><span>INCOMING WAVE</span><span id="bonus"></span></div><h3 id="next-name">Footsteps in the fern</h3><p id="wave-description">Scouts approach the western rift.</p><button id="start-wave" class="primary wave-button"><span>${icon('play')} Send first wave</span><span class="key">SPACE</span></button></div><div class="panel-foot">${icon('shield')} The kingdom still stands with you.</div></aside>
-  <section class="tower-dock" aria-label="Build towers"><div class="dock-heading"><span class="dock-emblem">${icon('shield')}</span><span><b>TOWERS</b><small>SELECT YOUR DEFENSE</small></span></div><button id="tower-prev" class="dock-scroll" aria-label="Previous towers">‹</button><div class="tower-list">${KINDS.map((kind,i)=>`<button class="tower-card ${kind}" data-tower="${kind}" aria-label="Select ${TOWER_DEFS[kind].name}, ${TOWER_DEFS[kind].cost} gold"><span class="tower-key">${i<9?i+1:"✦"}</span><span class="tower-art">${towerArt(kind)}</span><span class="tower-info"><b>${TOWER_DEFS[kind].name}</b><span>${roles[kind]}</span></span><span class="tower-cost">${icon('gold')}${TOWER_DEFS[kind].cost}</span></button>`).join('')}</div><button id="tower-next" class="dock-scroll" aria-label="More towers">›</button><div class="dock-tip">${icon('mouse')}<span>Choose a tower.<br>Claim a foundation.</span></div></section>
+  <section class="tower-dock" aria-label="Build towers"><div class="dock-heading"><span class="dock-emblem">${icon('shield')}</span><span><b>TOWERS</b><small>SELECT YOUR DEFENSE</small></span></div><button id="tower-prev" class="dock-scroll" aria-label="Previous towers">‹</button><div class="tower-list">${KINDS.map((kind,i)=>`<button class="tower-card ${kind}" data-tower="${kind}" aria-label="Select ${TOWER_DEFS[kind].name}, ${TOWER_DEFS[kind].cost} gold"><span class="tower-key">${i<9?i+1:"✦"}</span><span class="tower-art">${towerArt(kind)}</span><span class="tower-info"><b>${dockNames[kind]}</b><span>${roles[kind]}</span></span><span class="tower-cost">${icon('gold')}${TOWER_DEFS[kind].cost}</span></button>`).join('')}</div><button id="tower-next" class="dock-scroll" aria-label="More towers">›</button><div class="dock-tip">${icon('mouse')}<span>Choose a tower.<br>Claim a foundation.</span></div></section>
   <section id="foundation-picker" class="foundation-picker" hidden aria-label="Choose tower foundation"></section>
   <button class="minimap-panel" id="minimap-toggle" title="Toggle tactical map ranges"><div class="minimap-label"><span>ELDERVALE</span><b>STAGE 01</b></div><div class="minimap"><svg viewBox="0 0 1100 680" aria-hidden="true"><polyline points="${model.path.map(p=>`${p.x},${p.y}`).join(' ')}" fill="none" stroke="#e9cd8d" stroke-width="8" opacity=".6"/><g id="mini-units"></g></svg><span class="minimap-corners"></span></div></button>
  </section>
  <footer class="site-footer"><span>${icon('spark')} Seventeen disciplines. Twelve stages.</span><div class="shortcuts"><span><kbd>1—9</kbd> Towers</span><span><kbd>P</kbd> Pause</span><span><kbd>M</kbd> Tactical map</span><span><kbd>ESC</kbd> Cancel</span></div><span id="record">Twelve stages. Stand your ground.</span></footer>
 </main>
-<div class="modal-backdrop" id="guide" hidden><section class="modal guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title"><button class="modal-close icon-button" id="close-guide" aria-label="Close field guide">${icon('close')}</button><span class="eyebrow">THE WARDEN’S HANDBOOK</span><h2 id="guide-title">A kingdom worth defending.</h2><p class="modal-intro">The rift has opened beneath the old citadel. Stop the Hollow from reaching your stronghold. Choose from twelve stages and four difficulties. Clear every wave, earn stars, and invest XP and gems between defenses.</p><div class="guide-steps"><div><span>01</span><h3>Reclaim the ruins</h3><p>Choose a tower from the bottom bar, then click a glowing stone foundation. Every site covers a different stretch of road.</p></div><div><span>02</span><h3>Master seventeen disciplines</h3><p>Physical shots meet armor; elemental attacks meet resistance. Trees block direct shots. Mortars arc over them. Barracks soldiers block ground enemies; finite-use traps belong on the road. Arrow II lanterns and Ice II lenses reveal hidden foes for allies. Magic spires detect immediately; no gems are required. Check the ? scout report before hidden waves.</p></div><div><span>03</span><h3>Forge your defense</h3><p>Defeat enemies to earn gold. Earn battlefield experience to reach tier II, then choose A, B, or C. Hell difficulty adds D. Choose permanent tower positions, set soldier rally points, or rearm a trap. Tier II unlocks after the first clear; specializations unlock later in the level. Selling returns 70% of investment.</p></div><div><span>04</span><h3>Call down Starfall</h3><p>Press F, then target the road for 145 area damage. The spell recharges in 25 seconds. Press M to see tactical ranges.</p></div></div><div class="guide-note">${icon('gold')} Send the next wave within 12 seconds of a clear for up to 24 bonus gold.</div><button id="units-open">${icon('eye')} Preview walking units</button><button id="guide-done" class="primary">For Eldervale ${icon('arrow')}</button></section></div>
+<div class="modal-backdrop" id="guide" hidden><section class="modal guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title"><button class="modal-close icon-button" id="close-guide" aria-label="Close field guide">${icon('close')}</button><span class="eyebrow">THE WARDEN’S HANDBOOK</span><h2 id="guide-title">A kingdom worth defending.</h2><p class="modal-intro">The rift has opened beneath the old citadel. Stop the Hollow from reaching your stronghold. Choose from twelve stages and four difficulties. Clear every wave, earn stars, and invest XP and gems between defenses.</p><div class="guide-steps"><div><span>01</span><h3>Reclaim the ruins</h3><p>Choose a tower from the bottom bar, then click a glowing stone foundation. Every site covers a different stretch of road.</p></div><div><span>02</span><h3>Master seventeen disciplines</h3><p>Physical shots meet armor; elemental attacks meet resistance. Trees block direct shots. Mortars arc over them. Barracks soldiers block ground enemies; finite-use traps belong on the road. Arrow II lanterns and Ice II lenses reveal hidden foes for allies. Magic spires detect immediately; no gems are required. Check the ? scout report before hidden waves.</p></div><div><span>03</span><h3>Forge your defense</h3><p>Defeat enemies to earn gold. Earn battlefield experience to reach tier II, then choose A, B, or C. Hell difficulty adds D. Choose permanent tower positions, set soldier rally points, or rearm a trap. Permanent family XP researches upgrades. Once researched, buy a tier whenever you have the gold; no wave count is required. Selling returns 70% of investment.</p></div><div><span>04</span><h3>Call down Starfall</h3><p>Press F, then target the road for 145 area damage. The spell recharges in 25 seconds. Press M to see tactical ranges.</p></div></div><div class="guide-note">${icon('gold')} Send the next wave within 12 seconds of a clear for up to 24 bonus gold.</div><button id="units-open">${icon('eye')} Preview walking units</button><button id="guide-done" class="primary">For Eldervale ${icon('arrow')}</button></section></div>
 <div class="modal-backdrop" id="unit-preview" hidden><section class="modal unit-preview-modal" role="dialog" aria-modal="true" aria-labelledby="unit-preview-title"><button class="modal-close icon-button" id="unit-preview-close" aria-label="Close walking preview">${icon('close')}</button><span class="eyebrow">THE HOLLOW ON THE MARCH</span><h2 id="unit-preview-title">Every step has weight.</h2><p class="modal-intro">Inspect the walking cycles used in battle. Legs alternate their footing while arms, weapons, and armor follow the stride.</p><div class="unit-preview-grid" id="unit-preview-list"></div><div class="unit-preview-controls"><button id="preview-play" aria-pressed="false">Pause walking cycles</button><button id="preview-slow" aria-pressed="false">Slow motion</button></div><p id="preview-status"></p><button id="units-done" class="primary">Return to field guide ${icon('arrow')}</button></section></div>
 <div class="modal-backdrop" id="campaign" hidden><section class="modal campaign-modal" role="dialog" aria-modal="true" aria-labelledby="campaign-title"><button class="modal-close icon-button" id="close-campaign" aria-label="Close battlefields">${icon('close')}</button><span class="eyebrow">THE ROAD BEYOND ELDERVALE</span><h2 id="campaign-title">Choose your battlefield</h2><p id="campaign-note" class="modal-intro">Each battlefield has its own route and enemy waves. Changing maps starts a fresh defense.</p><div class="campaign-grid" id="level-list"></div><button id="campaign-done" class="primary">Return to defense ${icon('arrow')}</button></section></div>
 <div class="modal-backdrop" id="settings" hidden><section class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title"><button class="modal-close icon-button" id="close-settings" aria-label="Close settings">${icon('close')}</button><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2 id="settings-title">Warden’s settings</h2><label class="setting-row"><span><b>Sound effects</b><small>Spells, rewards, and tower construction</small></span><input type="checkbox" id="sound-setting"/></label><label class="setting-row"><span><b>Reduced motion</b><small>Keep walking, recoil, and ambient motion still</small></span><input type="checkbox" id="motion-setting"/></label><button id="settings-done" class="primary">Return to battle ${icon('arrow')}</button></section></div>
@@ -96,15 +99,61 @@ document.querySelector('.site-header nav')!.insertAdjacentHTML('beforeend','<but
 for(const id of ['guide','settings','result','campaign','unit-preview','wave-preview'])$('game-shell').appendChild($(id));
 $('context').after($('minimap-toggle'));
 $('context').before($('foundation-picker'));
+// A game HUD: battle information at the top, build/dispatch commands below the field.
+// Rare actions live in the tools popup and paused menu instead of surrounding the map.
+app.classList.add('combat-ui');
+document.querySelector('.battle-bar')!.insertAdjacentHTML('afterbegin','<div class="hud-stage"><b id="hud-stage-name">Verdant Vale</b><span id="hud-stage-difficulty">NORMAL · 50 WAVES</span></div>');
+$('main-menu-open').insertAdjacentHTML('beforebegin',`<button id="hud-view" class="map-button" aria-label="Battle tools" aria-controls="hud-camera-tools" aria-expanded="false" title="View, journal, settings">${icon('settings')}</button>`);
+const tools=document.querySelector<HTMLElement>('.view-controls')!;
+tools.id='hud-camera-tools';tools.hidden=true;tools.setAttribute('aria-label','Battle tools');
+// Keep tools and tower details in the same stacking context, including fullscreen.
+$('game-shell').appendChild(tools);
+const cameraRow=document.createElement('div');cameraRow.className='hud-camera-row';
+while(tools.firstChild)cameraRow.appendChild(tools.firstChild);tools.appendChild(cameraRow);
+const toolActions=document.createElement('div');toolActions.className='hud-tool-actions';tools.appendChild(toolActions);
+for(const id of ['rail-map','rail-levels','rail-settings','meta-open'])toolActions.appendChild($(id));
+$('rail-map').innerHTML=`${icon('map')}<span>Tactical ranges</span>`;
+$('rail-levels').innerHTML=`${icon('map')}<span>Battlefields</span>`;
+$('rail-settings').innerHTML=`${icon('settings')}<span>Settings</span>`;
+$('meta-open').innerHTML=`${icon('crystal')}<span>Legacy & research</span>`;
+toolActions.insertAdjacentHTML('beforeend',`<button id="hud-guide">${icon('book')}<span>Field guide</span></button>`);
+const pauseActions=document.createElement('nav');pauseActions.className='pause-actions';pauseActions.setAttribute('aria-label','Paused game options');
+for(const id of ['levels-open','guide-nav','settings-open','sound'])pauseActions.appendChild($(id));
+$('pause-overlay').appendChild(pauseActions);
+const commands=document.createElement('div');commands.className='hud-commands';
+commands.appendChild(document.querySelector('.next-wave')!);commands.appendChild($('wave-preview-open'));commands.appendChild($('meteor'));
+document.querySelector('.tower-dock')!.appendChild(commands);
+$('wave-preview-open').innerHTML=icon('eye');
+$('wave-preview-open').setAttribute('title','Scout the next wave and recommended counters');
+document.querySelector('.tower-dock')!.insertAdjacentHTML('afterbegin',`<div class="tower-filters" role="group" aria-label="Tower roles">${[['all','All towers'],['damage','Damage'],['control','Control'],['support','Support'],['premium','Premium']].map(([id,label])=>`<button data-tower-filter="${id}" aria-pressed="${id==='all'}">${label}</button>`).join('')}</div>`);
+document.querySelector('.tower-filters')!.insertAdjacentHTML('beforeend',`<label class="tower-role-select"><span>Tower role</span><select id="tower-filter-select" aria-label="Tower role">${[['all','All towers'],['damage','Damage'],['control','Control'],['support','Support'],['premium','Premium']].map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label>`);
+let activeTowerFilter='all';
+const towerGroups:Record<string,readonly TowerKind[]>={damage:['archer','cannon','mortar','arcane','prism'],control:['frost','earth','tesla','venom','sonic','trap','chrono'],support:['barracks','truesight','arcane'],premium:KINDS.filter(kind=>!!TOWER_DEFS[kind].premiumCost)};
+function setTowerFilter(filter:string){
+ activeTowerFilter=filter;$<HTMLSelectElement>('tower-filter-select').value=filter;
+ document.querySelectorAll<HTMLButtonElement>('[data-tower-filter]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.towerFilter===filter)));
+ document.querySelectorAll<HTMLButtonElement>('[data-tower]').forEach(button=>{button.hidden=filter!=='all'&&!towerGroups[filter]?.includes(button.dataset.tower as TowerKind);});
+ document.querySelector('.tower-list')!.scrollLeft=0;document.querySelector('.tower-list')!.scrollTop=0;requestAnimationFrame(updateDockControls);
+}
+function closeBattleTools(){tools.hidden=true;$('hud-view').setAttribute('aria-expanded','false');}
+function restoreBattleFocus(preferred?:HTMLElement|null){
+ if(preferred?.getClientRects().length&&!preferred.closest('[inert]'))preferred.focus();else $('hud-view').focus();
+}
+let guideReturnFocus:HTMLElement|null=null,settingsReturnFocus:HTMLElement|null=null,campaignReturnFocus:HTMLElement|null=null;
+
 const closeInspection=document.createElement('button');
 closeInspection.id='close-inspection';
 closeInspection.className='close-inspection';
 closeInspection.setAttribute('aria-label','Close tower details');
 closeInspection.innerHTML=`${icon('close')}<span>Back to battlefield</span>`;
 $('context').before(closeInspection);
-closeInspection.addEventListener('click',()=>{selectedKind=null;selectedPad=null;rallyTowerId=null;syncSelection();focusBattlefield();});
+closeInspection.addEventListener('click',()=>{
+ if(selectedKind)placementPanelHidden=true;
+ else{selectedPad=null;rallyTowerId=null;}
+ syncSelection();focusBattlefield();
+});
 
-let selectedPad:number|null=null, selectedKind:TowerKind|null=null, meteorArmed=false,  rallyTowerId:number|null=null;
+let selectedPad:number|null=null, selectedKind:TowerKind|null=null, meteorArmed=false, rallyTowerId:number|null=null, placementPanelHidden=false;
 let metaPaused=false,previewPaused=false;
 type MenuPage='campaign'|'skills'|'settings'|'guide';
 let menuPage:MenuPage|null=null;
@@ -157,7 +206,7 @@ function continueFromMenu(){
 }
 function syncBattleInteractivity(){
  const blocked=mainMenu.isOpen||['guide','settings','campaign','unit-preview','wave-preview','progression','result'].some(id=>!$(id).hidden);
- for(const element of document.querySelectorAll<HTMLElement>('.battle-column,.build-panel,.tower-dock,.site-header,.mission-heading'))element.inert=blocked;
+ for(const element of document.querySelectorAll<HTMLElement>('.battle-column,.build-panel,.tower-dock,.view-controls,.site-header,.mission-heading'))element.inert=blocked;
 }
 
 function openProgression(tab:'skills'|'research'|'capstones'|'shop'|'bestiary'='skills',kind?:TowerKind){
@@ -173,7 +222,8 @@ function openWavePreview(){
  const next=model.nextWave(),counts=new Map<string,{count:number;mini:number}>();
  for(const entry of next?.enemies||[]){const value=counts.get(entry.kind)||{count:0,mini:0};value.count++;if(entry.miniBoss)value.mini++;counts.set(entry.kind,value);}
  setText('wave-preview-title',next?`Wave ${model.wave+1}: ${next.name}`:'All waves repelled');
- $('wave-preview-content').innerHTML=`<p>${next?.description||'The stage is secured.'}</p><p>${model.difficulty.toUpperCase()} · ${next?.enemies.length||0} enemies · ${model.autoWave?'Automatic waves enabled':'Manual waves'}</p><div class="wave-enemy-list">${[...counts].map(([kind,value])=>`<article><strong>${ENEMY_DEFS[kind as keyof typeof ENEMY_DEFS].name}</strong><span>× ${value.count}${value.mini?` · ${value.mini} mini-boss`:''}${ENEMY_DEFS[kind as keyof typeof ENEMY_DEFS].stealth?' · Hidden':''}</span></article>`).join('')}</div>${detectionPlan()}`;
+ $('wave-preview-content').innerHTML=`<p>${next?.description||'The stage is secured.'}</p><p>${model.difficulty.toUpperCase()} · ${next?.enemies.length||0} enemies · ${model.autoWave?'Automatic waves enabled':'Manual waves'}</p><div class="wave-enemy-list">${[...counts].map(([kind,value])=>{const enemy=ENEMY_DEFS[kind as EnemyKind],counter=enemyCounterInfo(kind as EnemyKind);return `<article class="enemy-matchup" data-enemy-kind="${kind}"><header><strong>${enemy.name}</strong><span>× ${value.count}${value.mini?` · ${value.mini} mini-boss`:''}</span></header><p class="enemy-traits">${counter.tags.join(' · ')||'Ground infantry'}${counter.weaknesses.length?` · Weak to ${counter.weaknesses.join(', ')}`:''}${counter.resistantTo.length?` · Resists ${counter.resistantTo.join(', ')}`:''}</p><p>${counter.tip}</p><div class="enemy-counter-options" aria-label="Recommended counters for ${enemy.name}">${counter.towers.slice(0,3).map(towerKind=>`<button data-counter-tower="${towerKind}">${TOWER_DEFS[towerKind].name} · ${TOWER_DEFS[towerKind].cost}g${TOWER_DEFS[towerKind].premiumCost?' · premium':''}</button>`).join('')}</div></article>`;}).join('')}</div>${detectionPlan()}`;
+ $('wave-preview-content').querySelectorAll<HTMLButtonElement>('[data-counter-tower]').forEach(button=>button.addEventListener('click',()=>{closeWavePreview();chooseTower(button.dataset.counterTower as TowerKind);}));
  $('wave-preview-content').querySelectorAll<HTMLButtonElement>('[data-detection-option]').forEach(button=>button.addEventListener('click',()=>{
   const tower=model.towers.find(item=>item.id===Number(button.dataset.detectionTower));
   closeWavePreview();
@@ -185,7 +235,7 @@ function openWavePreview(){
 function closeWavePreview(){if($('wave-preview').hidden)return;$('wave-preview').hidden=true;model.paused=previewPaused;tick();$('wave-preview-open').focus();}
 function detectionPlan(){
  const briefing=model.stealthBriefing();if(!briefing)return '';
- return `<section id="detection-plan" class="detection-plan" aria-label="Prepare for hidden enemies"><h3>Hidden enemies · wave ${briefing.wave}</h3><p>${briefing.groups.map(group=>`${group.count} ${group.name}`).join(' · ')}. Detection reveals enemies to all towers in the detector’s range. ${briefing.hasDetector?'Keep their route inside your detection coverage.':'Prepare a detector before sending this wave.'} Truesight is an optional premium specialist.</p><div class="detection-options">${briefing.options.map(option=>`<button data-detection-option="${option.kind}" ${option.towerId!==undefined?`data-detection-tower="${option.towerId}"`:''}><strong>${option.name} · ${option.cost} gold</strong><span>${option.action==='upgrade'?'Inspect existing tower':option.action==='build-upgrade'?'Build base, then train one wave':'Select blueprint'} · ${option.affordable?'Gold available':`Need ${Math.max(0,option.cost-model.gold)} more gold`}</span><small>${option.reason}</small></button>`).join('')}</div></section>`;
+ return `<section id="detection-plan" class="detection-plan" aria-label="Prepare for hidden enemies"><h3>Hidden enemies · wave ${briefing.wave}</h3><p>${briefing.groups.map(group=>`${group.count} ${group.name}`).join(' · ')}. Detection reveals enemies to all towers in the detector’s range. ${briefing.hasDetector?'Keep their route inside your detection coverage.':'Prepare a detector before sending this wave.'} Truesight is an optional premium specialist.</p><div class="detection-options">${briefing.options.map(option=>`<button data-detection-option="${option.kind}" ${option.towerId!==undefined?`data-detection-tower="${option.towerId}"`:''}><strong>${option.name} · ${option.cost} gold</strong><span>${option.action==='upgrade'?'Inspect existing tower':option.action==='build-upgrade'?'Build base, then buy researched tier II':'Select blueprint'} · ${option.affordable?'Gold available':`Need ${Math.max(0,option.cost-model.gold)} more gold`}</span><small>${option.reason}</small></button>`).join('')}</div></section>`;
 }
 function syncSelection(){bridge.selectedPad=selectedPad;bridge.selectedKind=selectedKind;bridge.meteorArmed=meteorArmed;bridge.trapArmed=selectedKind==='trap';bridge.rallyTowerId=rallyTowerId;$('battlefield').classList.toggle('casting',meteorArmed);$('meteor').classList.toggle('armed',meteorArmed);document.querySelectorAll<HTMLButtonElement>('[data-tower]').forEach(b=>{const active=b.dataset.tower===selectedKind;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));});lastSignature='';renderFoundationPicker();tick();}
 function toast(message:string){$('toast').textContent=message;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),3500);}
@@ -205,10 +255,12 @@ async function toggleFullscreen(){
 }
 
 function chooseTower(kind:TowerKind){
+ closeBattleTools();
+ if(activeTowerFilter!=='all'&&!towerGroups[activeTowerFilter]?.includes(kind))setTowerFilter('all');
  if(mainMenu.isOpen||menuPage!==null)return;
  if(model.status==='won'||model.status==='lost')return;
  if(!model.isUnlocked(kind)){openProgression('shop');return;}
- rallyTowerId=null;selectedKind=selectedKind===kind?null:kind;
+ rallyTowerId=null;placementPanelHidden=false;selectedKind=selectedKind===kind?null:kind;
  if(selectedKind)revealTower(selectedKind);selectedPad=null;meteorArmed=false;syncSelection();
  if(selectedKind)toast(kind==='trap'?'Place a trap on the road, or choose a nearby named site.':`Choose a foundation for ${TOWER_DEFS[kind].name}.`);
  effects.play('ui_click');
@@ -234,13 +286,13 @@ function onGround(x:number,y:number){
  if(meteorArmed){if(model.meteor(x,y)){toast('Starfall!');effects.play('cannon');}else toast('Starfall is available during an active wave.');meteorArmed=false;syncSelection();}
  else if(selectedPad!==null){selectedPad=null;syncSelection();}
 }
-function armMeteor(){if(model.paused||model.status!=='wave'||model.meteorCooldown>0)return;meteorArmed=!meteorArmed;rallyTowerId=null;selectedKind=null;selectedPad=null;syncSelection();toast(meteorArmed?'Choose a target on the path. Escape to cancel.':'Starfall cancelled.');}
+function armMeteor(){if(model.paused||model.status!=='wave'||model.meteorCooldown>0)return;closeBattleTools();meteorArmed=!meteorArmed;rallyTowerId=null;selectedKind=null;selectedPad=null;syncSelection();toast(meteorArmed?'Choose a target on the path. Escape to cancel.':'Starfall cancelled.');}
 function pause(){if(mainMenu.isOpen||menuPage!==null)return;if(!($('guide').hidden)||!$('settings').hidden||!$('campaign').hidden||!$('unit-preview').hidden||progressionPanel.isOpen||!$('wave-preview').hidden||model.status==='won'||model.status==='lost')return;model.paused=!model.paused;meteorArmed=false;syncSelection();effects.play('ui_click');}
-function startWave(){if(mainMenu.isOpen||menuPage!==null)return;if(model.status==='won'||model.status==='lost'){restart();return;}if(model.startWave()){rallyTowerId=null;selectedPad=null;selectedKind=null;meteorArmed=false;syncSelection();toast(`Wave ${model.wave} — ${model.waves[model.wave-1].name}`);effects.play('wave_start');}}
-function openGuide(){if(!$('guide').hidden||!$('settings').hidden||!$('campaign').hidden||!$('unit-preview').hidden||progressionPanel.isOpen||!$('wave-preview').hidden)return;guidePaused=model.paused;model.paused=true;$('guide').hidden=false;$('close-guide').focus();tick();}
+function startWave(){if(mainMenu.isOpen||menuPage!==null)return;if(model.status==='won'||model.status==='lost'){restart();return;}if(model.startWave()){closeBattleTools();rallyTowerId=null;selectedPad=null;selectedKind=null;meteorArmed=false;syncSelection();toast(`Wave ${model.wave} — ${model.waves[model.wave-1].name}`);effects.play('wave_start');}}
+function openGuide(){guideReturnFocus=document.activeElement as HTMLElement|null;if(!$('guide').hidden||!$('settings').hidden||!$('campaign').hidden||!$('unit-preview').hidden||progressionPanel.isOpen||!$('wave-preview').hidden)return;guidePaused=model.paused;model.paused=true;$('guide').hidden=false;$('close-guide').focus();tick();}
 function openUnitPreview(){if($('guide').hidden)return;$('guide').hidden=true;$('unit-preview').hidden=false;unitPreview.open();$('unit-preview-close').focus();tick();}
 function closeUnitPreview(){if($('unit-preview').hidden)return;unitPreview.close();$('unit-preview').hidden=true;$('guide').hidden=false;$('units-open').focus();tick();}
-function closeGuide(){if($('guide').hidden)return;$('guide').hidden=true;if(returnToMainMenu('guide'))return;model.paused=guidePaused;syncBattleInteractivity();if(document.fullscreenElement)focusBattlefield();else ($('guide-nav').getClientRects().length?$('guide-nav'):$('how-to')).focus();tick();}
+function closeGuide(){if($('guide').hidden)return;$('guide').hidden=true;if(returnToMainMenu('guide'))return;model.paused=guidePaused;syncBattleInteractivity();restoreBattleFocus(guideReturnFocus);tick();}
 function toggleTactical(){bridge.tactical=!bridge.tactical;$('rail-map').setAttribute('aria-pressed',String(bridge.tactical));$('minimap-toggle').classList.toggle('active',bridge.tactical);toast(bridge.tactical?'Tactical view: enemy route and tower ranges.':'Tactical view closed.');}
 async function toggleSound(){
  if(loadingAudio)return;
@@ -254,8 +306,8 @@ async function toggleSound(){
  }
  $('sound').innerHTML=icon(sound?'sound':'mute');$('sound').setAttribute('aria-label',sound?'Mute sound':'Enable sound');$<HTMLInputElement>('sound-setting').checked=sound;
 }
-function openSettings(){if(!$('settings').hidden||!$('guide').hidden||!$('campaign').hidden||!$('unit-preview').hidden||progressionPanel.isOpen||!$('wave-preview').hidden)return;settingsPaused=model.paused;model.paused=true;$('settings').hidden=false;$<HTMLInputElement>('motion-setting').checked=bridge.reduceMotion;$('close-settings').focus();tick();}
-function closeSettings(){if($('settings').hidden)return;$('settings').hidden=true;if(returnToMainMenu('settings'))return;model.paused=settingsPaused;syncBattleInteractivity();if(document.fullscreenElement)$('rail-settings').focus();else $('settings-open').focus();tick();}
+function openSettings(){settingsReturnFocus=document.activeElement as HTMLElement|null;if(!$('settings').hidden||!$('guide').hidden||!$('campaign').hidden||!$('unit-preview').hidden||progressionPanel.isOpen||!$('wave-preview').hidden)return;settingsPaused=model.paused;model.paused=true;$('settings').hidden=false;$<HTMLInputElement>('motion-setting').checked=bridge.reduceMotion;$('close-settings').focus();tick();}
+function closeSettings(){if($('settings').hidden)return;$('settings').hidden=true;if(returnToMainMenu('settings'))return;model.paused=settingsPaused;syncBattleInteractivity();restoreBattleFocus(settingsReturnFocus);tick();}
 function setText(id:string,text:string){const e=$(id);if(e.textContent!==text)e.textContent=text;}
 function renderFoundationPicker(){
  const picker=$('foundation-picker');picker.hidden=!selectedKind;
@@ -264,20 +316,22 @@ function renderFoundationPicker(){
  const paused=model.paused||['won','lost'].includes(model.status);
  const signature=[model.level.id,kind,cost,model.gold>=cost,paused,model.towers.map(t=>t.padId).join(',')].join(':');
  if(lastFoundationSignature===signature)return;lastFoundationSignature=signature;
- picker.innerHTML=`<div class="foundation-heading"><b>Place ${def.name}</b><span>Choose a permanent foundation. Sell and rebuild to change your layout.</span></div><div class="foundation-sites">${model.pads.map(pad=>{const occupied=kind!=='trap'&&model.towers.some(t=>t.padId===pad.id);return `<button data-foundation="${pad.id}" ${occupied||model.gold<cost||paused?'disabled':''} aria-label="Build ${def.name} on ${pad.name}${occupied?', occupied':''}">${icon('shield')}<span>${pad.name}</span></button>`;}).join('')}</div><button id="cancel-foundation" aria-label="Cancel tower placement">${icon('close')} Cancel</button>`;
+ picker.innerHTML=`<div class="foundation-heading"><b>Place ${def.name}</b><span>${def.cost} gold · ${TOWER_MATCHUPS[kind].role}. Strong against ${TOWER_MATCHUPS[kind].strongAgainst.slice(0,3).map(enemy=>ENEMY_DEFS[enemy].name).join(', ')}. Choose a site or a glowing foundation on the map.</span></div><div class="foundation-sites">${model.pads.map(pad=>{const occupied=kind!=='trap'&&model.towers.some(t=>t.padId===pad.id);return `<button data-foundation="${pad.id}" ${occupied||model.gold<cost||paused?'disabled':''} aria-label="Build ${def.name} on ${pad.name}${occupied?', occupied':''}">${icon('shield')}<span>${pad.name}</span></button>`;}).join('')}</div><button id="cancel-foundation" aria-label="Cancel tower placement">${icon('close')} Cancel</button>`;
  picker.querySelectorAll<HTMLButtonElement>('[data-foundation]').forEach(button=>button.addEventListener('click',()=>{const id=Number(button.dataset.foundation);sceneView()?.focusSite(id);onPad(id);}));
  $('cancel-foundation').addEventListener('click',()=>{selectedKind=null;syncSelection();});
 }
 function renderContext(){
  const tower=model.towers.find(t=>t.padId===selectedPad),kind=tower?.kind||selectedKind;
- $('game-shell').classList.toggle('has-inspection',!!kind);renderFoundationPicker();
+ $('game-shell').classList.toggle('has-inspection',!!kind&&!model.paused&&(!selectedKind||!placementPanelHidden));renderFoundationPicker();
+ closeInspection.setAttribute('aria-label',selectedKind?'Place on battlefield':'Close tower details');
+ closeInspection.querySelector('span')!.textContent=selectedKind?'Place on battlefield':'Back to battlefield';
  const signature=[selectedPad,selectedKind,rallyTowerId,model.wave,tower?.level,tower?.branch,tower?.id,tower?.uses,tower?.shieldCharges,model.status,model.paused,model.difficulty].join(':');
  const terminal=['won','lost'].includes(model.status),unavailable=terminal||model.paused;
  if(lastSignature===signature){
   if(kind)refreshTowerResearch(kind);
   if(tower){
    const upgrade=$<HTMLButtonElement>('upgrade');if(upgrade)upgrade.disabled=tower.level>=3||unavailable||!model.getUpgradeGate(tower).allowed||(tower.level===1&&model.gold<model.upgradeCost(tower));
-   setText('upgrade-gate',model.getUpgradeGate(tower).reason||'Research and field training complete. Upgrades use battle gold.');
+   setText('upgrade-gate',model.getUpgradeGate(tower).reason||'Research complete. Buy this upgrade with battle gold.');
    document.querySelectorAll<HTMLButtonElement>('[data-branch]').forEach(button=>{const key=button.dataset.branch as TowerBranchKey;button.disabled=unavailable||!model.getUpgradeGate(tower,key).allowed||model.gold<TOWER_DEFS[tower.kind].branches[key].cost||(key==='D'&&model.difficulty!=='hell');});
    const rearm=$<HTMLButtonElement>('rearm-trap');if(rearm)rearm.disabled=unavailable||model.gold<model.rearmCost(tower)||tower.uses===tower.maxUses;
   }return;
@@ -288,19 +342,26 @@ function renderContext(){
   $('context-progression').addEventListener('click',()=>openProgression());return;
  }
  const def=TOWER_DEFS[kind],level=tower?.level||1;
+ const matchups=TOWER_MATCHUPS[kind];
  const stats=tower?model.getTowerStats(tower):{damage:def.damage,range:def.range,interval:def.interval,damageType:def.damageType,effects:def.effects};
  const e=stats.effects;
  const tags=[stats.damageType, e.splash?`${Math.round(e.splash)} area`:null,e.chain?`${e.chain} chain`:null,e.pierce?`${e.pierce} pierce`:null,e.targets?`${e.targets} targets`:null,e.slow?`${Math.round(e.slow*100)}% slow`:null,e.stun?`${e.stun}s stun`:null,e.root?`${e.root}s root`:null,e.burnDps?'burn':null,e.poisonDps?'poison':null,e.knockback?'knockback':null,e.curse?'curse':null,e.armorShred?'armor shred':null,e.reveal?'reveals stealth':null,e.shield?`${tower?.shieldCharges??e.shield} shield charge`:null,e.auraDamage||e.auraHaste?'support aura':null].filter(Boolean).join(' · ');
  const specialization=tower?.branch?def.branches[tower.branch]:null;
  const tierName=level>=2?def.tier2Name:undefined,tierDescription=level>=2?def.tier2Description:undefined;
  const upgradeGate=tower?model.getUpgradeGate(tower):null;
- $('context').innerHTML=`<div class="tower-detail ${kind}"><div class="detail-header"><h2>${specialization?.name||tierName||def.name}</h2><span>${tower?`TIER ${level}${tower.branch?` · ${tower.branch}`:''}`:'BLUEPRINT'}</span></div><div class="tower-portrait">${towerArt(kind,level)}</div><div class="detail-role">${roles[kind]}</div><p class="detail-description">${specialization?.description||tierDescription||def.description}</p><section class="tower-mastery" aria-label="${def.name} family experience"><button id="tower-research-open"><b id="tower-family-xp"></b><span>Upgrade research ›</span></button><progress id="tower-family-progress" aria-label="Family experience toward next upgrade"></progress><small id="tower-family-next"></small><span>Family XP is saved; gold buys each battlefield upgrade.</span></section><div class="stat-list"><div><span>Damage</span><b>${Math.round(stats.damage)}</b></div><div><span>Range</span><b>${Math.round(stats.range)}</b></div><div><span>Fire interval</span><b>${stats.interval.toFixed(2)}s</b></div></div><p class="effect-summary">${tags}</p>${level===1&&def.tier2Name?`<p class="tier-unlock"><b>Tier II · ${def.tier2Name} · ${def.tier2Cost} gold</b><span>${def.tier2Description}</span></p>`:''}
+ $('context').innerHTML=`<div class="tower-detail ${kind}"><div class="detail-header"><h2>${specialization?.name||tierName||def.name}</h2><span>${tower?`TIER ${level}${tower.branch?` · ${tower.branch}`:''}`:'BLUEPRINT'}</span></div><div class="tower-portrait">${towerArt(kind,level)}</div><div class="detail-role">${roles[kind]}</div><p class="detail-description">${specialization?.description||tierDescription||def.description}</p><section class="tower-matchups" data-tower-matchups="${kind}"><b>Strong against</b>${matchups.strongAgainst.filter(enemy=>!ENEMY_DEFS[enemy].stealth||e.reveal).slice(0,4).map(enemy=>ENEMY_DEFS[enemy].name).join(' · ')}<small>${matchups.role}${matchups.weakAgainst.length?` · Support needed against ${matchups.weakAgainst.slice(0,2).map(enemy=>ENEMY_DEFS[enemy].name).join(', ')}`:''}</small></section><section class="tower-mastery" aria-label="${def.name} family experience"><button id="tower-research-open"><b id="tower-family-xp"></b><span>Upgrade research ›</span></button><progress id="tower-family-progress" aria-label="Family experience toward next upgrade"></progress><small id="tower-family-next"></small><span>Family XP is saved; gold buys each battlefield upgrade.</span></section><div class="stat-list"><div><span>Damage</span><b>${Math.round(stats.damage)}</b></div><div><span>Range</span><b>${Math.round(stats.range)}</b></div><div><span>Fire interval</span><b>${stats.interval.toFixed(2)}s</b></div></div><p class="effect-summary">${tags}</p>${level===1&&def.tier2Name?`<p class="tier-unlock"><b>Tier II · ${def.tier2Name} · ${def.tier2Cost} gold</b><span>${def.tier2Description}</span></p>`:''}
  ${kind==='trap'?`<p class="trap-charges">${tower?`${tower.uses} / ${tower.maxUses} charges remaining`:'Four charges · place on or near the road'}</p>`:''}
  ${tower?`<div class="strategy-controls"><label for="targeting-select">Target priority</label><select id="targeting-select" ${unavailable?'disabled':''}>${TARGET_MODES.map(mode=>`<option value="${mode}" ${tower.targeting===mode?'selected':''}>${mode[0].toUpperCase()+mode.slice(1)}</option>`).join('')}</select><small id="targeting-hint">${targetingHints[tower.targeting]}</small>
  ${kind==='barracks'?`<button id="rally-troops" aria-pressed="${rallyTowerId===tower.id}" ${unavailable?'disabled':''}>${rallyTowerId===tower.id?'Choose rally point on road':'Set soldier rally point'}</button>`:''}
  ${kind==='trap'?`<button id="rearm-trap" ${unavailable||model.gold<model.rearmCost(tower)||tower.uses===tower.maxUses?'disabled':''}>Rearm · ${model.rearmCost(tower)} gold</button>`:''}</div>
  ${level===2?`<div class="branch-options"><h3>Choose a specialization</h3>${BRANCH_KEYS.map(key=>{const branch=def.branches[key];return `<button data-branch="${key}" ${unavailable||!model.getUpgradeGate(tower,key).allowed||model.gold<branch.cost||(key==='D'&&model.difficulty!=='hell')?'disabled':''}><strong>${key} · ${branch.name}</strong><span>${branch.description}</span><small data-branch-research="${key}"></small></button>`;}).join('')}</div>`:''}
  <p id="upgrade-gate" class="upgrade-gate">${upgradeGate?.reason||""}</p><div class="tower-actions"><button id="upgrade" ${level===3||unavailable||!upgradeGate?.allowed||(level===1&&model.gold<model.upgradeCost(tower))?'disabled':''}>${level===3?'Specialized':level===2?'Choose a branch':`Tier II · ${model.upgradeCost(tower)} gold`}</button><button id="sell" ${unavailable?'disabled':''} title="Sell for 70% of invested gold">Sell · ${Math.floor(tower.spent*.7)}</button></div>`:`<div class="placement-note">Build for ${def.cost} gold. ${kind==='trap'?'Choose the road or a named site nearby.':'Choose a glowing foundation or named site.'}</div>`}</div>`;
+
+ const detail=$('context').querySelector<HTMLElement>('.tower-detail')!;
+ const intro=document.createElement('div');intro.className='tower-intro';
+ for(const selector of ['.tower-portrait','.detail-role','.detail-description']){const part=detail.querySelector(selector);if(part)intro.appendChild(part);}
+ detail.querySelector('.detail-header')!.after(intro);
+ for(const selector of ['.stat-list','.tower-mastery','.upgrade-gate','.tower-actions','.branch-options','.strategy-controls','.tower-matchups','.effect-summary','.tier-unlock','.trap-charges','.placement-note']){const part=detail.querySelector(selector);if(part)detail.appendChild(part);}
  $('tower-research-open').addEventListener('click',()=>openProgression('research',kind));
  refreshTowerResearch(kind);
  if(!tower)return;
@@ -326,15 +387,19 @@ function tick(){
  setText('battle-state',terminal?(model.status==='won'?'The stronghold stands':'The stronghold has fallen'):active?`Wave ${model.wave} · ${model.waves[model.wave-1].name}`:'Prepare your defenses');
  setText('remaining',active?`${model.waveRemaining} foes remaining`:terminal?`${model.kills} foes defeated`:'Build, upgrade, and get ready');
  $('pause-overlay').hidden=!model.paused||!$('guide').hidden||!$('settings').hidden||!$('campaign').hidden||!$('unit-preview').hidden||progressionPanel.isOpen||!$('wave-preview').hidden||mainMenu.isOpen||menuPage!==null||terminal;
+ if(!$('pause-overlay').hidden)closeBattleTools();
+ $<HTMLButtonElement>('hud-view').disabled=!$('pause-overlay').hidden;
  if($('pause').dataset.paused!==String(model.paused)){$('pause').innerHTML=icon(model.paused?'play':'pause');$('pause').dataset.paused=String(model.paused);}$('pause').setAttribute('aria-label',model.paused?'Resume game':'Pause game');
  setText('speed',`${model.speed}×`);
  const next=model.nextWave();setText('next-name',terminal?'The kingdom calls again.':active?'Hold the line.':next?.name||'The final stand');setText('wave-description',terminal?'Every defeat is a new strategy waiting.':active?'Towers fire automatically. Upgrade your defenses, or call on Starfall.':next?.description||'The old kingdom remembers your courage.');
  const hiddenThreat=terminal?null:model.stealthBriefing();$('stealth-advisory').hidden=active||!hiddenThreat;
  if(hiddenThreat){const ownUpgrade=hiddenThreat.options.find(option=>option.action==='upgrade');setText('stealth-advisory',`Hidden enemies in wave ${hiddenThreat.wave}. ${hiddenThreat.hasDetector?'Check detection coverage along the road.':ownUpgrade?`${ownUpgrade.name}: ${ownUpgrade.cost}g. ${ownUpgrade.reason||'Research ready.'}`:'Plan ahead: train Arrow II, or build Magic for 160g immediately.'} Open ? for counter options.`);$('stealth-advisory').classList.toggle('imminent',hiddenThreat.imminent&&!hiddenThreat.hasDetector);}
+ $('wave-preview-open').dataset.warning=String(!!hiddenThreat?.imminent&&!hiddenThreat.hasDetector);
+ $('wave-preview-open').setAttribute('aria-label',hiddenThreat?.imminent?`Scout next wave: hidden enemies, prepare detection`:'Scout next wave and recommended counters');
  setText('bonus',model.earlyBonus>0?`+${model.earlyBonus} EARLY GOLD`:'');
  const waveBtn=$<HTMLButtonElement>('start-wave');waveBtn.disabled=active||model.paused;const waveText=active?'Wave in progress':model.wave===0?'Send first wave':terminal?'Defend again':`Send wave ${model.wave+1}`;
  if(waveBtn.dataset.text!==waveText){waveBtn.innerHTML=`<span>${icon(active?'shield':'play')} ${waveText}</span><span class="key">SPACE</span>`;waveBtn.dataset.text=waveText;}
- const meteor=$<HTMLButtonElement>('meteor');meteor.disabled=!active||model.meteorCooldown>0||model.paused;setText('meteor-status',meteorArmed?'CHOOSE YOUR TARGET':model.meteorCooldown>0?`RECHARGING · ${Math.ceil(model.meteorCooldown)}s`:'READY TO CAST');
+ const meteor=$<HTMLButtonElement>('meteor');meteor.disabled=!active||model.meteorCooldown>0||model.paused;setText('meteor-status',meteorArmed?'TARGET':model.meteorCooldown>0?`${Math.ceil(model.meteorCooldown)}s`:'STARFALL');meteor.setAttribute('aria-label',meteorArmed?'Choose a Starfall target':`Starfall${model.meteorCooldown>0?`, recharging ${Math.ceil(model.meteorCooldown)} seconds`:`, ready during a wave`}`);
  document.querySelectorAll<HTMLButtonElement>('[data-tower]').forEach(b=>{const kind=b.dataset.tower as TowerKind;b.classList.toggle('unaffordable',model.gold<TOWER_DEFS[kind].cost);const locked=!model.isUnlocked(kind);b.classList.toggle('locked',locked);b.disabled=terminal||locked;b.title=locked?`Unlock ${TOWER_DEFS[kind].name} in the gem shop for ${TOWER_DEFS[kind].premiumCost} gems`:TOWER_DEFS[kind].description;});
  renderContext();
  $('mini-units').innerHTML=model.towers.map(t=>{const p=model.getTowerPosition(t);return `<circle cx="${p.x}" cy="${p.y}" r="14" fill="${'#'+TOWER_DEFS[t.kind].color.toString(16).padStart(6,'0')}" stroke="#fff" stroke-width="3"/>`;}).join('')+model.enemies.map(e=>`<circle cx="${e.x}" cy="${e.y}" r="${e.kind==='boss'?18:9}" fill="#f19175"/>`).join('');
@@ -365,20 +430,20 @@ function renderLevels(){
  $<HTMLSelectElement>('difficulty-select').value=model.difficulty;setText('difficulty-hint',model.difficulty==='easy'||model.difficulty==='normal'?'One arrow tower can defend the opening wave at a good early site. Build out your defense as the waves grow.':model.difficulty==='hard'?'Bring trained skill branches and plan coverage around bends, armor, and tree cover.':'Hell favors a developed skill tree, specialized damage, control, and carefully chosen sites.');$<HTMLSelectElement>('difficulty-select').disabled=model.status==='wave';
  $('level-list').innerHTML=LEVELS.map((level,index)=>{
   const saved=progression.stageProgress(level.id,model.difficulty);
-  return `<button data-level="${index}" data-stage="${level.id}" class="${index===model.currentLevelIndex?'selected ':''}${saved?.cleared?'completed':''}" aria-pressed="${index===model.currentLevelIndex}" ${model.status==='wave'?'disabled':''}><span class="level-thumb" style="aspect-ratio:${level.world.width}/${level.world.height}"><img src="${LEVEL_ART[level.mapKey]}" alt=""/></span><span class="level-copy"><small>${level.subtitle}</small><strong>${level.name}</strong><span>${level.waves.length} waves · ${level.pads.length} foundations</span></span><span class="level-state">${'★'.repeat(saved?.stars||0)}${'☆'.repeat(3-(saved?.stars||0))} · ${saved?.cleared?'Secured':index===model.currentLevelIndex?'Current stage':'Play stage'}</span></button>`;
+  return `<button data-level="${index}" data-stage="${level.id}" class="${index===model.currentLevelIndex?'selected ':''}${saved?.cleared?'completed':''}" aria-pressed="${index===model.currentLevelIndex}" ${model.status==='wave'?'disabled':''}><span class="level-thumb" style="aspect-ratio:${level.world.width}/${level.world.height}"><img src="${LEVEL_ART[level.mapKey]}" alt=""/></span><span class="level-copy"><small>${level.subtitle}</small><strong>${level.name}</strong><span>${WAVES_BY_DIFFICULTY[model.difficulty]} waves · ${level.pads.length} foundations</span></span><span class="level-state">${'★'.repeat(saved?.stars||0)}${'☆'.repeat(3-(saved?.stars||0))} · ${saved?.cleared?'Secured':index===model.currentLevelIndex?'Current stage':'Play stage'}</span></button>`;
  }).join('');
  setText('campaign-note',model.status==='wave'?'Finish the current wave before changing stages or difficulty. Defense is paused while this menu is open.':'Each stage has its own scripted waves. Stage or difficulty changes begin a fresh defense.');
  $('level-list').querySelectorAll<HTMLButtonElement>('[data-level]').forEach(button=>button.addEventListener('click',()=>changeLevel(Number(button.dataset.level))));
 }
-function openCampaign(){if(!$('guide').hidden||!$('settings').hidden||!$('campaign').hidden||!$('unit-preview').hidden||progressionPanel.isOpen||!$('wave-preview').hidden)return;campaignPaused=model.paused;model.paused=true;renderLevels();$('campaign').hidden=false;$('close-campaign').focus();tick();}
-function closeCampaign(){if($('campaign').hidden)return;$('campaign').hidden=true;if(returnToMainMenu('campaign'))return;model.paused=campaignPaused;syncBattleInteractivity();if(document.fullscreenElement)$('rail-levels').focus();else $('levels-open').focus();tick();}
+function openCampaign(){campaignReturnFocus=document.activeElement as HTMLElement|null;if(!$('guide').hidden||!$('settings').hidden||!$('campaign').hidden||!$('unit-preview').hidden||progressionPanel.isOpen||!$('wave-preview').hidden)return;campaignPaused=model.paused;model.paused=true;renderLevels();$('campaign').hidden=false;$('close-campaign').focus();tick();}
+function closeCampaign(){if($('campaign').hidden)return;$('campaign').hidden=true;if(returnToMainMenu('campaign'))return;model.paused=campaignPaused;syncBattleInteractivity();restoreBattleFocus(campaignReturnFocus);tick();}
 function changeLevel(index:number){
  syncTowerXP(true);
  if(!model.selectLevel(index))return;
  $('campaign').hidden=true;menuPage=null;mainMenu.hide();campaignPaused=false;applyProgression();model.reset();resetSelection();updateLevelLabels();effects.play('ui_click');focusBattlefield();toast(`${model.level.name} — choose your defenses.`);
 }
 function updateLevelLabels(){
- const level=model.level;document.title=`Mossguard · ${level.name}`;document.querySelector('.mission-heading h1')!.textContent=level.name;
+ const level=model.level;setText('hud-stage-name',level.name);setText('hud-stage-difficulty',`${model.difficulty.toUpperCase()} · ${model.waves.length} WAVES`);document.title=`Mossguard · ${level.name}`;document.querySelector('.mission-heading h1')!.textContent=level.name;
  setText('chapter-seal',['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][model.currentLevelIndex]);setText('chapter-label',`${level.subtitle.toUpperCase()} / CHAPTER ${String(model.currentLevelIndex+1).padStart(2,'0')}`);
  const mapLabel=document.querySelector('.map-label')!;mapLabel.innerHTML=`<span class="map-pin"></span> ${level.name.toUpperCase()}`;
  document.querySelector('.minimap-label')!.innerHTML=`<span>${level.name.toUpperCase()}</span><b>STAGE ${String(model.currentLevelIndex+1).padStart(2,'0')}</b>`;
@@ -389,7 +454,7 @@ function updateLevelLabels(){
  document.querySelector('.difficulty')!.textContent=model.difficulty.toUpperCase();updateRecord();
 }
 function updateDockControls(){const list=document.querySelector<HTMLElement>('.tower-list')!;$<HTMLButtonElement>('tower-prev').disabled=list.scrollLeft<=1;$<HTMLButtonElement>('tower-next').disabled=list.scrollLeft+list.clientWidth>=list.scrollWidth-2;}
-function revealTower(kind:TowerKind){const list=document.querySelector<HTMLElement>('.tower-list')!,card=list.querySelector<HTMLElement>(`[data-tower="${kind}"]`)!;const c=card.getBoundingClientRect(),l=list.getBoundingClientRect();if(c.left<l.left)list.scrollLeft-=l.left-c.left;else if(c.right>l.right)list.scrollLeft+=c.right-l.right;updateDockControls();}
+function revealTower(kind:TowerKind){const list=document.querySelector<HTMLElement>('.tower-list')!,card=list.querySelector<HTMLElement>(`[data-tower="${kind}"]`)!;const c=card.getBoundingClientRect(),l=list.getBoundingClientRect();if(c.left<l.left)list.scrollLeft-=l.left-c.left;else if(c.right>l.right)list.scrollLeft+=c.right-l.right;if(c.top<l.top)list.scrollTop-=l.top-c.top;else if(c.bottom>l.bottom)list.scrollTop+=c.bottom-l.bottom;updateDockControls();}
 
 document.querySelectorAll<HTMLButtonElement>('[data-tower]').forEach(b=>b.addEventListener('click',()=>chooseTower(b.dataset.tower as TowerKind)));
 for(const id of ['progression-open','settings-progression','meta-open'])$(id).addEventListener('click',()=>openProgression());
@@ -407,6 +472,10 @@ $('pause-menu').addEventListener('click',()=>showMainMenu());
 $('main-menu-open').addEventListener('click',()=>showMainMenu());
 $('settings-menu').addEventListener('click',()=>{closeSettings();showMainMenu();});
 document.querySelector('.brand')!.addEventListener('click',event=>{event.preventDefault();showMainMenu();});
+$('hud-view').addEventListener('click',()=>{tools.hidden=!tools.hidden;$('hud-view').setAttribute('aria-expanded',String(!tools.hidden));});
+$('hud-guide').addEventListener('click',openGuide);
+document.querySelectorAll<HTMLButtonElement>('[data-tower-filter]').forEach(button=>button.addEventListener('click',()=>setTowerFilter(button.dataset.towerFilter!)));
+$('tower-filter-select').addEventListener('change',()=>setTowerFilter($<HTMLSelectElement>('tower-filter-select').value));
 $('start-wave').addEventListener('click',startWave);$('pause').addEventListener('click',pause);$('resume').addEventListener('click',pause);$('speed').addEventListener('click',()=>{model.speed=model.speed===1?2:model.speed===2?3:1;tick();});$('meteor').addEventListener('click',armMeteor);
 ['guide-nav','how-to'].forEach(id=>$(id).addEventListener('click',openGuide));['close-guide','guide-done'].forEach(id=>$(id).addEventListener('click',closeGuide));$('guide').addEventListener('click',e=>{if(e.target===$('guide'))closeGuide();});
 $('restart').addEventListener('click',restart);$('next-level').addEventListener('click',()=>changeLevel(model.currentLevelIndex+1));
@@ -438,6 +507,7 @@ if(typeof ResizeObserver!=='undefined')new ResizeObserver(scheduleResize).observ
 window.addEventListener('resize',scheduleResize);
 document.addEventListener('keydown',e=>{
  if(mainMenu.isOpen)return;
+ if(e.key==='Escape'&&!tools.hidden&&['guide','settings','campaign','unit-preview','wave-preview','progression','result'].every(id=>$(id).hidden)){closeBattleTools();$('hud-view').focus();e.preventDefault();return;}
  if((e.target instanceof HTMLInputElement||e.target instanceof HTMLTextAreaElement||e.target instanceof HTMLSelectElement)&&!['Escape','Tab'].includes(e.key))return;
  if(!e.repeat&&e.key==='Escape'){if(progressionPanel.isOpen){progressionPanel.close();return;}if(!$('wave-preview').hidden){closeWavePreview();return;}if(!$('guide').hidden){closeGuide();return;}if(!$('settings').hidden){closeSettings();return;}if(!$('campaign').hidden){closeCampaign();return;}if(!$('unit-preview').hidden){closeUnitPreview();return;}meteorArmed=false;rallyTowerId=null;selectedKind=null;selectedPad=null;syncSelection();return;}
  if(!e.repeat&&e.key.toLowerCase()==='r'&&!$('result').hidden){restart();return;}

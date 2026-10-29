@@ -59,6 +59,7 @@ jobs:
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:fit
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:environment
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:expansion
+          GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:endurance
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:menu
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:mastery
           GAME_URL=http://127.0.0.1:4173/my-first-game/ npm run test:tower-clips

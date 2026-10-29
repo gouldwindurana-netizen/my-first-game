@@ -1,0 +1,299 @@
+/* The playable screen uses a single command HUD; menus retain their own surfaces. */
+:root { --hud-ink: #091b26; --hud-panel: #102d3a; --hud-line: #607d83; --hud-gold: #dfc58e; --hud-text: #e5e6d8; --hud-muted: #a2bbc1; }
+.combat-ui { padding: 0; background: #07141d; }
+.combat-ui > .site-header, .combat-ui .mission-heading, .combat-ui .site-footer { display: none; }
+.combat-ui > main { width: 100%; max-width: none; height: 100%; min-height: 0; padding: 0; margin: 0; }
+.tower-role-select { display: none; }
+#game-shell { position: relative; width: 100%; height: 100dvh; flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: minmax(0,1fr) 112px; gap: 0; padding: 0; border: 0; border-radius: 0; background: var(--hud-ink); box-shadow: none; overflow: hidden; }
+#game-shell:fullscreen { width: 100%; height: 100dvh; padding: 0; overflow: hidden; }
+#game-shell::before, #game-shell::after { display: none; }
+#game-shell .battle-column { grid-column: 1; grid-row: 1; order: 0; display: flex; flex-direction: column; min-height: 0; width: 100%; border: 0; border-radius: 0; box-shadow: none; }
+#game-shell .battle-bar { flex: 0 0 58px; display: flex; align-items: center; justify-content: start; flex-wrap: nowrap; height: 58px; min-height: 58px; gap: 8px; padding: 6px 12px; border: 0; border-bottom: 1px solid #57747c; border-radius: 0; background: linear-gradient(180deg,#1b3541,#0b1d28); box-shadow: 0 2px 9px #0006; z-index: 5; }
+#game-shell .battle-bar::before, #game-shell .battle-bar::after, #game-shell .wave-badge::before, #game-shell .wave-badge::after { display: none; }
+#game-shell .hud-stage { display: grid; gap: 2px; flex: 0 1 240px; min-width: 100px; padding-right: 16px; border-right: 1px solid #45616c; }
+#game-shell .hud-stage b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 500 24px/1.05 var(--serif); color: #f0dfb6; }
+#game-shell .hud-stage span { color: #a8bec0; font-size: 8px; letter-spacing: 1.2px; }
+#game-shell .resources { display: flex; align-items: center; flex: 1; width: auto; flex-basis: auto; height: auto; gap: 16px; }
+#game-shell .resource { flex: 0 0 auto; display: flex; align-items: center; gap: 7px; min-width: 0; min-height: 38px; height: auto; padding: 0; background: transparent; border: 0; box-shadow: none; }
+#game-shell .resource::before, #game-shell .resource::after { display: none; }
+#game-shell .resource small { display: none; }
+#game-shell .resource b { color: #e5e6d8; font: 600 19px/1.1 'DM Sans',sans-serif; white-space: nowrap; }
+#game-shell .resource .icon { width: 23px; height: 23px; }
+#game-shell .resource.mana b { color: #a9c4cf; font-size: 15px; }
+#game-shell .resource.mana .icon { width: 18px; height: 18px; }
+#game-shell .wave-badge { display: flex; align-items: center; margin: 0 8px 0 auto; padding: 0; border: 0; min-width: 105px; color: #b6c9ce; font-size: 13px; white-space: nowrap; background: none; box-shadow: none; }
+#game-shell .wave-badge .icon { display: none; }
+#game-shell .wave-badge b { margin-left: 4px; font-size: 20px; font-weight: 600; color: #e8d9b3; }
+#game-shell .map-controls { display: flex; margin: 0; gap: 6px; }
+#game-shell .map-button { display: inline-flex; justify-content: center; align-items: center; width: 44px; height: 44px; min-width: 44px; min-height: 44px; border: 1px solid #5f7c83; border-radius: 4px; background: linear-gradient(#1d3e4b,#102a37); box-shadow: inset 0 0 0 1px #0c202c; color: #e4d4ae; font-size: 18px; }
+#game-shell .map-button .icon { width: 20px; height: 20px; }
+#game-shell .map-button:hover, #game-shell .map-button[aria-expanded=true] { background: #2b4d57; border-color: #c0ad7a; }
+#game-shell .battlefield-wrap { flex: 1; min-height: 0; height: auto; overflow: hidden; border: 0; background: #07131b; }
+#game-shell #battlefield { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; }
+#game-shell .battle-footer, #game-shell .field-rail, #game-shell .map-label, #game-shell .map-scale, #game-shell .minimap-panel { display: none; }
+#game-shell .view-controls { position: absolute; z-index: 16; right: 10px; top: 66px; width: 264px; max-height: calc(100% - 74px); overflow-y: auto; display: grid; gap: 10px; padding: 12px; border: 1px solid #769091; border-radius: 5px; background: #0c2533f7; box-shadow: 0 8px 24px #0008; }
+#game-shell .view-controls[hidden] { display: none; }
+#game-shell .hud-camera-row { display: flex; justify-content: space-between; align-items: center; gap: 5px; border-bottom: 1px solid #41616d; padding-bottom: 10px; }
+#game-shell .view-controls button { width: 44px; min-width: 44px; height: 44px; min-height: 44px; color: #e9d5a3; font-size: 21px; }
+#game-shell .view-controls .zoom-label { display: block; font-size: 12px; min-width: 40px; color: #c8dcdf; }
+#game-shell .hud-tool-actions { display: grid; gap: 4px; }
+#game-shell .hud-tool-actions button { width: 100%; display: flex; justify-content: start; align-items: center; gap: 10px; padding: 9px; background: #143644; border: 1px solid #3c5e6c; border-radius: 3px; font-size: 12px; text-align: left; }
+#game-shell .hud-tool-actions .icon { flex: 0 0 19px; width: 19px; height: 19px; }
+#game-shell .hud-tool-actions button[aria-pressed=true] { border-color: #d1b77c; background: #2f4950; }
+#game-shell .tower-dock { position: relative; order: 0; grid-column: 1; grid-row: 2; display: grid; grid-template-columns: 44px minmax(0,1fr) 44px 300px; grid-template-rows: 24px minmax(0,1fr); min-height: 0; width: 100%; height: auto; padding: 6px 10px; gap: 4px 6px; border: 0; border-top: 1px solid #758383; border-radius: 0; box-shadow: 0 -4px 14px #0005; z-index: 5; background: linear-gradient(#142d38,#0a202c); }
+#game-shell .tower-dock::before, #game-shell .tower-dock::after, #game-shell .tower-dock .dock-heading, #game-shell .tower-dock .dock-tip { display: none; }
+#game-shell .tower-filters { grid-column: 1 / 4; grid-row: 1; display: flex; gap: 4px; min-width: 0; align-items: center; }
+#game-shell .tower-filters button { min-height: 24px; height: 24px; padding: 3px 10px; color: #a5c0c8; font-size: 10px; line-height: 1.2; background: transparent; border: 1px solid transparent; border-radius: 3px; white-space: nowrap; }
+#game-shell .tower-filters button[aria-pressed=true] { color: #e9d2a4; border-color: #817a58; background: #31474a; }
+#game-shell .tower-dock #tower-prev { grid-column: 1; grid-row: 2; }
+#game-shell .tower-dock #tower-next { grid-column: 3; grid-row: 2; }
+#game-shell .dock-scroll { align-self: center; width: 44px; min-width: 44px; height: 44px; min-height: 44px; font-size: 26px; padding: 0; }
+#game-shell .tower-dock .tower-list { grid-column: 2; grid-row: 2; display: grid; grid-auto-flow: column; grid-template-columns: none; grid-template-rows: minmax(0,1fr); grid-auto-columns: 92px; align-self: stretch; align-items: stretch; justify-content: start; overflow-x: auto; overflow-y: hidden; min-width: 0; height: 100%; gap: 5px; padding: 0 0 2px; scroll-behavior: smooth; scrollbar-width: none; }
+#game-shell .tower-list::-webkit-scrollbar { display: none; }
+#game-shell .tower-dock .tower-card { position: relative; display: grid; grid-template-columns: 40px minmax(0,1fr); grid-template-rows: 40px 19px; align-content: center; min-height: 0; height: 100%; min-width: 0; padding: 4px; gap: 0 3px; border: 1px solid #476773; border-radius: 4px; text-align: left; background: #102b39; box-shadow: inset 0 0 0 1px #09212d; }
+#game-shell .tower-card[hidden] { display: none; }
+#game-shell .tower-dock .tower-card.selected { background: #2a4244; border-color: #e9c685; box-shadow: inset 0 0 0 1px #b5a070; }
+#game-shell .tower-dock .tower-art { grid-column: 1; grid-row: 1; width: 40px; height: 40px; justify-self: center; margin: 0; }
+#game-shell .tower-dock .tower-art svg { width: 100%; height: 100%; display: block; }
+#game-shell .tower-dock .tower-info { grid-column: 1 / -1; grid-row: 2; display: block; margin: 0; padding: 0; min-width: 0; text-align: center; }
+#game-shell .tower-dock .tower-info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #d9e0da; font: 500 13px/1.1 var(--serif); }
+#game-shell .tower-dock .tower-info > span { display: none; }
+#game-shell .tower-dock .tower-cost { grid-column: 2; grid-row: 1; align-self: center; justify-self: center; padding: 0; margin: 0; gap: 3px; color: #e1c687; font-size: 11px; }
+#game-shell .tower-cost .icon { width: 12px; height: 12px; }
+#game-shell .tower-key { display: none; }
+#game-shell .tower-card.locked { opacity: .48; }
+#game-shell .tower-card.unaffordable { opacity: .6; }
+#game-shell .hud-commands { grid-column: 4; grid-row: 1 / -1; display: grid; grid-template-columns: minmax(0,1fr) 44px 64px; align-items: stretch; gap: 6px; min-width: 0; padding-left: 10px; border-left: 1px solid #45616e; }
+#game-shell .hud-commands .next-wave { grid-column: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; height: 100%; min-height: 0; margin: 0; padding: 0; background: none; box-shadow: none; border: 0; }
+#game-shell .hud-commands .next-label { display: flex; gap: 4px; justify-content: space-between; font-size: 8px; letter-spacing: .8px; color: #91b0bc; }
+#game-shell .hud-commands .next-label #bonus { color: #d2ba7d; font-size: 7px; letter-spacing: 0; }
+#game-shell .hud-commands .next-wave h3 { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 3px 0 6px; color: #e0d8bc; font: 500 17px/1.05 var(--serif); }
+#game-shell .hud-commands .next-wave p { display: none; }
+#game-shell .hud-commands #start-wave { position: static; display: flex; justify-content: center; align-items: center; width: 100%; height: 44px; min-height: 44px; padding: 7px; font-size: 11px; line-height: 1.1; white-space: nowrap; }
+#game-shell .hud-commands #start-wave .icon { width: 14px; height: 14px; }
+#game-shell #start-wave .key { display: none; }
+#game-shell .hud-commands #wave-preview-open { align-self: center; }
+#game-shell #wave-preview-open[data-warning=true] { border-color: #e2b46d; color: #ffe0a0; box-shadow: inset 0 0 0 1px #b68d4d; }
+#game-shell .hud-commands .ability { position: static; display: flex; flex-direction: column; align-self: center; justify-content: center; align-items: center; width: 64px; min-width: 64px; height: 68px; min-height: 68px; padding: 4px; gap: 4px; border: 1px solid #667781; border-radius: 4px; background: #153440; box-shadow: none; }
+#game-shell .ability .ability-icon { width: 27px; height: 27px; }
+#game-shell .ability .ability-icon .icon { width: 26px; height: 26px; }
+#game-shell .ability > span:not(.ability-icon) { display: block; }
+#game-shell .ability b, #game-shell .ability .key { display: none; }
+#game-shell .ability small { display: block; max-width: 58px; font-size: 7px; letter-spacing: .2px; line-height: 1.25; text-align: center; color: #c8d5d0; }
+#game-shell .ability:disabled { opacity: .5; }
+#game-shell .toast { bottom: 20px; left: 50%; max-width: min(440px,80%); transform: translate(-50%,8px); font-size: 12px; padding: 10px 14px; border: 1px solid #798b81; border-radius: 4px; background: #0c2635f2; box-shadow: 0 3px 12px #0006; }
+#game-shell .toast.visible { transform: translate(-50%,0); }
+#game-shell .build-panel { display: none; position: absolute; z-index: 11; order: 0; top: 66px; right: 10px; bottom: 122px; left: auto; width: 300px; height: auto; min-height: 0; max-height: none; grid-column: auto; grid-row: auto; border: 1px solid #80908b; border-radius: 5px; box-shadow: 0 8px 26px #0009; background: #0b2431f7; overflow: hidden; }
+#game-shell.has-inspection .build-panel { display: flex; flex-direction: column; }
+#game-shell .build-panel .panel-heading, #game-shell .build-panel .panel-foot, #game-shell .build-panel .minimap-panel { display: none; }
+#game-shell .build-panel .context-panel { display: block; flex: 1 1 auto; position: static; inset: auto; width: auto; height: auto; min-height: 0; padding: 14px; border: 0; background: none; box-shadow: none; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #73929a #0b2431; }
+#game-shell .close-inspection { display: flex; position: static; z-index: auto; order: -1; justify-content: center; align-items: center; flex: 0 0 44px; width: calc(100% - 12px); height: 44px; min-height: 44px; margin: 6px 6px 0; padding: 8px; gap: 8px; border: 1px solid #526f7b; border-radius: 3px; background: #173b48; color: #e6d4a9; font-size: 12px; }
+#game-shell .close-inspection .icon { width: 17px; height: 17px; }
+#game-shell .build-panel:has(.foundation-picker:not([hidden])) .context-panel { display: none; }
+#game-shell .build-panel .foundation-picker { display: grid; position: static; flex: 1 1 auto; width: auto; min-height: 0; max-height: none; padding: 12px; margin: 0; grid-template-columns: minmax(0,1fr); gap: 10px; background: none; border: 0; box-shadow: none; overflow-y: auto; }
+#game-shell .build-panel .foundation-picker[hidden] { display: none; }
+#game-shell .foundation-picker .foundation-heading { grid-column: 1; grid-row: 1; display: grid; gap: 7px; }
+#game-shell .foundation-heading b { font: 500 23px/1.1 var(--serif); color: #ead6a8; }
+#game-shell .foundation-heading span { display: block; font-size: 11px; line-height: 1.55; color: #acc3c9; }
+#game-shell .foundation-sites { grid-column: 1; grid-row: 2; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-content: start; gap: 5px; }
+#game-shell .foundation-sites button { display: flex; align-items: center; min-height: 44px; height: auto; gap: 5px; padding: 7px; font-size: 11px; line-height: 1.25; text-align: left; border-radius: 3px; }
+#game-shell .foundation-sites button .icon { display: none; }
+#game-shell .foundation-picker #cancel-foundation { grid-column: 1; grid-row: 3; width: 100%; min-height: 44px; height: auto; padding: 8px; font-size: 12px; }
+#game-shell .foundation-picker #cancel-foundation .icon { width: 16px; height: 16px; }
+#game-shell .tower-detail { display: block; }
+#game-shell .tower-detail .detail-header { display: flex; align-items: start; justify-content: space-between; gap: 8px; margin: 0 0 12px; }
+#game-shell .tower-detail .detail-header h2 { margin: 0; color: #eadbb9; font: 500 29px/1 var(--serif); }
+#game-shell .tower-detail .detail-header > span { color: #adbdba; font-size: 8px; white-space: nowrap; }
+#game-shell .tower-detail .tower-portrait { display: flex; float: right; width: 80px; height: 92px; margin: 0 0 9px 8px; }
+#game-shell .tower-detail .tower-portrait svg { width: 80px; height: 90px; }
+#game-shell .tower-detail .detail-role { color: #d3bf8f; font-size: 9px; letter-spacing: 1px; margin: 4px 0 8px; }
+#game-shell .tower-detail .detail-description { display: block; min-height: 0; padding: 0; margin: 0 0 12px; color: #bbced0; font-size: 12px; line-height: 1.55; text-align: left; }
+#game-shell .tower-detail .tower-mastery { clear: both; margin: 12px 0; padding: 9px; font-size: 10px; background: #14333f; border-color: #456d7a; }
+#game-shell .tower-intro { min-height: 94px; }
+#game-shell .tower-detail .tower-mastery > span { display: none; }
+#game-shell .tower-mastery button { min-height: 44px; }
+#game-shell .tower-detail .stat-list { clear: both; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); padding: 10px 0; gap: 6px; margin: 12px 0; border-top: 1px solid #3f606d; border-bottom: 1px solid #3f606d; }
+#game-shell .stat-list > div { display: grid; gap: 5px; margin: 0; font-size: 10px; color: #9ab6c0; }
+#game-shell .stat-list b { font-size: 18px; color: #dfdfcb; }
+#game-shell .tower-detail .effect-summary { color: #accbc9; font-size: 10px; line-height: 1.5; margin: 0 0 12px; }
+#game-shell .tower-detail .strategy-controls { display: grid; gap: 7px; margin: 12px 0; }
+#game-shell .strategy-controls label { font-size: 11px; }
+#game-shell .strategy-controls select, #game-shell .strategy-controls button { min-height: 44px; height: auto; padding: 8px; font-size: 12px; }
+#game-shell .strategy-controls small { font-size: 10px; }
+#game-shell .branch-options { display: grid; grid-template-columns: minmax(0,1fr); gap: 7px; }
+#game-shell .branch-options button { min-height: 66px; padding: 10px; }
+#game-shell .branch-options button strong { font-size: 12px; }
+#game-shell .branch-options button span, #game-shell .branch-options button small { font-size: 10px; line-height: 1.4; }
+#game-shell .tower-actions { display: grid; grid-template-columns: minmax(0,1fr); gap: 7px; margin-top: 12px; }
+#game-shell .tower-actions button { min-height: 44px; height: auto; font-size: 12px; padding: 10px; }
+#game-shell .upgrade-gate, #game-shell .tier-unlock { font-size: 11px; line-height: 1.5; margin: 12px 0; }
+#game-shell .tower-matchups { clear: both; margin: 12px 0; padding: 10px; border-left: 2px solid #9fae75; background: #17383c; color: #b9d1bf; font-size: 11px; line-height: 1.55; }
+#game-shell .tower-matchups b { display: block; color: #d7ddac; margin-bottom: 4px; }
+#game-shell .tower-matchups small { display: block; margin-top: 6px; color: #a3bdc3; }
+#game-shell .enemy-matchup { display: block; padding: 13px; }
+#game-shell .enemy-matchup header { display: flex; gap: 10px; align-items: start; justify-content: space-between; }
+#game-shell .enemy-matchup p { margin: 8px 0; font-size: 11px; line-height: 1.5; }
+#game-shell .enemy-matchup .enemy-traits { color: #d3bd8c; font-size: 10px; }
+#game-shell .enemy-counter-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+#game-shell .enemy-counter-options button { min-height: 44px; padding: 8px 10px; color: #d9dec5; border: 1px solid #52727a; border-radius: 3px; background: #193947; font-size: 11px; }
+#game-shell .pause-overlay { padding: 24px; background: #071d2be8; backdrop-filter: blur(6px); }
+#game-shell .pause-overlay h2 { max-width: 520px; text-align: center; font: 500 42px/1 var(--serif); color: #e7d8b5; margin: 10px 0 18px; }
+#game-shell .pause-overlay > button { min-width: 230px; min-height: 44px; margin: 4px; }
+#game-shell .pause-actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 7px; max-width: 520px; margin-top: 20px; }
+#game-shell .pause-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 9px 13px; gap: 7px; color: #d9d9c1; background: #153340; border: 1px solid #4b6f7b; border-radius: 3px; font-size: 12px; }
+#game-shell .pause-actions .icon { width: 17px; height: 17px; }
+#game-shell .pause-actions .key { display: none; }
+@media (max-width:1100px) {
+  #game-shell .hud-stage { flex-basis: 180px; padding-right: 10px; }
+  #game-shell .hud-stage b { font-size: 21px; }
+  #game-shell .resources { gap: 10px; }
+  #game-shell .resource.mana { display: none; }
+  #game-shell .tower-dock { grid-template-columns: 44px minmax(0,1fr) 44px 260px; }
+  #game-shell .hud-commands { grid-template-columns: minmax(0,1fr) 44px 54px; padding-left: 7px; gap: 5px; }
+  #game-shell .hud-commands .ability { width: 54px; min-width: 54px; }
+  #game-shell .tower-dock .tower-list { grid-auto-columns: 88px; }
+  #game-shell .dock-scroll { width: 44px; min-width: 44px; }
+}
+@media (max-width:740px) and (orientation:portrait) {
+  #game-shell { grid-template-rows: minmax(0,1fr) 166px; }
+  #game-shell .battle-bar { flex-basis: 96px; min-height: 96px; height: 96px; flex-wrap: wrap; justify-content: space-between; padding: 5px 8px; gap: 3px 6px; }
+  #game-shell .hud-stage { order: 1; flex: 1; border: 0; min-width: 0; padding: 0; }
+  #game-shell .hud-stage b { font-size: 22px; }
+  #game-shell .hud-stage span { font-size: 7px; }
+  #game-shell .resources { order: 4; flex: 1 1 auto; width: auto; gap: 14px; }
+  #game-shell .resource b { font-size: 17px; }
+  #game-shell .resource .icon { width: 20px; height: 20px; }
+  #game-shell #hud-view { order: 2; }
+  #game-shell #main-menu-open { order: 3; }
+  #game-shell .wave-badge { order: 5; min-width: 77px; margin: 0; font-size: 10px; }
+  #game-shell .wave-badge b { font-size: 16px; }
+  #game-shell .map-controls { order: 6; gap: 4px; }
+  #game-shell .tower-dock { grid-template-columns: 44px minmax(0,1fr) 44px; grid-template-rows: 24px minmax(0,1fr) 52px; gap: 4px; padding: 5px 7px max(5px,env(safe-area-inset-bottom,0px)); }
+  #game-shell .tower-filters { grid-column: 1 / -1; grid-row: 1; justify-content: space-between; gap: 0; }
+  #game-shell .tower-filters button { min-height: 24px; padding: 4px 7px; font-size: 10px; }
+  #game-shell .tower-dock .tower-list { grid-auto-columns: 91px; }
+  #game-shell .tower-dock .tower-card { grid-template-rows: 36px 17px; }
+  #game-shell .tower-dock .tower-art { height: 36px; }
+  #game-shell .tower-dock .tower-info b { font-size: 13px; }
+  #game-shell .tower-dock .tower-cost { font-size: 11px; }
+  #game-shell .hud-commands { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: minmax(0,1fr) 44px 54px; border-left: 0; border-top: 1px solid #45616e; padding: 5px 0 0; gap: 6px; }
+  #game-shell .hud-commands .next-wave { display: grid; grid-template-columns: minmax(0,1fr); align-items: center; }
+  #game-shell .hud-commands .next-label, #game-shell .hud-commands .next-wave h3 { display: none; }
+  #game-shell .hud-commands .ability { width: 54px; min-width: 54px; height: 44px; min-height: 44px; flex-direction: row; gap: 3px; padding: 3px; }
+  #game-shell .ability small { font-size: 6px; max-width: 24px; line-height: 1.1; }
+  #game-shell .ability .ability-icon, #game-shell .ability .ability-icon .icon { width: 23px; height: 23px; }
+  #game-shell .hud-commands #wave-preview-open { height: 44px; }
+  #game-shell .view-controls { right: 6px; top: 102px; width: min(272px,calc(100% - 12px)); max-height: calc(100% - 108px); overflow-y: auto; }
+  #game-shell .build-panel { top: 102px; left: 6px; right: 6px; bottom: 172px; width: auto; }
+  #game-shell .tower-detail .tower-portrait { width: 68px; height: 80px; }
+  #game-shell .tower-detail .tower-portrait svg { width: 68px; height: 78px; }
+  #game-shell .tower-detail .detail-header h2 { font-size: 26px; }
+  #game-shell .pause-overlay { padding: 16px; }
+  #game-shell .pause-overlay h2 { font-size: 34px; }
+  #game-shell .pause-actions { margin-top: 12px; }
+}
+@media (max-height:520px) and (orientation:landscape) {
+  #game-shell { grid-template-rows: minmax(0,1fr) 88px; }
+  #game-shell .battle-bar { flex: 0 0 50px; height: 50px; min-height: 50px; padding: 3px 7px; gap: 5px; flex-wrap: nowrap; }
+  #game-shell .hud-stage { flex-basis: 145px; min-width: 90px; }
+  #game-shell .hud-stage b { font-size: 18px; }
+  #game-shell .hud-stage span { font-size: 7px; }
+  #game-shell .resources { gap: 9px; }
+  #game-shell .resource b { font-size: 15px; }
+  #game-shell .resource .icon { width: 18px; height: 18px; }
+  #game-shell .wave-badge { min-width: 85px; margin-right: 0; font-size: 11px; }
+  #game-shell .wave-badge b { font-size: 17px; }
+  #game-shell .tower-dock { grid-template-columns: 44px minmax(0,1fr) 44px 245px; grid-template-rows: 20px minmax(0,1fr); padding: 3px 6px; gap: 2px 4px; }
+  #game-shell .tower-filters button { min-height: 20px; height: 20px; padding: 2px 7px; font-size: 9px; }
+  #game-shell .tower-dock .tower-list { grid-auto-columns: 86px; }
+  #game-shell .tower-dock .tower-card { grid-template-columns: 33px minmax(0,1fr); grid-template-rows: 30px 16px; padding: 3px; }
+  #game-shell .tower-dock .tower-art { width: 33px; height: 30px; }
+  #game-shell .tower-dock .tower-info b { font-size: 12px; }
+  #game-shell .tower-dock .tower-cost { font-size: 10px; }
+  #game-shell .dock-scroll { width: 44px; min-width: 44px; }
+  #game-shell .hud-commands { grid-template-columns: minmax(0,1fr) 44px 50px; gap: 4px; padding-left: 6px; }
+  #game-shell .hud-commands .next-wave h3 { font-size: 15px; margin: 2px 0 4px; }
+  #game-shell .hud-commands .next-label { display: none; }
+  #game-shell .hud-commands .ability { width: 50px; min-width: 50px; height: 56px; min-height: 56px; }
+  #game-shell .ability small { font-size: 6px; }
+  #game-shell .build-panel { top: 56px; bottom: 94px; right: 6px; width: 280px; }
+  #game-shell .tower-detail .tower-portrait { display: none; }
+  #game-shell .view-controls { right: 6px; top: 56px; width: 264px; max-height: calc(100% - 62px); overflow-y: auto; }
+  #game-shell .pause-overlay { padding: 10px; }
+  #game-shell .pause-overlay h2 { font-size: 30px; margin: 7px 0; }
+  #game-shell .pause-actions { margin-top: 8px; }
+}
+@media (max-width:650px) and (orientation:landscape) {
+  #game-shell .hud-stage { display: none; }
+  #game-shell .wave-badge { min-width: 74px; }
+  #game-shell .tower-dock { grid-template-columns: 44px minmax(0,1fr) 44px 215px; }
+  #game-shell .hud-commands { grid-template-columns: minmax(0,1fr) 44px 46px; }
+  #game-shell .hud-commands .ability { display: flex; width: 46px; min-width: 46px; }
+  #game-shell .hud-commands .next-wave h3 { font-size: 14px; }
+  #game-shell .build-panel { width: 260px; }
+}
+@media (prefers-reduced-motion:reduce) { #game-shell .tower-list { scroll-behavior: auto; } }
+
+/* Touch targets stay large without adding another persistent HUD surface. */
+#game-shell .hud-commands .ability > .key { display: none; }
+@media (max-width:740px) and (orientation:portrait) {
+  #game-shell { grid-template-rows: minmax(0,1fr) 186px; }
+  #game-shell .battle-bar { display: grid; grid-template-columns: minmax(0,1fr) auto auto; grid-template-rows: 40px 44px; height: 96px; min-height: 96px; justify-content: stretch; gap: 2px 6px; }
+  #game-shell .hud-stage { grid-column: 1; grid-row: 1; order: 0; width: auto; }
+  #game-shell #hud-view { grid-column: 2; grid-row: 1; order: 0; justify-self: end; }
+  #game-shell #main-menu-open { grid-column: 3; grid-row: 1; order: 0; justify-self: end; }
+  #game-shell .resources { grid-column: 1; grid-row: 2; order: 0; width: 100%; flex: none; justify-content: start; gap: clamp(6px,2vw,14px); }
+  #game-shell .resource { gap: 5px; }
+  #game-shell .resource b { font-size: clamp(14px,4.2vw,17px); }
+  #game-shell .resource .icon { width: 17px; height: 17px; }
+  #game-shell .wave-badge { grid-column: 2; grid-row: 2; order: 0; min-width: 63px; font-size: 9px; }
+  #game-shell .wave-badge b { font-size: 14px; margin-left: 2px; }
+  #game-shell .map-controls { grid-column: 3; grid-row: 2; order: 0; }
+  #game-shell .tower-dock { grid-template-rows: 44px minmax(0,1fr) 52px; }
+  #game-shell .tower-filters button { height: 44px; min-height: 44px; padding: 4px 5px; }
+  #game-shell .hud-commands .ability { flex-direction: column; gap: 0; }
+  #game-shell .ability small { max-width: 48px; font-size: 6px; }
+  #game-shell .build-panel { bottom: 192px; }
+}
+@media (max-height:520px) and (orientation:landscape) {
+  #game-shell { grid-template-rows: minmax(0,1fr) 112px; }
+  #game-shell .tower-dock { grid-template-rows: 44px minmax(0,1fr); }
+  #game-shell .tower-filters { justify-content: space-between; }
+  #game-shell .tower-filters button { height: 44px; min-height: 44px; padding: 4px 5px; font-size: 9px; }
+  #game-shell .build-panel { bottom: 118px; }
+}
+/* A side palette gives short landscape windows more usable map height. */
+@media (pointer:coarse) and (min-width:741px) and (min-height:521px) {
+  #game-shell { grid-template-rows: minmax(0,1fr) 132px; }
+  #game-shell .tower-dock { grid-template-rows: 44px minmax(0,1fr); }
+  #game-shell .tower-filters button { height: 44px; min-height: 44px; }
+  #game-shell .build-panel { bottom: 142px; }
+}
+@media (max-height:520px) and (min-width:480px) and (orientation:landscape) {
+  #game-shell { grid-template-columns: minmax(0,1fr) 210px; grid-template-rows: minmax(0,1fr); }
+  #game-shell .battle-column { position: static; grid-column: 1; grid-row: 1; padding-top: 50px; }
+  #game-shell .battle-bar { position: absolute; inset: 0 0 auto; width: 100%; }
+  #game-shell .tower-dock { grid-column: 2; grid-row: 1; grid-template-columns: minmax(0,1fr); grid-template-rows: 44px minmax(0,1fr) 86px; margin-top: 50px; padding: 6px; gap: 6px; border-top: 0; border-left: 1px solid #65828a; }
+  #game-shell .tower-filters { display: block; grid-column: 1; grid-row: 1; }
+  #game-shell .tower-filters > button { display: none; }
+  #game-shell .tower-role-select { display: block; width: 100%; }
+  #game-shell .tower-role-select > span { display: none; }
+  #game-shell .tower-role-select select { display: block; width: 100%; height: 44px; min-height: 44px; padding: 8px; color: #e9d6a8; background: #183b49; border: 1px solid #6a8489; border-radius: 3px; font-size: 12px; }
+  #game-shell .tower-dock #tower-prev, #game-shell .tower-dock #tower-next { display: none; }
+  #game-shell .tower-dock .tower-list { grid-column: 1; grid-row: 2; grid-auto-flow: row; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: none; grid-auto-rows: 62px; grid-auto-columns: auto; overflow-x: hidden; overflow-y: auto; align-items: stretch; height: 100%; gap: 5px; padding: 0; scrollbar-width: thin; }
+  #game-shell .tower-dock .tower-card { grid-template-rows: 34px 17px; grid-template-columns: 36px minmax(0,1fr); padding: 4px; }
+  #game-shell .tower-dock .tower-art { width: 36px; height: 34px; }
+  #game-shell .hud-commands { grid-column: 1; grid-row: 3; display: grid; grid-template-columns: minmax(0,1fr) 44px 44px; grid-template-rows: 22px 44px; gap: 5px; padding: 6px 0 0; border-left: 0; border-top: 1px solid #52717a; }
+  #game-shell .hud-commands .next-wave { display: contents; }
+  #game-shell .hud-commands .next-wave h3 { display: block; grid-column: 1 / -1; grid-row: 1; margin: 0; align-self: center; font-size: 16px; }
+  #game-shell .hud-commands #start-wave { grid-column: 1; grid-row: 2; min-width: 0; font-size: 9px; padding: 6px 3px; }
+  #game-shell .hud-commands #start-wave .icon { width: 11px; height: 11px; }
+  #game-shell .hud-commands #wave-preview-open { grid-column: 2; grid-row: 2; }
+  #game-shell .hud-commands .ability { grid-column: 3; grid-row: 2; width: 44px; min-width: 44px; height: 44px; min-height: 44px; display: flex; flex-direction: column; gap: 0; padding: 2px; }
+  #game-shell .ability .ability-icon, #game-shell .ability .ability-icon .icon { width: 23px; height: 23px; }
+  #game-shell .ability small { font-size: 6px; }
+  #game-shell .build-panel { top: 56px; right: 216px; bottom: 6px; left: auto; width: min(300px,calc(100% - 222px)); }
+  #game-shell .tower-detail .tower-portrait { display: none; }
+  #game-shell .tower-intro { min-height: 0; }
+  #game-shell .view-controls { max-height: calc(100% - 62px); right: 6px; }
+}
