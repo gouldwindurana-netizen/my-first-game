@@ -1,0 +1,23 @@
+Image-generation art direction
+Reference: supplied Mossguard forest-and-ruins game screenshot.
+
+Common prompt: One isolated production sprite for Mossguard. Attached screenshot is STYLE/CAMERA reference only; ignore its crude flat tower. Match the surrounding detailed painted fantasy ruins: weathered gray stone blocks, ivy and moss, aged oak and brass, subtle blue/gold cloth, rich painterly texture, believable dimensional shading and sunlight upper left. Elevated three-quarter isometric view showing top and front/right faces. Compact readable silhouette, complete object with 12% clear padding, centered bottom base. TRUE transparent background, NO terrain tile, no scenery, no labels, no border, no cartoon outlines, no flat vector polygons. Square canvas.
+
+Subjects:
+Archer: round crenellated stone watchtower, wooden archer platform, mounted crossbow aiming upper-right, tiny blue pennant.
+Cannon: squat weathered stone artillery bastion, large bronze and iron cannon aiming upper-right, oak carriage, iron bracing, cannonballs.
+Mortar: squat circular masonry siege emplacement, broad short bronze mortar tilted steeply upwards, iron pivots, oak supports.
+Frost: ancient mossy shrine, three pale blue ice crystals, frost runes, cold halo.
+Earth: ancient stacked stone golem totem, carved face, earth runes, roots and moss.
+Arcane: slender ruined wizard tower, violet crystal above a gilded ritual crown, blue banner.
+Tesla: stone tower, copper coils and bronze braces, charged blue-white metal sphere, small lightning arcs.
+Venom: medieval alchemist tower, copper pipes, green glass poison vats, small peaked roof.
+Prism: carved stone pedestal, brass focusing frame, pale opalescent prism, holy light.
+Trap: low circular iron-and-stone pressure trap, hinged steel teeth, bronze mechanisms, moss edges.
+Sonic: masonry tower, large curved bronze acoustic horn pointing upper-right, rune bands, oak braces.
+Barracks: stone military gatehouse, wooden door, crenellations, blue/gold pennants, slate roof, weapons rack.
+Void: tapered cracked charcoal obelisk, violet fissures, runes, dark violet orb.
+Solar: weathered stone shrine, bronze sun crown, golden core, controlled flames.
+Chrono: mossy clock tower, antique brass clock face, teal glass hourglass, bronze gears, blue banners.
+Truesight: stone lookout, gold-green eye lens in a brass arch, banners, engraved runes.
+Nexus: ancient stone arcane tower, cyan/violet/gold floating crystals around a pale violet energy heart, golden ribs.

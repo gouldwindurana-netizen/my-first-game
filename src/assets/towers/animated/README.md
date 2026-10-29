@@ -1,26 +1,31 @@
-# Mossguard — 17 tower animation assets
+# Mossguard — Painted forest ruins / revision 2
 
-New stylized vector designs matched to the 17 base tower identities in the supplied mossguard.html. These are an asset pack, not a modified game. Upgrade branches and tier variants are not separate designs in this pack.
+17 redesigned tower sprites matching the supplied map's weathered medieval ruins, moss, ivy, aged timber and brass, and blue-and-gold banners. Replaces the previous flat vector artwork.
 
-Open preview.html after extracting the entire ZIP. It works locally without a web server. Choose idle/attack, pause, scrub, or slow down playback. tower-catalog.png shows all designs.
+## Preview
+Extract the full ZIP and open preview.html. Choose idle or attack, pause, scrub the 30 frames, or slow playback. tower-catalog.png shows the full collection.
 
 ## Contents
-- 34 transparent PNG sprite sheets: idle + attack for every tower.
-- 1,020 individual transparent PNG frames.
-- Editable SVG sheets and 17 individual SVG designs.
-- manifest.json with IDs, paths, dimensions, frame timing, and anchor.
-- phaser-integration.js with preload, animation registration, and sprite helpers.
-- source/build_assets.py to reproduce the assets (Python, Pillow, Inkscape).
+- 17 transparent painted PNG masters, up to 424 × 432 pixels.
+- 17 transparent 256 × 256 placement sprites in icons/.
+- 34 PNG animation sheets: idle + attack for each tower, 30 frames per sheet.
+- 1,020 animation frames contained in the sheets; source/export-frames.cjs can export individual PNGs.
+- manifest.json, Phaser helpers, and animation build source.
 
-## Timing and layout
-Every animation contains 30 frames sampled at 30 FPS, lasting exactly one second. Sheets are 10 columns × 3 rows, row-major, 2560 × 768 pixels; each frame is 256 × 256. Frame duration is 1/30 second. Playback index is floor(elapsedSeconds * 30). Idle wraps modulo 30; attack plays once and returns to idle. Attack is deliberately looped in the preview for inspection.
+## Animation and placement
+256 × 256 frames, 10 columns × 3 rows, row-major. Exactly 30 FPS, 1 second per sequence. Idle loops; attack plays once and returns to idle. The preview repeats attack for inspection. Foundation anchor is (128,230), normalized (0.5,0.8984375).
 
-Animation is generated from smoothly interpolated transform/effect keyframes (smoothstep), with continuous cyclic rotations for orbiting elements. This is geometric interpolation, not optical-flow interpolation of painted images. The foundation remains fixed; mechanical recoil, floating crystals, flags, clock hands, energy pulses and orbiting particles animate as appropriate. Start/end poses match at t=0 and t=1; frame 30 is omitted to avoid duplicating the loop boundary.
+Masonry stays stationary. Animations use smoothly interpolated light and attack-effect envelopes, with cyclic elemental motes, poison bubbles, electrical arcs, muzzle flashes, sonic waves, and quake rings. These are effect animations composited over stable painted sprites, not individually repainted mechanical or character animation. No optical-flow interpolation is claimed. Idle and attack agree at the loop boundary.
 
-All towers use a shared placement anchor: (128, 209.92), normalized (0.5, 0.82). Recommended game display width: 80–112 pixels, adjusted to your map. Supplied shadows are translucent; the surrounding canvas is fully transparent. PNGs use straight alpha.
+Render at about 80–112 pixels wide and adjust to the map's placement pads. Trap is deliberately much lower. Keep the existing game's attack cooldowns and damage logic separate from visual playback.
 
-## Integration
-Load phaser-integration.js before using its helpers. Call preloadMossguardTowers in scene.preload, createMossguardTowerAnimations in scene.create, then addMossguardTower(scene, 'archer', x, y). Trigger the attack animation from your existing attack event. Keep all simulation, cooldowns and targeting in your existing game code. The source HTML is a compiled bundle, so no automatic replacement of its internal renderers is included.
+## Phaser
+Include phaser-integration.js. Call preloadMossguardTowers(this) in preload(), createMossguardTowerAnimations(this) in create(), and addMossguardTower(this, 'archer', x, y). From your firing event, call sprite.play('mg-archer-attack'). Change the ID for other towers. Serve the asset folder from the URL supplied to the loader.
 
-## Regeneration
-Run `python source/build_assets.py` from this extracted folder. It requires Pillow and the Inkscape CLI in PATH. The SVGs are the editable artwork masters; PNGs are their raster exports.
+This ZIP contains replacement assets; it does not modify the compiled mossguard.html. Base towers only; upgrade branches are not separate artworks.
+
+## Rebuild / export
+Node.js with @napi-rs/canvas and sharp is required for regeneration. Run `node source/build.cjs` to rebuild from masters. Run `node source/export-frames.cjs` to extract all frames. The preview itself needs no dependencies or server.
+
+## Artwork production
+Painted tower masters were created with the built-in image-generation tool using the supplied game screenshot as camera, lighting and material reference. Each of the 17 tower identities received its own generation request. See source/art-direction.txt for the prompt specification. The animation source preserves the generated alpha channel and normalizes each silhouette to a shared ground anchor.

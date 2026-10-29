@@ -1,14 +1,14 @@
 {
-  "version": 1,
-  "title": "User-provided Mossguard 17 tower animations",
-  "sourceArchive": "Mossguard_17_Towers_30FPS.zip",
-  "sourceArchiveSha256": "58980fc30c7884c4b05fa09318af34cbcd93cc9e6da883563f12694bd2691874",
-  "integrationDate": "2026-10-28",
-  "source": "User supplied this archive and explicitly authorized its tower artwork for this game.",
+  "version": 2,
+  "title": "User-provided Mossguard painted tower artwork, revision 2",
+  "sourceArchive": "Mossguard_17_Towers_Painted_30FPS (1).zip",
+  "sourceArchiveSha256": "653c26fd889641904f52dbc3f66523e64b5d3ba0e98fd6104abcb6bc1d1310d1",
+  "integrationDate": "2026-10-29",
+  "source": "User supplied this archive and explicitly requested its integration into this game.",
   "license": "No separate license file was supplied. No CC0 or other license grant is asserted for these files.",
-  "processing": "Original PNG sheets, manifest, README, catalog, and 30 individual earth idle PNG frames extracted byte-for-byte. ZIP entries were checked for traversal and symlinks. Bundled scripts and HTML were not extracted or executed. Original bytes are retained unchanged; runtime copies are normalized as recorded in normalization.json.",
-  "mapping": "All 17 source IDs exactly match catalog IDs; every family has one idle and one attack sheet.",
-  "tiers": "The archive has no separate tier or specialization drawings. Gameplay tiers share the supplied family design, with size, pips, branch badges, and upgrade effects retaining progression cues.",
+  "processing": "72 selected data files extracted byte-for-byte after checking archive integrity, paths, duplicate names, symlinks, and full RGBA PNG decoding. Bundled JavaScript generators, integration helpers, and preview HTML were not extracted or executed. Original PNGs are retained unchanged; runtime copies are normalized as recorded in normalization.json.",
+  "mapping": "All 17 source IDs exactly match catalog IDs; every family has one idle and one attack sheet, one icon, and one painted master.",
+  "tiers": "No separate tier or specialization drawings were supplied. Existing tier sizes, pips, badges, and upgrade effects remain.",
   "animation": {
     "fps": 30,
     "framesPerClip": 30,
@@ -18,349 +18,379 @@
     "frameHeight": 256,
     "anchor": {
       "x": 0.5,
-      "y": 0.82
+      "y": 0.8984375
     },
     "idle": "loops",
     "attack": "one second, then returns to idle; genuine attacks restart the clip",
+    "method": "stationary painted masonry with authored effect envelopes and cyclic particles",
     "reducedMotion": "holds first idle frame"
   },
-  "preserved": "Maps, enemy imagery and walking cycles, gameplay rules, and audio retain their prior sources.",
+  "replaces": {
+    "sourceArchive": "Mossguard_17_Towers_30FPS.zip",
+    "sourceArchiveSha256": "58980fc30c7884c4b05fa09318af34cbcd93cc9e6da883563f12694bd2691874",
+    "retention": "Prior source artwork and Earth repair remain in Git history; the active asset directory contains the painted revision."
+  },
+  "preserved": "Maps, enemy imagery and walking cycles, gameplay rules, progression, and audio retain their prior sources.",
   "files": [
     {
       "file": "README.md",
-      "bytes": 2636,
-      "sha256": "14b164542b9a8346d37f9f636ffa3533851b094aea0c0d54d024d58affc15804"
+      "bytes": 2843,
+      "sha256": "e6212968917663d45b4efa5f7a435ae2a3ccb19f9420b04eeff84bd953a4f320"
+    },
+    {
+      "file": "icons/arcane.png",
+      "bytes": 54011,
+      "sha256": "f5b0f0a7b246edeec9c920237acbf3621e2bc21521435a2d08dfb517e211fb96"
+    },
+    {
+      "file": "icons/archer.png",
+      "bytes": 63140,
+      "sha256": "d60f1ac46bd726380dda41d41c96fba684cf06d2a4fab09f657b456fb9cc85b1"
+    },
+    {
+      "file": "icons/barracks.png",
+      "bytes": 91005,
+      "sha256": "e3db3e7aed0cd1544f25ce4eaadf1e3347a420d4f0f810494522ee88b7fb8e42"
+    },
+    {
+      "file": "icons/cannon.png",
+      "bytes": 95131,
+      "sha256": "fc1cdcb5a2d9a1be894e6f80f7fc8d824e3e5b45a1247c07b6c0355f36e88186"
+    },
+    {
+      "file": "icons/chrono.png",
+      "bytes": 63646,
+      "sha256": "59cba66762d78dbd3cd6ffa3711a507faa743b09e2c80c5f57c6c50548cd89bc"
+    },
+    {
+      "file": "icons/earth.png",
+      "bytes": 70191,
+      "sha256": "2d1a39ddcf2766e92d66ba95f6757fd259e0b86ce546bc7fd1d35576f949c577"
+    },
+    {
+      "file": "icons/frost.png",
+      "bytes": 73591,
+      "sha256": "04696f8b3355913fbd63b85dcf2c3d82cbcdeff4515e635a1dccdc92bb329969"
+    },
+    {
+      "file": "icons/mortar.png",
+      "bytes": 95086,
+      "sha256": "5d74eb7c54e0f36549f0f0bd53c2b86fef2d1316ffb7cb0c3b306c68584101c9"
+    },
+    {
+      "file": "icons/nexus.png",
+      "bytes": 76246,
+      "sha256": "7a46aed7bf39d0b183af4a75629bf42ccac04e501d96c6321ee8d4728733296c"
+    },
+    {
+      "file": "icons/prism.png",
+      "bytes": 65154,
+      "sha256": "c00813f8cdb9003026bcb1fc047ed8f3f463e25c8c440f18dde97da89fc6bd6a"
+    },
+    {
+      "file": "icons/solar.png",
+      "bytes": 64001,
+      "sha256": "718ee8ee98fafe42f2a8460f465d245ab81465eb3d9e5c53b16d75fd0e79a8bb"
+    },
+    {
+      "file": "icons/sonic.png",
+      "bytes": 69105,
+      "sha256": "78f44d737eb9ac8831924afabd2b1bf669e54c7aa88b410d732d79b942f8e100"
+    },
+    {
+      "file": "icons/tesla.png",
+      "bytes": 60189,
+      "sha256": "022959087693c17e6f708c945b1ba10ce198c3f43330981306b03c0e0fbd2446"
+    },
+    {
+      "file": "icons/trap.png",
+      "bytes": 37653,
+      "sha256": "adbae5089c06e780c884a95b74d0878d4d69e6711fd71df56651ce17157f870b"
+    },
+    {
+      "file": "icons/truesight.png",
+      "bytes": 66032,
+      "sha256": "4ea8ada0575ee2856ef0ca2559437ce42da11a631c99336a561418f208c8cfae"
+    },
+    {
+      "file": "icons/venom.png",
+      "bytes": 72392,
+      "sha256": "ea69559fffaf9dadff78c52e90474fce50cc1e76e894ed835048be8264bac0a5"
+    },
+    {
+      "file": "icons/void.png",
+      "bytes": 47644,
+      "sha256": "a16c6665685eea33b4f6759d006c9048648acdc75cd11a071f9e58d32eff97f5"
     },
     {
       "file": "manifest.json",
-      "bytes": 3186,
-      "sha256": "f48fa858fa0ce6e372c65c2dd2057bd0bbfaf666a27ddf18c9a719d29820c15e"
+      "bytes": 2828,
+      "sha256": "d91374aa10e39de1467a4986c1ebb3b90f01bec57039332f09b74f90c29aac1e"
+    },
+    {
+      "file": "masters/arcane.png",
+      "bytes": 219150,
+      "sha256": "6f70c9a94e7b8718a0329d9ff83b7970fd48fe89688216067850765c6aaf209c"
+    },
+    {
+      "file": "masters/archer.png",
+      "bytes": 271023,
+      "sha256": "a47643e91f4c42cda7a0300877fed626c34b35a30aa74c24cb9c74ca66c0b350"
+    },
+    {
+      "file": "masters/barracks.png",
+      "bytes": 394633,
+      "sha256": "1b8b529689632c891b301bbe4ad3e6bb596b1f4e0851ac90f08a6d47ac5f8871"
+    },
+    {
+      "file": "masters/cannon.png",
+      "bytes": 417717,
+      "sha256": "458275a5720d0334b5c5580cba95ade99b9bbea9565d02525477d987f58e7338"
+    },
+    {
+      "file": "masters/chrono.png",
+      "bytes": 265066,
+      "sha256": "7e764478e8823232a2add6e918f691eec056a32958336da67a56c2a539cef1ee"
+    },
+    {
+      "file": "masters/earth.png",
+      "bytes": 301684,
+      "sha256": "17b70d1452f0b574469e60c768e5be1b88007e320bf5dfbfd41d5f6d24a134a5"
+    },
+    {
+      "file": "masters/frost.png",
+      "bytes": 304226,
+      "sha256": "1dc4d415ac335d3bfa1e334ac9bb3203cae0046add13210c66b8efebe6acac2b"
+    },
+    {
+      "file": "masters/mortar.png",
+      "bytes": 422965,
+      "sha256": "19b8d3a46bced22166b860da7041957d62cb72090a05d616ee5190ecf04c64ce"
+    },
+    {
+      "file": "masters/nexus.png",
+      "bytes": 327601,
+      "sha256": "6e7c7ad43372a6c315e86bde1607d20b711a05c98f17362c22ac87027525f259"
+    },
+    {
+      "file": "masters/prism.png",
+      "bytes": 276459,
+      "sha256": "e9e3efd62f0f9f9ffaff7391fbe2b240b0d964612e75f1b95136b5cd76325469"
+    },
+    {
+      "file": "masters/solar.png",
+      "bytes": 267246,
+      "sha256": "5e5fe68df4672c40fd5b6b0d8120632765c7833c51d39223303d864378b1db01"
+    },
+    {
+      "file": "masters/sonic.png",
+      "bytes": 297657,
+      "sha256": "2cb24944da4f4f7b01dbbd4a9ef43dc09b48fa054021e64ee96409c2f9cc081d"
+    },
+    {
+      "file": "masters/tesla.png",
+      "bytes": 245963,
+      "sha256": "901df932a6caaecac479b64de7d6b1dca6d385b1bd8386cf088f92be63f88b29"
+    },
+    {
+      "file": "masters/trap.png",
+      "bytes": 151381,
+      "sha256": "8754b5cbb4f0edfef855eb831eb4a592ebb06c10664fdd124bce80e7f2b28fde"
+    },
+    {
+      "file": "masters/truesight.png",
+      "bytes": 280551,
+      "sha256": "3058b1822ab275ae0a67fc5975cdd143b6784da3be7b6e854e1026f5dc50c608"
+    },
+    {
+      "file": "masters/venom.png",
+      "bytes": 309729,
+      "sha256": "eabe4b01942e0ef82c9ea6217d55fd83a6206524b02e0a258818a3b9be101694"
+    },
+    {
+      "file": "masters/void.png",
+      "bytes": 197516,
+      "sha256": "cf6b08207b50098606c567b52ed6ab704c7ac3fc76d8e89134fad3a9930af765"
     },
     {
       "file": "sheets/arcane_attack.png",
-      "bytes": 250911,
-      "sha256": "f71c3faf3ab9bef1a6be4a6bcce9fb5e796db7c558a1603a993666403b4ff8a5"
+      "bytes": 312610,
+      "sha256": "d2cb40ebbfef52e725eb67cbf8c24bab47f7691ba64f0d127d8a3580b52d0070"
     },
     {
       "file": "sheets/arcane_idle.png",
-      "bytes": 214213,
-      "sha256": "34c4f238256b4d4e73a38919f0336ab43149bb1c4eccb7d96217d033896dec9b"
+      "bytes": 257959,
+      "sha256": "122799550d8bd9942162dd41f9f977ec55c13b99a5a94e0b41ef3ff620a660a9"
     },
     {
       "file": "sheets/archer_attack.png",
-      "bytes": 258288,
-      "sha256": "e64bca684bb43afb9446fe3e603e891114c8619ce7bd9e7861cc27cfca9d59ef"
+      "bytes": 251127,
+      "sha256": "12c669a1ebba848eee5ee5bacdb21bfe8a49ac8effae576c4ecf8887bc683e1a"
     },
     {
       "file": "sheets/archer_idle.png",
-      "bytes": 207694,
-      "sha256": "fc40b11176088284ddd75b95b38dcd94e834a215779ee488f71fe9a71b7021ab"
+      "bytes": 249982,
+      "sha256": "0fef361dce9314853c68b44271391163eafdbff5e02e044d9629b6b5dbb4d6a7"
     },
     {
       "file": "sheets/barracks_attack.png",
-      "bytes": 226439,
-      "sha256": "69ba812c8f7179fa7ab35650723c86abf2093f0574792847de721ccad9b53ac4"
+      "bytes": 403213,
+      "sha256": "5fc32be9430e4d3098c54136fd22532f0fc846b83188022b1e0ce93c44c40348"
     },
     {
       "file": "sheets/barracks_idle.png",
-      "bytes": 177021,
-      "sha256": "abbfc78c6ff72a8efc1aa33a6a6687d57e0b54d89ace7c58aa218bc6c36cc0a4"
+      "bytes": 348680,
+      "sha256": "de82f70c36af55dc7cf391194c01feb5a445d1ea2540f8167d2280024ea74e68"
     },
     {
       "file": "sheets/cannon_attack.png",
-      "bytes": 249529,
-      "sha256": "b24682bcbe758e80a90425920e4c74ea8e27e2078b4e8854ff588d8aeee41329"
+      "bytes": 423600,
+      "sha256": "84a2fc306118812f9e60630f28951e3c6713d04018172d52e456a6bd5ff917d6"
     },
     {
       "file": "sheets/cannon_idle.png",
-      "bytes": 231511,
-      "sha256": "66a975e287204220ed67e34837a25e5b171dc38f57ebd4161e86f3980a99a235"
+      "bytes": 366602,
+      "sha256": "a8a6f675c8c755b980bce8e046151ae26050bd1ce62ac59d381338dcd98057f0"
     },
     {
       "file": "sheets/chrono_attack.png",
-      "bytes": 307232,
-      "sha256": "43e50aa5548e108e014e9436bd1624d8f84d9d3e51ca9e56f27fca69d34fa658"
+      "bytes": 347096,
+      "sha256": "0af598a5d703c509a9bfa3825b60248cb75cf94a0eac486c349eb10624a768fb"
     },
     {
       "file": "sheets/chrono_idle.png",
-      "bytes": 259927,
-      "sha256": "aec4b19ab67ebb3917d21edf37d83bf48758b684a8d05c1aeecc6e3029ed241a"
+      "bytes": 294830,
+      "sha256": "e625e504983703c5e189a4dd883a989e142303a3212f11f8e009f9b34aab33ee"
     },
     {
       "file": "sheets/earth_attack.png",
-      "bytes": 249546,
-      "sha256": "5fb040e18fb1b486f92498c8fdbf08e558f1e39a041a9e00bd6f8eb92b1c5557"
+      "bytes": 371547,
+      "sha256": "a2c82ebc5778b22ab0e9d605199db89e9c8df51e931fb1720ca218d6eee19463"
     },
     {
       "file": "sheets/earth_idle.png",
-      "bytes": 196608,
-      "sha256": "f06bd67939d9e378660fbcfbfa6044eb92c1328ca63118e11f13feb12bd42866"
+      "bytes": 321110,
+      "sha256": "48dc07fafb6fe3eff64b58cf575101081f6dfabf7da34a18b8165a85ba4248cc"
     },
     {
       "file": "sheets/frost_attack.png",
-      "bytes": 251651,
-      "sha256": "b55d0ce6efec2fa390a52572c54e5aad9ff7d7d476a1570dd2d5daf891b9ca6e"
+      "bytes": 369747,
+      "sha256": "b9cc279057c6bc5c7f2b34e9b1a7faff79a528ac1b38a492134b1ec7cf60987e"
     },
     {
       "file": "sheets/frost_idle.png",
-      "bytes": 213750,
-      "sha256": "838c1d7f9ea55ad5ecd84e57ea69e641f95329a55282a1c85d74fc93d7a33081"
+      "bytes": 316127,
+      "sha256": "242cc012c1487a310e854d3f2602a06a65e3d920c6a8c4ca86a77eac8b258d59"
     },
     {
       "file": "sheets/mortar_attack.png",
-      "bytes": 202673,
-      "sha256": "5164c88f731b19c073807958083454ef9547b50a9cf4419b8778fe39dc70a096"
+      "bytes": 429169,
+      "sha256": "db935aff6c2a404f04e7e2c8638d425a15932e637b005f6bf67537f9be99f106"
     },
     {
       "file": "sheets/mortar_idle.png",
-      "bytes": 186686,
-      "sha256": "06ea1e3b1ae7b533b3baac7c0d84d5dfaa1631309929b64059a304c255c79d7c"
+      "bytes": 369756,
+      "sha256": "9ad5b8010f2dce779f71552222fdfe8558d3909649248bc499136ce758928d61"
     },
     {
       "file": "sheets/nexus_attack.png",
-      "bytes": 301233,
-      "sha256": "8af3e097a7f65f74f8cb634b8844e038e98a1500c94dc7c43610c77dea618136"
+      "bytes": 395373,
+      "sha256": "f49325d45729ed4f9817f86b464bd29d751aac33433aef542e669bcb88a829ca"
     },
     {
       "file": "sheets/nexus_idle.png",
-      "bytes": 269719,
-      "sha256": "199e7ee52ab3ddeaeb5549f0a43cab2eb9008f4053b50f05fa9ffad8949ef0f3"
+      "bytes": 342255,
+      "sha256": "082632b9b9c2d86e2d1cf0f56704a6efbb955ff121b1b79cfc2951bbfea9251e"
     },
     {
       "file": "sheets/prism_attack.png",
-      "bytes": 208736,
-      "sha256": "e0e452f2bab76d31677be9c5b605022e648992c859fd0f77cfc3fa5985db6ce9"
+      "bytes": 352006,
+      "sha256": "b95442847abb50728de1a5a8f045a058fad332636c41087c0f33b26b5f73057b"
     },
     {
       "file": "sheets/prism_idle.png",
-      "bytes": 165724,
-      "sha256": "528a7bd499bf5914352a9a2a076a8a5775d99b65ac4891b285222058b905abe7"
+      "bytes": 297083,
+      "sha256": "5de6cce0c86b0efeb5d2fbbabb7a8efd50c176bb24b9c991cec700f5150721d3"
     },
     {
       "file": "sheets/solar_attack.png",
-      "bytes": 265279,
-      "sha256": "5ef83fea08f3cc0c2377d3ad0e137dcd23c50a2098a42d404b020c3cbbfb784f"
+      "bytes": 370358,
+      "sha256": "0f9b97403059a52d8c461ac67b2bd901f4dae2c9340b4688b555b0163acdb946"
     },
     {
       "file": "sheets/solar_idle.png",
-      "bytes": 224402,
-      "sha256": "cc1d6aa69cc7943223e1ca55e9a3000e359b35c0388090810c3045de05b7e592"
+      "bytes": 320763,
+      "sha256": "4630ab81244435172dc5fdbd1378c36fdf5935d3cb2aacec304aaf575cc2df62"
     },
     {
       "file": "sheets/sonic_attack.png",
-      "bytes": 242577,
-      "sha256": "78ffbad10198fcabca85e1b6a581f23680cbda40bb2c52bf9d887fa609f7debd"
+      "bytes": 364233,
+      "sha256": "9d2212aac34fd161768cc8e08a321f89554c116d327b3581fa2efdff6f2c9a6a"
     },
     {
       "file": "sheets/sonic_idle.png",
-      "bytes": 192119,
-      "sha256": "2d352f1775b4215415db9910cc6e867be7e82c89d2240275d5aeab3dbd270d63"
+      "bytes": 322420,
+      "sha256": "b3e6053eb5b52f1541dace82742dcb9d7e243b8b24f87d267240d6effc2a54d7"
     },
     {
       "file": "sheets/tesla_attack.png",
-      "bytes": 301794,
-      "sha256": "cf62a63527b6e839799ae9b7970db42f03fffad6a25dcd98c6620f93d329aa83"
+      "bytes": 336396,
+      "sha256": "7cca87a40ddfb4f7084c5c088382956c5aed080aadf163ceae43d5b70dc9abc4"
     },
     {
       "file": "sheets/tesla_idle.png",
-      "bytes": 253234,
-      "sha256": "c2b6c01fb8d7758665164cb294ef8c1b634cf0225297c29f39e250502dd92943"
+      "bytes": 281941,
+      "sha256": "5fafabdafd01163a3bd87b7f0c86c3f338ef17b60733001e4ffcc54de747a4ca"
     },
     {
       "file": "sheets/trap_attack.png",
-      "bytes": 164686,
-      "sha256": "aa2085bfe53806a1ab0d6f44c107d2224615e8c0cc3d2a4de29059c87b0b6a7c"
+      "bytes": 181020,
+      "sha256": "39728949ae8a5768a8f9c0d4a4f499bbedd88f697497440888e6b29a019e0342"
     },
     {
       "file": "sheets/trap_idle.png",
-      "bytes": 151843,
-      "sha256": "533bd7798eb920867852065d614f31bc2a0a675949d9d7a4b8a9813ea73d7a33"
+      "bytes": 146784,
+      "sha256": "66daa1a51f23bc7077c944599a1603787cfc5889b2397212c91b7f9d82d4ac41"
     },
     {
       "file": "sheets/truesight_attack.png",
-      "bytes": 276787,
-      "sha256": "7dd5546210a61e17b442979fe9eecbd2c3fd053dadd440a9281f12a182522e8d"
+      "bytes": 359932,
+      "sha256": "ed63602a09f4901d89807a0e3829d86be0b65d47404acf43a0cae65a7834bdc8"
     },
     {
       "file": "sheets/truesight_idle.png",
-      "bytes": 224800,
-      "sha256": "0faaebdeedcce328d642b9732ea295f62114393335dc1c8ef120d364eb5245ca"
+      "bytes": 306814,
+      "sha256": "b8fe2a874a5246fe5e88b84ba025d7b0ee1104e44ca990313a633fe6500cde0a"
     },
     {
       "file": "sheets/venom_attack.png",
-      "bytes": 236987,
-      "sha256": "2b2fb0634620a9d42a609cdbe60275fc497f4f99f760d3277e6f9fd80b2006ff"
+      "bytes": 382426,
+      "sha256": "d629641b1dd0bfeee65a08f3e15fd0a77140a3d6b58c613b1f481ce2355385a1"
     },
     {
       "file": "sheets/venom_idle.png",
-      "bytes": 197049,
-      "sha256": "767dc22c8929aa991aacf2422649e9210b07bc36755e50abf32c586601e67961"
+      "bytes": 329633,
+      "sha256": "4c58d8084f28c79356075be724bde9da1f5dfd7f64ac35184f2f9fb5539c99fa"
     },
     {
       "file": "sheets/void_attack.png",
-      "bytes": 242067,
-      "sha256": "ff08ea89c34fa6d20a0b7c6418d5e18eeac62bd4d7b3ceaead4b5c6a93dfea47"
+      "bytes": 294089,
+      "sha256": "68de90be0af9420c2b82511f1196d59bbd26010610e887337face3136195abf9"
     },
     {
       "file": "sheets/void_idle.png",
-      "bytes": 203751,
-      "sha256": "d608ccc5428e46c1d7f49c3b9958feead4dd136aab6fb84fbcfdc8e0256e7a45"
+      "bytes": 240418,
+      "sha256": "e826afb326cffdde0edeea04d4052954dac882598e07212f68ed28cd0b41adc4"
+    },
+    {
+      "file": "source/art-direction.txt",
+      "bytes": 2494,
+      "sha256": "1b831174085e1731f833687381a01e839cd4a6b60a6223c17606f1ef3605beb0"
     },
     {
       "file": "tower-catalog.png",
-      "bytes": 159820,
-      "sha256": "dc62185f9f1decf55b26cac9b63f187dab71a80eed879bbe5bb40dcae288df5c"
-    },
-    {
-      "file": "reference-frames/earth/idle/000.png",
-      "bytes": 15372,
-      "sha256": "d4c1b1163d929314b585076e031b1aa01ed4f9e6a86383a0069d4e97e6aee404"
-    },
-    {
-      "file": "reference-frames/earth/idle/001.png",
-      "bytes": 15344,
-      "sha256": "84d3d45a7374c1c6b1400e2ffd87a2fa3411a40996b2647a3da1370cf010e79c"
-    },
-    {
-      "file": "reference-frames/earth/idle/002.png",
-      "bytes": 15248,
-      "sha256": "5f455d55722d9e1cf1da893fbb552072a600ac75c7b5b465883b484d30c4f29e"
-    },
-    {
-      "file": "reference-frames/earth/idle/003.png",
-      "bytes": 15405,
-      "sha256": "9f79cc4e724ac66d692947dc196936d999b8bc1df977263c566cd4b6208aea1e"
-    },
-    {
-      "file": "reference-frames/earth/idle/004.png",
-      "bytes": 15439,
-      "sha256": "e00df51b1f910365e232e95859be03df79cafe25e26fe1c274095fb79c0b7748"
-    },
-    {
-      "file": "reference-frames/earth/idle/005.png",
-      "bytes": 15419,
-      "sha256": "e8a9c909ec3f21b7592ab4f4b541afdd4f11b4c996aa463f7c0155c197b590d5"
-    },
-    {
-      "file": "reference-frames/earth/idle/006.png",
-      "bytes": 15425,
-      "sha256": "bc2ab29ce5e353e24eb2497e99ffbdc588093cd996c961c0257fd06e020c1d1f"
-    },
-    {
-      "file": "reference-frames/earth/idle/007.png",
-      "bytes": 15397,
-      "sha256": "56e0878ac26b88098164771962d524fbba461062c5a8f0a4f756b2d538e01a97"
-    },
-    {
-      "file": "reference-frames/earth/idle/008.png",
-      "bytes": 15301,
-      "sha256": "51661b8712590d11ac444444779e822c23007ace2945efeca3bb8d783f01eea4"
-    },
-    {
-      "file": "reference-frames/earth/idle/009.png",
-      "bytes": 15394,
-      "sha256": "532c1b07a405abb43f05d4a753aee40962327cfdd786d4157f325b1095aaae0b"
-    },
-    {
-      "file": "reference-frames/earth/idle/010.png",
-      "bytes": 15421,
-      "sha256": "2ca87d37af0efe55eaa2bf4c603131f1bfc54394a02d0c3bba1ba08b633ae31a"
-    },
-    {
-      "file": "reference-frames/earth/idle/011.png",
-      "bytes": 15433,
-      "sha256": "77785d145df39344a4f563ed05b4c2aa9b081c377824e8399436c8390c2053d2"
-    },
-    {
-      "file": "reference-frames/earth/idle/012.png",
-      "bytes": 15326,
-      "sha256": "40f74662f197bd35d603e6739eb88d37159eb3ca0aa94e1e56c3d47197db8750"
-    },
-    {
-      "file": "reference-frames/earth/idle/013.png",
-      "bytes": 15346,
-      "sha256": "6c592093fb23e15cc2e2fd68a3e2a673e68390bc656b87889e8c785cd1269710"
-    },
-    {
-      "file": "reference-frames/earth/idle/014.png",
-      "bytes": 15333,
-      "sha256": "6d3512ca0cbc7fb9a67d720de513346375d339dab1180f9d13604fd53c3ec093"
-    },
-    {
-      "file": "reference-frames/earth/idle/015.png",
-      "bytes": 15370,
-      "sha256": "88bd2da2195bb03cefa0159794df885acdd895016945ddc23c591300f83203e9"
-    },
-    {
-      "file": "reference-frames/earth/idle/016.png",
-      "bytes": 15330,
-      "sha256": "f1f38a46010f261c1a5c265a2a152e67c9ccff9f9ff7650c59f7fe204c79b685"
-    },
-    {
-      "file": "reference-frames/earth/idle/017.png",
-      "bytes": 15344,
-      "sha256": "a13a081f6bea021c3fda97d2f2b8393a931afee62a0cbd3af589c0e862d39243"
-    },
-    {
-      "file": "reference-frames/earth/idle/018.png",
-      "bytes": 15232,
-      "sha256": "439092e062369d8cc858d0fd74655979782867ebb87fc0d459293fcb900ee00d"
-    },
-    {
-      "file": "reference-frames/earth/idle/019.png",
-      "bytes": 15264,
-      "sha256": "d4758afbbbfe46eed436e31cfbaad1d7a75679e99f431458b268558c75adea8f"
-    },
-    {
-      "file": "reference-frames/earth/idle/020.png",
-      "bytes": 15259,
-      "sha256": "2a200137e2c48779dcf956e5a716212ec5fe91a63c45f40965296e55a4ae0559"
-    },
-    {
-      "file": "reference-frames/earth/idle/021.png",
-      "bytes": 15284,
-      "sha256": "98e48857600b19cb03c019c8056f25d3f9926a304cd36be78bd8711359b51b5f"
-    },
-    {
-      "file": "reference-frames/earth/idle/022.png",
-      "bytes": 15235,
-      "sha256": "5bd30c5bbf24fa38432b9319cf5798dd3ae2d2943d284baeaa1e90d7853ce4a8"
-    },
-    {
-      "file": "reference-frames/earth/idle/023.png",
-      "bytes": 15313,
-      "sha256": "4899cc04fac3adcfd0c0a923f6d8e370a892db7b1e0e7fe070a071833e6a428d"
-    },
-    {
-      "file": "reference-frames/earth/idle/024.png",
-      "bytes": 15283,
-      "sha256": "95e2f5a4fe235b7fed765cc8f775b671ccf0e050f8e35edbb9fd25acbee3c1c3"
-    },
-    {
-      "file": "reference-frames/earth/idle/025.png",
-      "bytes": 15251,
-      "sha256": "82b9cfda0cec34eda4bab1e0f598e44c845bc63a6ccb96b53542949917a9d509"
-    },
-    {
-      "file": "reference-frames/earth/idle/026.png",
-      "bytes": 15301,
-      "sha256": "0f6cb106af8e3f2e231f09c0000a8d89ba1fa3bac86dafa6f42af0986d267ea3"
-    },
-    {
-      "file": "reference-frames/earth/idle/027.png",
-      "bytes": 15291,
-      "sha256": "cd9043023637a384f9d2111cf243f2477a86e3479721d446ef7728a82a187564"
-    },
-    {
-      "file": "reference-frames/earth/idle/028.png",
-      "bytes": 15275,
-      "sha256": "76481975fbfea46fb14540f591e718630a6a5034114e22a4bed445bef8103374"
-    },
-    {
-      "file": "reference-frames/earth/idle/029.png",
-      "bytes": 15293,
-      "sha256": "a5b41f0f9728937ea9c699fc0900fe47e9b44934bb0e65446093dfe2d6838f3e"
+      "bytes": 1113063,
+      "sha256": "88e46bdf473c40e81aab74211b7aed8fa5684f0ef45b5d5a0b187fb8ffd1c065"
     }
-  ],
-  "sourceDefects": "earth_idle.png is internally truncated despite a valid ZIP CRC. All other 33 sheets fully decode. The 30 corresponding individual PNG frames fully decode and are retained as original references for reconstructing this one sheet. See normalization.json for repair and normalized output hashes."
+  ]
 }

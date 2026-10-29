@@ -13,53 +13,46 @@ const hash = data => createHash('sha256').update(data).digest('hex');
 const frameSize = 192;
 await mkdir(new URL('runtime/', root), { recursive: true });
 await mkdir(new URL('portraits/', root), { recursive: true });
-await mkdir(new URL('repairs/', root), { recursive: true });
 const run = args => new Promise((resolve, reject) => {
   const command = spawn('magick', args, { stdio: ['ignore', 'pipe', 'pipe'] });
   let error = ''; command.stderr.on('data', data => { error += data; });
   command.on('error', reject); command.on('close', code => code === 0 ? resolve() : reject(new Error(`ImageMagick exited ${code}: ${error}`)));
 });
 const outputs = [];
-// The archive's earth_idle.png is truncated. Its 30 separate supplied frames are complete.
-const repairFrames = Array.from({ length: 30 }, (_, index) => `reference-frames/earth/idle/${String(index).padStart(3, '0')}.png`);
-for (const file of repairFrames) assert.equal(hash(await readFile(new URL(file, root))), sourceHashes.get(file), `${file}: original hash`);
-const repairFile = 'repairs/earth_idle.png';
-await run(['montage', ...repairFrames.map(file => fileURLToPath(new URL(file, root))), '-compose', 'Copy', '-tile', '10x3', '-geometry', '256x256+0+0', '-background', 'none', fileURLToPath(new URL(repairFile, root))]);
-const repairData = await readFile(new URL(repairFile, root));
-const repairs = [{ file: repairFile, sha256: hash(repairData), bytes: repairData.byteLength, width: 2560, height: 768,
-  reason: 'Original sheets/earth_idle.png is truncated; reconstruct the same row-major cells from the 30 complete individual frames supplied in the same archive.',
-  originalFile: 'sheets/earth_idle.png', originalSha256: sourceHashes.get('sheets/earth_idle.png'),
-  inputs: repairFrames.map(file => ({ file, sha256: sourceHashes.get(file) })),
-  conversion: 'magick montage reference-frames/earth/idle/000.png ... 029.png -compose Copy -tile 10x3 -geometry 256x256+0+0 -background none repairs/earth_idle.png' }];
+// The painted revision supplies complete sheets and separate matching icons.
+// Check every admitted source before deriving runtime data from any of them.
+for (const file of provenance.files) assert.equal(hash(await readFile(new URL(file.file, root))), file.sha256, `${file.file}: original hash`);
 const jobs = manifest.towers.flatMap(tower => {
   assert.match(tower.id, /^[a-z]+$/);
-  return ['idle', 'attack'].map(animation => ({ kind: tower.id, animation, source: tower.id === 'earth' && animation === 'idle' ? repairFile : `sheets/${tower.id}_${animation}.png` }));
+  return ['idle', 'attack'].map(animation => ({ kind: tower.id, animation, source: tower[animation] }));
 });
 let cursor = 0;
 await Promise.all(Array.from({ length: 4 }, async () => {
   while (cursor < jobs.length) {
     const job = jobs[cursor++], source = new URL(job.source, root), sourceData = await readFile(source);
-    assert.equal(hash(sourceData), job.source === repairFile ? repairs[0].sha256 : sourceHashes.get(job.source), `${job.source}: source hash`);
+    assert.equal(hash(sourceData), sourceHashes.get(job.source), `${job.source}: source hash`);
     const file = `runtime/${job.kind}_${job.animation}.webp`, target = new URL(file, root);
     const arguments_ = [fileURLToPath(source), '-filter', 'Lanczos', '-resize', '1920x576!', '-define', 'webp:lossless=true', fileURLToPath(target)];
     await run(arguments_);
     const data = await readFile(target);
     outputs.push({ file, source: job.source, sourceSha256: hash(sourceData), width: 1920, height: 576, bytes: data.byteLength, sha256: hash(data) });
     if (job.animation === 'idle') {
+      const icon = `icons/${job.kind}.png`, iconSource = new URL(icon, root), iconData = await readFile(iconSource);
+      assert.equal(hash(iconData), sourceHashes.get(icon), `${icon}: source hash`);
       const portrait = `portraits/${job.kind}.webp`, portraitTarget = new URL(portrait, root);
-      await run([fileURLToPath(source), '-crop', '256x256+0+0', '+repage', '-filter', 'Lanczos', '-resize', '192x192!', '-define', 'webp:lossless=true', fileURLToPath(portraitTarget)]);
+      await run([fileURLToPath(iconSource), '-filter', 'Lanczos', '-resize', '192x192!', '-define', 'webp:lossless=true', fileURLToPath(portraitTarget)]);
       const portraitData = await readFile(portraitTarget);
-      outputs.push({ file: portrait, source: job.source, sourceSha256: hash(sourceData), sourceCrop: { x: 0, y: 0, width: 256, height: 256 }, width: frameSize, height: frameSize, bytes: portraitData.byteLength, sha256: hash(portraitData) });
+      outputs.push({ file: portrait, source: icon, sourceSha256: hash(iconData), width: frameSize, height: frameSize, bytes: portraitData.byteLength, sha256: hash(portraitData) });
     }
   }
 }));
 outputs.sort((a, b) => a.file.localeCompare(b.file));
-const metadata = { version: 1, frameWidth: frameSize, frameHeight: frameSize, columns: manifest.columns, rows: manifest.rows, frameCount: manifest.frameCount, fps: manifest.fps, anchor: manifest.anchor,
-  method: 'ImageMagick Lanczos downsample to 75% of original dimensions, then lossless WebP encoding. Portraits crop the original first idle cell before the same downsample. Original PNGs are retained unchanged and are not loaded at runtime.',
+const metadata = { version: 2, frameWidth: frameSize, frameHeight: frameSize, columns: manifest.columns, rows: manifest.rows, frameCount: manifest.frameCount, fps: manifest.fps, anchor: manifest.anchor,
+  method: 'ImageMagick Lanczos downsample to 75% of original dimensions, then lossless WebP encoding. Portraits use the supplied matching 256px icons with the same downsample. Original PNGs are retained unchanged and are not loaded at runtime.',
   reason: '1920px sheet width fits 2048px WebGL texture limits; decoded tower-sheet memory decreases from 255 to 143 MiB. Separate portraits avoid DOM decoding seventeen full sheets.',
   sourceFrameSize: 256, semanticChanges: 'None: same artwork, transparency, frame count, timing, cell layout, and normalized anchor.',
   command: 'node scripts/normalize-tower-assets.mjs',
   sheetConversion: 'magick SOURCE.png -filter Lanczos -resize 1920x576! -define webp:lossless=true runtime/KIND_STATE.webp',
-  portraitConversion: 'magick SOURCE_IDLE.png -crop 256x256+0+0 +repage -filter Lanczos -resize 192x192! -define webp:lossless=true portraits/KIND.webp', repairs, outputs };
+  portraitConversion: 'magick icons/KIND.png -filter Lanczos -resize 192x192! -define webp:lossless=true portraits/KIND.webp', repairs: [], outputs };
 await writeFile(new URL('normalization.json', root), JSON.stringify(metadata, null, 2) + '\n');
 console.log(`Normalized ${jobs.length} sheets and ${manifest.towers.length} portraits; originals unchanged.`);

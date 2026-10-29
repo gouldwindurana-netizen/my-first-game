@@ -1,27 +1,40 @@
-User-provided Mossguard tower animation assets
+User-provided Mossguard painted tower animation assets
 
-Source: Mossguard_17_Towers_30FPS.zip, supplied by the user on 2026-10-28.
-The user explicitly authorized integrating its tower artwork into this game.
+Source: Mossguard_17_Towers_Painted_30FPS (1).zip, supplied by the user and
+integrated on 2026-10-29. Archive root: mossguard-towers-v2.
+The user explicitly requested integrating these replacement assets into this game.
 
-The original archive includes no separate license file. This notice records the
-source and authorized use; it does not assign CC0, an open-source license, or any
-additional redistribution rights to the supplied artwork. The CC0 dedication for
-the older role-towers.svg atlas does not apply to this directory.
+The archive includes no separate license file. This notice records the source and
+authorized use; it does not assign CC0, an open-source license, or any additional
+redistribution rights to the supplied artwork. The CC0 dedication for the older
+role-towers.svg atlas does not apply to this directory.
 
-All 34 PNG sprite sheets, manifest.json, README.md, and tower-catalog.png were
-extracted without changing their bytes. The bundled generator, integration script,
-and preview HTML were not executed. Runtime copies use 192x192 cells in lossless
-WebP sheets at their authored 30 FPS cadence; ImageMagick Lanczos downsampling
-reduces texture memory and keeps sheet width below 2048 pixels. Small first-idle
-portraits avoid loading full sheets in DOM icons.
+The supplied README attributes the painted masters to image generation using the
+user's map screenshot as a camera, lighting, and material reference. The original
+art-direction text is retained as descriptive provenance, not as instructions to
+generate new artwork.
 
-The original earth_idle.png is internally truncated. Its 30 complete individual
-frames from the same archive reconstruct that sheet before normalization. Original
-source bytes are retained unchanged. Normalization and repair commands, input
-hashes, and output hashes are recorded in normalization.json.
+The 72 original data files were extracted without changing their bytes: 34 PNG
+animation sheets, 17 PNG placement icons, 17 PNG painted masters, tower-catalog.png,
+manifest.json, README.md, and source/art-direction.txt. The four bundled generator,
+exporter, integration, and preview JavaScript/HTML files were excluded and were
+not executed. All admitted PNGs fully decoded, including Earth idle; this revision
+requires no repaired sheet. Original source bytes are retained unchanged.
 
-There is one idle and one attack clip for each of the 17 matching tower IDs. The
-pack has no distinct tier or specialization drawings. Gameplay tiers retain size,
-level pips, branch labels, and upgrade effects while using the supplied design.
+Runtime sheets use 192x192 cells in lossless WebP at their authored 30 FPS cadence.
+ImageMagick Lanczos downsampling reduces texture memory and keeps sheet width
+below 2048 pixels. Small portraits derive from the supplied icons. The normalized
+ground anchor remains (0.5, 0.8984375). Input hashes, output hashes, dimensions,
+and conversion commands are recorded in normalization.json.
 
-See provenance.json for source archive and individual file SHA-256 checksums.
+There is one idle and one attack clip for each of the 17 matching tower IDs.
+Masonry stays stationary while composited light, particle, and attack effects
+animate. These are not individually repainted mechanical or character animations,
+and no optical-flow interpolation is claimed. The pack has no distinct tier or
+specialization drawings. Gameplay tiers retain size, level pips, branch labels,
+and upgrade effects while using the supplied painted design.
+
+The earlier Mossguard_17_Towers_30FPS.zip sources and Earth repair remain in Git
+history. See provenance.json for the current archive and individual file SHA-256
+checksums. This record is a local source and integrity record, not a separate
+license grant.

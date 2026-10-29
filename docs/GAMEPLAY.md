@@ -1,6 +1,6 @@
 # Combat and progression
 
-Mossguard has 12 stages, 17 tower families, 68 specializations, and 40 enemy types. Every stage has 25 Easy, 50 Normal, 75 Hard, or 100 Hell waves and 14–16 named foundations on curated land. Each tower family uses the supplied 30-FPS idle and attack sheets. The pack has one appearance per family; tier size and badges identify upgrades. The campaign uses five map illustrations and four enemy walking families with role/status overlays, rather than forty unique enemy animation strips.
+Mossguard has 12 stages, 17 tower families, 68 specializations, and 40 enemy types. Every stage has 25 Easy, 50 Normal, 75 Hard, or 100 Hell waves and 14–16 named foundations on curated land. Each tower family uses the supplied painted forest-ruins design and 30-FPS idle and attack effect sheets. Matching portraits come from the supplied icons. Masonry stays stationary while light, particles, and firing effects animate. The pack has one appearance per family; tier size and badges identify upgrades. The campaign uses five map illustrations and four enemy walking families with role/status overlays, rather than forty unique enemy animation strips.
 
 ## Navigation
 

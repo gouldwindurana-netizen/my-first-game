@@ -118,10 +118,12 @@ export const getTowerTexture = (kind: string, animation: TowerAnimation = 'idle'
 /** The supplied pack has one design per family; all gameplay tiers share its authored clips. */
 export const getTowerFrameKey = (kind: string, _level = 1, animation: TowerAnimation = 'idle', frame = 0): string =>
   `${getTowerVisualKind(kind)}-${animation}-${Math.max(0, Math.min(TOWER_FRAME_COUNT - 1, Math.floor(Number.isFinite(frame) ? frame : 0)))}`;
+// Painted weapon outlets use the original 256px cell coordinates, matching each
+// visible barrel mouth, crossbow tip, lens, or energy core.
 const muzzle: Record<TowerKind, [number, number]> = {
-  archer:[128,70], cannon:[156,74], mortar:[128,78], frost:[128,78], earth:[128,80], arcane:[128,83],
-  tesla:[128,57], venom:[140,92], prism:[128,78], trap:[128,177], sonic:[164,70], barracks:[128,122],
-  void:[128,85], solar:[128,74], chrono:[128,75], truesight:[128,81], nexus:[128,96],
+  archer:[181,49], cannon:[192,50], mortar:[156,55], frost:[130,66], earth:[124,82], arcane:[129,64],
+  tesla:[130,57], venom:[102,119], prism:[132,80], trap:[128,187], sonic:[185,52], barracks:[108,177],
+  void:[131,114], solar:[131,68], chrono:[130,132], truesight:[134,68], nexus:[131,110],
 };
 export function getTowerAsset(kind: string, animation: TowerAnimation = 'idle') {
   const family = getTowerVisualKind(kind);
@@ -148,7 +150,7 @@ for (const kind of TOWER_KINDS) for (const animation of ['idle', 'attack'] as co
   }
 }
 
-/** Portraits use the matching first idle pose; the pack does not include separate upgrade drawings. */
+/** Portraits use the matching supplied placement icon; upgrades share the family artwork. */
 let portraitSequence = 0;
 export function towerArt(kind: string, level = 1): string {
   const discipline = getTowerVisualKind(kind), key = getTowerFrameKey(discipline, level), frame = suppliedAtlas.frames[key];

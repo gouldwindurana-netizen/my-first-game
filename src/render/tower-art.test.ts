@@ -5,11 +5,11 @@ import normalization from '../assets/towers/animated/normalization.json';
 import manifest from '../assets/towers/animated/manifest.json';
 import { sampleTowerAnimation } from './tower-animation';
 
-describe('user-supplied 30 FPS tower pack', () => {
+describe('user-supplied painted 30 FPS tower pack', () => {
   it('maps every catalog family to its matching two matching normalized sheets', () => {
     expect(manifest.towers.map(tower => tower.id)).toEqual([...TOWER_KINDS]);
-    expect(manifest).toMatchObject({ fps: 30, columns: 10, rows: 3, frameWidth: 256, frameHeight: 256, frameCount: 30, anchor: { x: .5, y: .82 } });
-    expect(normalization).toMatchObject({ frameWidth: 192, frameHeight: 192, fps: 30, columns: 10, rows: 3, frameCount: 30, anchor: { x: .5, y: .82 } });
+    expect(manifest).toMatchObject({ version: 2, fps: 30, columns: 10, rows: 3, frameWidth: 256, frameHeight: 256, frameCount: 30, anchor: { x: .5, y: 230 / 256 } });
+    expect(normalization).toMatchObject({ frameWidth: 192, frameHeight: 192, fps: 30, columns: 10, rows: 3, frameCount: 30, anchor: { x: .5, y: 230 / 256 } });
     const textures = new Set<string>();
     for (const kind of TOWER_KINDS) {
       expect(getTowerVisualKind(kind)).toBe(kind);
@@ -21,6 +21,7 @@ describe('user-supplied 30 FPS tower pack', () => {
       }
       // No tier variants are supplied: upgrades must not substitute unrelated artwork.
       expect(getTowerFrameKey(kind, 1)).toBe(getTowerFrameKey(kind, 3));
+      expect(normalization.outputs.find(output => output.file === `portraits/${kind}.webp`)?.source).toBe(`icons/${kind}.png`);
     }
     expect(textures.size).toBe(34);
   });
@@ -28,14 +29,14 @@ describe('user-supplied 30 FPS tower pack', () => {
   it('crops all 1020 poses row-major without neighboring cells and preserves the shared anchor', () => {
     for (const kind of TOWER_KINDS) for (const animation of ['idle', 'attack'] as const) for (let index = 0; index < 30; index++) {
       const frame = suppliedAtlas.frames[getTowerFrameKey(kind, 1, animation, index)];
-      expect(frame).toMatchObject({ sheet: getTowerTexture(kind, animation), x: index % 10 * 192, y: Math.floor(index / 10) * 192, width: 192, height: 192, originX: .5, originY: .82 });
+      expect(frame).toMatchObject({ sheet: getTowerTexture(kind, animation), x: index % 10 * 192, y: Math.floor(index / 10) * 192, width: 192, height: 192, originX: .5, originY: 230 / 256 });
       expect(frame.x + frame.width).toBeLessThanOrEqual(1920); expect(frame.y + frame.height).toBeLessThanOrEqual(576);
       for (const coordinate of [frame.muzzleX, frame.muzzleY]) { expect(coordinate).toBeGreaterThanOrEqual(0); expect(coordinate).toBeLessThanOrEqual(1); }
     }
     expect(Object.values(suppliedAtlas.frames).filter(frame => frame.sheet.startsWith('supplied-towers-30fps-'))).toHaveLength(1020);
   });
 
-  it('clips repeated static portraits independently to the first matching idle cell', () => {
+  it('clips repeated supplied placement-icon portraits independently', () => {
     const markup = towerArt('frost', 1), repeat = towerArt('frost', 3);
     expect(markup.match(/<svg\b/g)).toHaveLength(1);
     const clip = markup.match(/<clipPath id="([^"]+)" clipPathUnits="userSpaceOnUse"/);
